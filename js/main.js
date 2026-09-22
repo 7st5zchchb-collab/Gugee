@@ -85,8 +85,18 @@ function renderWatchlist(){
     const coin=favoriteDefaults[id]||{name:id,symbol:id.slice(0,4).toUpperCase()};
     const card=document.createElement("a");
     card.className="watchlist-card"; card.href="crypto.html?coin="+encodeURIComponent(id);
-    card.innerHTML='<div><b>'+coin.name+'</b><span>'+coin.symbol+'</span></div><strong>Open →</strong>';
+    card.innerHTML='<div><b>'+coin.name+'</b><span>'+coin.symbol+'</span></div><div class="watchlist-market"><strong class="watch-price">Loading...</strong><span class="watch-change">--</span></div>';
     watchlistGrid.appendChild(card);
+    fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(id)+"&vs_currencies=usd&include_24hr_change=true")
+      .then(r=>r.json()).then(data=>{
+        const item=data[id];
+        const priceEl=card.querySelector(".watch-price"), changeEl=card.querySelector(".watch-change");
+        if(!item) return;
+        priceEl.textContent="$"+Number(item.usd).toLocaleString(undefined,{maximumSignificantDigits:7});
+        const change=item.usd_24h_change;
+        changeEl.textContent=change==null?"--":(change>=0?"+":"")+change.toFixed(2)+"%";
+        changeEl.style.color=change>=0?"var(--green)":"#ff5c5c";
+      }).catch(()=>{});
   });
 }
 document.getElementById("clearWatchlist")?.addEventListener("click",()=>saveWatchlist([]));
