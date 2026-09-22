@@ -156,3 +156,8 @@
 .history-metrics .negative{color:#ff5b63}
 @media(max-width:800px){.history-metrics{grid-template-columns:1fr 1fr 1fr}}
 @media(max-width:500px){.history-metrics{grid-template-columns:1fr 1fr}}
+
+
+.history-assets{display:flex;gap:4px;margin-top:6px}
+.history-asset{border:1px solid #242429;background:#101012;color:#666;border-radius:5px;padding:4px 7px;font-size:8px;cursor:pointer}
+.history-asset.active{color:#eee;border-color:#555}
