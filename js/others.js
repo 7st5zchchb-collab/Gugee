@@ -89,7 +89,7 @@ async function load(){
   if(loading)return;
   loading=true;
   status.textContent="Loading 1000 cryptocurrencies...";
-  grid.innerHTML='<div class="exchange-directory-empty">Loading 1000 cryptocurrency cards...</div>';
+  if(!grid.children.length)grid.innerHTML='<div class="exchange-directory-empty">Loading 1000 cryptocurrency cards...</div>';
   try{
     let coins;
     try{
@@ -109,7 +109,7 @@ async function load(){
     allCoins=[];
     count.textContent="0 cryptocurrencies";
     status.textContent="Loading failed";
-    grid.innerHTML='<div class="exchange-directory-empty">Could not load the 1000 cryptocurrencies. Please refresh the page.</div>';
+    if(!grid.children.length)grid.innerHTML='<div class="exchange-directory-empty">Could not load the 1000 cryptocurrencies. Please refresh the page.</div>';
   }finally{
     loading=false;
   }
