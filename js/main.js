@@ -45,7 +45,7 @@ function renderSearchResults(coins, exchanges, query) {
   searchSuggestions.querySelectorAll(".suggestion").forEach(button => {
     button.addEventListener("click", () => {
       if (button.dataset.kind === "exchange") {
-        window.location.href = "markets.html#exchanges";
+        window.location.href = "exchange.html?exchange=" + encodeURIComponent(button.dataset.exchange);
         return;
       }
       window.location.href = "crypto.html?coin=" + encodeURIComponent(button.dataset.coin);
@@ -105,7 +105,7 @@ searchForm.addEventListener("submit", async event => {
 
   const exchange = exchangeDirectory.find(item => item.name.toLowerCase() === query.toLowerCase());
   if (exchange) {
-    window.location.href = "markets.html#exchanges";
+    window.location.href = "exchange.html?exchange=" + encodeURIComponent(exchange.target);
     return;
   }
 
@@ -168,7 +168,7 @@ async function loadHomeExchanges(){
   homeExchangeGrid.innerHTML=rows.map(x=>{
     const cls=x.change==null?"neutral":x.change>=0?"positive":"negative";
     const ch=x.change==null?"--":(x.change>=0?"+":"")+x.change.toFixed(2)+"%";
-    return '<a class="exchange-card" href="markets.html#exchanges"><div class="exchange-home-brand"><img src="'+x.logo+'" alt="'+x.name+' logo" loading="lazy"><b>'+x.name+'</b></div><strong>'+homeExchangeMoney(x.price)+'</strong><span class="'+cls+'">'+ch+' · 24H</span></a>';
+    return '<a class="exchange-card" href="exchange.html?exchange='+x.provider+'"><div class="exchange-home-brand"><img src="'+x.logo+'" alt="'+x.name+' logo" loading="lazy"><b>'+x.name+'</b></div><strong>'+homeExchangeMoney(x.price)+'</strong><span class="'+cls+'">'+ch+' · 24H</span></a>';
   }).join("");
 }
 document.querySelectorAll(".coin-link").forEach(button => {
