@@ -1,104 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="description" content="Gugee — live cryptocurrency market overview.">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="Gugee — global cryptocurrency market overview and educational market context.">
 <title>Gugee — Markets</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
-<body><div class="background-glow"></div>
+<body>
+<div class="background-glow"></div>
 <header class="site-header">
 <a class="brand" href="./"><span class="brand-mark">G</span><span>Gugee</span></a>
-<nav class="nav"><a class="active" href="markets.html">Markets</a><a href="cryptos.html">Crypto</a><a href="./#analysis">Analysis</a><a href="exchanges.html">Exchanges</a></nav>
+<nav class="nav">
+<a class="active" href="markets.html">Markets</a>
+<a href="cryptos.html">Crypto</a>
+<a href="analysis.html">Analysis</a>
+<a href="exchanges.html">Exchanges</a>
+</nav>
 <a class="login-button" href="login.html">Log in</a>
 </header>
+
 <main class="markets-page">
+<section class="markets-intro">
+  <div>
+    <p class="section-label">MARKET</p>
+    <h1>Global crypto market overview</h1>
+    <p>See the overall market condition, total market value, trading activity and market direction. Individual cryptocurrencies are kept in the separate Crypto section.</p>
+  </div>
+  <form class="market-search" id="marketSearchForm">
+    <input id="marketSearch" type="search" placeholder="Search a cryptocurrency..." autocomplete="off" aria-label="Search cryptocurrency">
+    <button type="submit">Search</button>
+  </form>
+</section>
+
 <section class="global-stats">
 <div class="global-stat"><span>GLOBAL MARKET CAP</span><strong id="globalCap">--</strong></div>
 <div class="global-stat"><span>24H VOLUME</span><strong id="globalVolume">--</strong></div>
 <div class="global-stat"><span>BTC DOMINANCE</span><strong id="btcDominance">--</strong></div>
-<div class="global-stat"><span>ACTIVE CRYPTO</span><strong id="activeCoins">--</strong></div><div class="global-stat"><span>MARKET BREADTH</span><strong id="marketBreadth">--</strong></div>
+<div class="global-stat"><span>ACTIVE CRYPTO</span><strong id="activeCoins">--</strong></div>
+<div class="global-stat"><span>MARKET BREADTH</span><strong id="marketBreadth">--</strong></div>
 </section>
-<section class="global-chart-section"><div class="global-chart-heading"><div><p class="section-label">GLOBAL MARKET CAP</p><h2>Market cap history</h2></div><div class="global-chart-ranges"><button class="global-range active" data-days="1">24H</button><button class="global-range" data-days="7">7D</button><button class="global-range" data-days="30">30D</button><button class="global-range" data-days="365">1Y</button></div></div><div class="global-chart-wrap"><canvas id="globalMarketChart"></canvas><div id="globalChartTooltip" class="global-chart-tooltip"></div></div></section>
+
+<section class="global-chart-section">
+<div class="global-chart-heading">
+  <div><p class="section-label">GLOBAL MARKET CAP</p><h2>Market cap history</h2></div>
+  <div class="global-chart-ranges">
+    <button class="global-range active" data-days="1">24H</button>
+    <button class="global-range" data-days="7">7D</button>
+    <button class="global-range" data-days="30">30D</button>
+    <button class="global-range" data-days="365">1Y</button>
+  </div>
+</div>
+<div class="global-chart-wrap"><canvas id="globalMarketChart"></canvas><div id="globalChartTooltip" class="global-chart-tooltip"></div></div>
+</section>
+
+<section class="market-condition-panel">
+  <div class="exchange-overview-heading">
+    <div><p class="section-label">MARKET CONDITION</p><h2 id="marketConditionTitle">Reading the market...</h2></div>
+    <small id="marketConditionUpdated">Updating...</small>
+  </div>
+  <div class="market-condition-grid">
+    <article><span>Direction</span><strong id="marketDirection">--</strong><p id="marketDirectionText">--</p></article>
+    <article><span>Activity</span><strong id="marketActivity">--</strong><p id="marketActivityText">--</p></article>
+    <article><span>Breadth</span><strong id="marketBreadthValue">--</strong><p id="marketBreadthText">--</p></article>
+  </div>
+</section>
+
+<section class="market-education">
+  <div class="feature-card">
+    <p class="section-label">MARKET GUIDE</p>
+    <h2>What makes the market go up or down?</h2>
+    <p>Market movement is not tied to one coin. Broad moves can come from changes in demand, trading volume, liquidity, macroeconomic conditions, regulation, major news and shifts in investor sentiment.</p>
+  </div>
+  <div class="feature-list">
+    <div><span>01</span><b>When the market rises</b><small>Market value and demand are increasing across a wider part of the market.</small></div>
+    <div><span>02</span><b>When the market falls</b><small>Risk appetite, liquidity or demand can decrease and selling pressure can spread.</small></div>
+    <div><span>03</span><b>How to read it</b><small>Compare market cap, volume, breadth and historical movement instead of one price alone.</small></div>
+  </div>
+</section>
+
 <section class="exchange-overview">
 <div class="exchange-overview-heading"><div><p class="section-label">EXCHANGE OVERVIEW</p><h2>Live exchange prices</h2></div><small id="exchangeUpdated">Updating...</small></div>
-<div class="exchange-overview-grid exchange-major-grid" id="exchangeOverview"><div class="exchange-overview-empty">Loading exchange data...</div></div></section><section class="screener-panel">
-  <div class="exchange-overview-heading">
-    <div><p class="section-label">MARKET SCREENER</p><h2>Custom crypto filters</h2></div>
-    <small id="screenerCount">-- assets</small>
+<div class="exchange-overview-grid exchange-major-grid" id="exchangeOverview"><div class="exchange-overview-empty">Loading exchange data...</div></div>
+</section>
+
+<section class="market-next-section">
+  <div>
+    <p class="section-label">SEPARATE SECTIONS</p>
+    <h2>Research without mixing the pages</h2>
+    <p>Crypto contains the individual coins and their detailed pages. Analysis contains general market education and market-condition analysis. Exchanges contains the exchange directory.</p>
   </div>
-  <div class="screener-advanced">
-  <label>Direction<select id="screenDirection"><option value="all">All</option><option value="gainers">Gainers</option><option value="losers">Losers</option></select></label>
-  <label>Liquidity<select id="screenLiquidity"><option value="all">All</option><option value="high">High &gt; 5%</option><option value="medium">Medium 1–5%</option><option value="low">Low &lt; 1%</option></select></label>
-  <label>Volatility<select id="screenVolatility"><option value="all">All</option><option value="low">Lower</option><option value="medium">Medium</option><option value="high">High</option></select></label>
-  <label>Sort<select id="screenSort"><option value="cap">Market Cap</option><option value="24h">24H Change</option><option value="30d">30D Change</option><option value="volume">Volume</option></select></label>
-</div><div class="screener-controls">
-    <label>24H min %<input id="screen24" type="number" step="0.1" placeholder="-100"></label>
-    <label>30D min %<input id="screen30" type="number" step="0.1" placeholder="-100"></label>
-    <label>Min market cap ($M)<input id="screenCap" type="number" min="0" placeholder="0"></label>
-    <label>Min volume/cap %<input id="screenRatio" type="number" min="0" step="0.1" placeholder="0"></label>
-    <button id="runScreener" type="button">Apply filters</button>
+  <div class="market-next-links">
+    <a href="cryptos.html">Open Crypto</a>
+    <a href="analysis.html">Open Analysis</a>
+    <a href="exchanges.html">Open Exchanges</a>
   </div>
-  <div class="screener-table-wrap"><table class="screener-table"><thead><tr><th>Asset</th><th>Price</th><th>24H</th><th>30D</th><th>Market Cap</th><th>Vol/Cap</th></tr></thead><tbody id="screenerBody"><tr><td colspan="6">Loading screener...</td></tr></tbody></table></div>
 </section>
-<section class="risk-dashboard-panel">
-  <div class="exchange-overview-heading">
-    <div><p class="section-label">VOLATILITY & RISK</p><h2>Historical risk dashboard</h2></div>
-    <small>30D descriptive statistics</small>
-  </div>
-  <div class="risk-grid" id="riskDashboard"><div class="exchange-overview-empty">Loading risk metrics...</div></div>
-</section>
-<section class="correlation-panel">
-  <div class="exchange-overview-heading">
-    <div><p class="section-label">MARKET RELATIONSHIP</p><h2>30D asset correlation</h2></div>
-    <small>Return correlation · descriptive</small>
-  </div>
-  <div class="correlation-table-wrap" id="correlationTable"><div class="exchange-overview-empty">Loading correlation...</div></div>
-</section>
-<section class="market-history-panel">
-  <div class="exchange-overview-heading">
-    <div><p class="section-label">HISTORICAL MARKET ANALYSIS</p><h2 id="historyTitle">BTC historical trend</h2><div class="history-assets"><button class="history-asset active" data-coin="bitcoin" data-label="BTC">BTC</button><button class="history-asset" data-coin="ethereum" data-label="ETH">ETH</button><button class="history-asset" data-coin="solana" data-label="SOL">SOL</button><button class="history-asset" data-coin="binancecoin" data-label="BNB">BNB</button></div></div>
-    <div class="history-controls"><button class="history-range active" data-days="30">30D</button><button class="history-range" data-days="90">90D</button></div>
-  </div>
-  <div class="history-chart-wrap"><svg id="btcHistoryChart" viewBox="0 0 900 280" preserveAspectRatio="none"></svg><div id="btcHistoryTooltip" class="history-tooltip"></div></div>
-  <div class="history-metrics" id="btcHistoryMetrics"><span>Loading historical metrics...</span></div>
-</section>
-<section class="analysis-engine-panel">
-  <div class="exchange-overview-heading">
-    <div><p class="section-label">GUGEE ANALYSIS ENGINE</p><h2>Multi-factor market analysis</h2></div>
-    <small>Rule-based descriptive signals</small>
-  </div>
-  <div class="analysis-engine-grid" id="analysisEngine"><div class="exchange-overview-empty">Loading analysis...</div></div>
-</section>
-<section class="market-signals-panel">
-  <div class="exchange-overview-heading">
-    <div><p class="section-label">MARKET SIGNALS</p><h2>Live market condition</h2></div>
-    <small>Descriptive indicators</small>
-  </div>
-  <div class="signals-grid" id="marketSignals"><div class="exchange-overview-empty">Loading signals...</div></div>
-</section>
-<div class="exchange-spread-panel">
-  <div class="exchange-overview-heading">
-    <div><p class="section-label">PRICE SPREAD</p><h2>Cross-exchange spread monitor</h2></div>
-    <small>Descriptive market data</small>
-  </div>
-  <div class="spread-grid" id="spreadGrid"><div class="exchange-overview-empty">Loading spread data...</div></div>
-</div>
-<div class="exchange-assets"><div class="exchange-assets-heading"><span>ASSET</span><span>BINANCE</span><span>COINBASE</span><span>KRAKEN</span><span>BYBIT</span></div><div id="exchangeAssetRows"></div></div>
-</section>
-<section class="market-heatmap-section"><div class="heatmap-heading"><div><p class="section-label">MARKET HEATMAP</p><h2>Market momentum</h2></div><small>24H performance · market cap weighted</small></div><div id="marketHeatmap" class="market-heatmap"></div></section>
-<section class="market-highlights">
-<div class="highlight-card"><div class="highlight-title"><span>TOP GAINERS</span><small>24H</small></div><div id="topGainers"></div></div>
-<div class="highlight-card"><div class="highlight-title"><span>TOP LOSERS</span><small>24H</small></div><div id="topLosers"></div></div>
-</section>
-<section class="markets-header">
-<div><p class="section-label">CRYPTO MARKETS</p><h1>Market overview</h1><p>Live prices, market caps, volume and 24H performance.</p></div>
-<div class="markets-controls"><label class="market-favorites-toggle"><input type="checkbox" id="favoritesOnly"> Favorites only</label><input id="marketSearch" type="search" placeholder="Search crypto..." autocomplete="off"><select id="categorySelect"><option value="all">All categories</option><option value="defi">DeFi</option><option value="layer1">Layer 1</option><option value="meme">Meme</option><option value="stablecoin">Stablecoins</option><option value="ai">AI</option></select><select id="changePeriod"><option value="all">All price changes</option><option value="24h">24H</option><option value="7d">7D</option><option value="30d">30D</option></select><select id="changeDirection"><option value="all">All moves</option><option value="gainers">Gainers</option><option value="losers">Losers</option></select><select id="liquiditySelect"><option value="all">All liquidity</option><option value="high">High liquidity &gt; 5%</option><option value="medium">Medium 1–5%</option><option value="low">Low &lt; 1%</option></select><select id="sortSelect"><option value="market_cap_desc">Market cap ↓</option><option value="price_desc">Price ↓</option><option value="change_desc">24H gainers ↓</option><option value="change_asc">24H losers ↓</option><option value="volume_desc">Volume ↓</option><option value="rank_asc">Rank ↑</option></select></div>
-</section>
-<div class="market-table-wrap"><table class="market-table"><thead><tr><th>#</th><th>Asset</th><th>★</th><th>7D Chart</th><th>Price</th><th>24H</th><th>7D</th><th>30D</th><th>Market Cap</th><th>24H Volume</th><th>Vol / Cap</th></tr></thead><tbody id="marketTableBody"><tr><td colspan="10" class="market-loading">Loading market data...</td></tr></tbody></table></div>
-<div class="markets-footer"><button id="loadMore" class="watchlist-clear">Load more</button><span id="marketStatus">Updating...</span></div>
 </main>
+
 <footer><span>© 2026 Gugee</span><span>Crypto analytics platform</span></footer>
 <script src="js/auth.js"></script>
 <script src="js/markets.js"></script>
-</body></html>
+</body>
+</html>
