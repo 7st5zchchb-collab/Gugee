@@ -22,7 +22,7 @@ async function loadRiskDashboard(){
  const ids=["bitcoin","ethereum","solana","binancecoin"],labels=["BTC","ETH","SOL","BNB"];
  try{
   const rows=await Promise.all(ids.map(async(id,i)=>{
-   const r=await fetch("https://api.coingecko.com/api/v3/coins/"+id+"/market_chart?vs_currency=usd&days=30");
+   const r=await fetch("/api/coingecko/coins/"+id+"/market_chart?vs_currency=usd&days=30");
    if(!r.ok)throw new Error();const d=await r.json(),prices=(d.prices||[]).map(x=>x[1]).filter(Number.isFinite);
    if(prices.length<10)throw new Error();
    const ret=prices.slice(1).map((v,k)=>v/prices[k]-1),mean=ret.reduce((a,b)=>a+b,0)/ret.length;
@@ -40,7 +40,7 @@ async function loadCorrelation(){
  const ids=["bitcoin","ethereum","solana","binancecoin"],labels=["BTC","ETH","SOL","BNB"];
  try{
   const series=await Promise.all(ids.map(async id=>{
-   const r=await fetch("https://api.coingecko.com/api/v3/coins/"+id+"/market_chart?vs_currency=usd&days=30");
+   const r=await fetch("/api/coingecko/coins/"+id+"/market_chart?vs_currency=usd&days=30");
    if(!r.ok)throw new Error();const d=await r.json();return (d.prices||[]).map(x=>x[1]);
   }));
   const n=Math.min(...series.map(x=>x.length));if(n<10)throw new Error();
@@ -53,7 +53,7 @@ async function loadBtcHistory(days=30,coin="bitcoin",label="BTC"){
  const svg=document.getElementById("btcHistoryChart"),tip=document.getElementById("btcHistoryTooltip"),metrics=document.getElementById("btcHistoryMetrics");
  if(!svg)return;
  try{
-  const r=await fetch("https://api.coingecko.com/api/v3/coins/"+coin+"/market_chart?vs_currency=usd&days="+days);
+  const r=await fetch("/api/coingecko/coins/"+coin+"/market_chart?vs_currency=usd&days="+days);
   if(!r.ok)throw new Error();
   const d=await r.json(),pts=(d.prices||[]).filter(x=>Number.isFinite(x[1]));
   if(pts.length<2)throw new Error();
@@ -67,9 +67,9 @@ async function loadBtcHistory(days=30,coin="bitcoin",label="BTC"){
  }catch{svg.innerHTML='<text x="50%" y="50%" text-anchor="middle" fill="currentColor">Historical data unavailable</text>'}
 }
 document.querySelectorAll(".history-range").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".history-range").forEach(x=>x.classList.remove("active"));btn.classList.add("active");const a=document.querySelector(".history-asset.active");loadBtcHistory(Number(btn.dataset.days),a?.dataset.coin||"bitcoin",a?.dataset.label||"BTC")})); document.querySelectorAll(".history-asset").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".history-asset").forEach(x=>x.classList.remove("active"));btn.classList.add("active");document.getElementById("historyTitle").textContent=btn.dataset.label+" historical trend";const r=document.querySelector(".history-range.active");loadBtcHistory(Number(r?.dataset.days||30),btn.dataset.coin,btn.dataset.label)}));
-const API="https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=";
-const GLOBAL_API="https://api.coingecko.com/api/v3/global";
-const GLOBAL_CHART_API="https://api.coingecko.com/api/v3/global/market_cap_chart?vs_currency=usd&days=";
+const API="/api/coingecko/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=";
+const GLOBAL_API="/api/coingecko/global";
+const GLOBAL_CHART_API="/api/coingecko/global/market_cap_chart?vs_currency=usd&days=";
 const globalCap=document.getElementById("globalCap"),globalVolume=document.getElementById("globalVolume"),btcDominance=document.getElementById("btcDominance"),activeCoins=document.getElementById("activeCoins"),marketBreadth=document.getElementById("marketBreadth"),topGainers=document.getElementById("topGainers"),topLosers=document.getElementById("topLosers"),marketHeatmap=document.getElementById("marketHeatmap"),globalMarketChart=document.getElementById("globalMarketChart"),globalChartTooltip=document.getElementById("globalChartTooltip");
 let globalChartData=[];
 const marketSignals=document.getElementById("marketSignals"),analysisEngine=document.getElementById("analysisEngine"),body=document.getElementById("marketTableBody"),liquidity=document.getElementById("liquiditySelect"),search=document.getElementById("marketSearch"),sort=document.getElementById("sortSelect"),category=document.getElementById("categorySelect"),changePeriod=document.getElementById("changePeriod"),changeDirection=document.getElementById("changeDirection"),more=document.getElementById("loadMore"),status=document.getElementById("marketStatus"),favoritesOnly=document.getElementById("favoritesOnly");
