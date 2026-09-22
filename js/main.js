@@ -70,11 +70,12 @@ loadMarketSnapshot();
 const favoriteDefaults = {
   bitcoin: {name:"Bitcoin", symbol:"BTC"},
   ethereum: {name:"Ethereum", symbol:"ETH"},
-  solana: {name:"Solana", symbol:"SOL"}
+  solana: {name:"Solana", symbol:"SOL"},
+  binancecoin: {name:"BNB", symbol:"BNB"}
 };
 const watchlistGrid=document.getElementById("watchlistGrid");
 const watchlistEmpty=document.getElementById("watchlistEmpty");
-const WATCHLIST_KEY="gugee_watchlist";
+const WATCHLIST_KEY=window.gugeeAuth?.getCurrentUser()? "gugee_watchlist_"+window.gugeeAuth.emailKey(window.gugeeAuth.getCurrentUser().email) : "gugee_watchlist_guest";
 function getWatchlist(){return JSON.parse(localStorage.getItem(WATCHLIST_KEY)||"[]")}
 function saveWatchlist(list){localStorage.setItem(WATCHLIST_KEY,JSON.stringify([...new Set(list)]));renderWatchlist()}
 let watchlistFilter="all";
