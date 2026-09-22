@@ -4,6 +4,7 @@ const bcrypt=require("bcryptjs");
 const jwt=require("jsonwebtoken");
 const {Pool}=require("pg");
 const crypto=require("crypto");
+const fs=require("fs");
 const {Resend}=require("resend");
 
 const app=express();
@@ -109,27 +110,30 @@ async function fetchCoinCapTop1000(){
   }));
 }
 
-async function top1000Coins(req,res){
-  if(top1000Cache.data&&Date.now()<top1000Cache.expires){
-    return res.json({count:top1000Cache.data.length,coins:top1000Cache.data,cached:true});
-  }
+async function getTop1000Coins(){
+  if(top1000Cache.data&&Date.now()<top1000Cache.expires)return top1000Cache.data;
+  let coins=null;
   try{
-    let coins=null;
-    try{
-      const pages=await Promise.all([1,2,3,4].map(page=>fetchCoinGeckoPage(page)));
-      const map=new Map();
-      pages.flat().forEach(coin=>map.set(coin.id,coin));
-      coins=Array.from(map.values()).slice(0,1000);
-      if(coins.length<900) throw new Error("CoinGecko returned too few cryptocurrencies");
-    }catch(coinGeckoError){
-      console.warn("CoinGecko top 1000 failed, using CoinCap fallback:",coinGeckoError.message);
-      coins=await fetchCoinCapTop1000();
-    }
-    top1000Cache={data:coins,expires:Date.now()+5*60*1000};
-    res.json({count:coins.length,coins,cached:false});
+    const pages=await Promise.all([1,2,3,4].map(page=>fetchCoinGeckoPage(page)));
+    const map=new Map();
+    pages.flat().forEach(coin=>map.set(coin.id,coin));
+    coins=Array.from(map.values()).slice(0,1000);
+    if(coins.length<900)throw new Error("CoinGecko returned too few cryptocurrencies");
+  }catch(coinGeckoError){
+    console.warn("CoinGecko top 1000 failed, using CoinCap fallback:",coinGeckoError.message);
+    coins=await fetchCoinCapTop1000();
+  }
+  top1000Cache={data:coins,expires:Date.now()+5*60*1000};
+  return coins;
+}
+
+async function top1000Coins(req,res){
+  try{
+    const coins=await getTop1000Coins();
+    res.json({count:coins.length,coins,cached:Date.now()<top1000Cache.expires});
   }catch(error){
     console.error("Top 1000 crypto error:",error);
-    if(top1000Cache.data) return res.json({count:top1000Cache.data.length,coins:top1000Cache.data,cached:true,stale:true});
+    if(top1000Cache.data)return res.json({count:top1000Cache.data.length,coins:top1000Cache.data,cached:true,stale:true});
     res.status(502).json({error:"Unable to load the 1000 cryptocurrencies right now"});
   }
 }
@@ -526,6 +530,48 @@ app.put("/api/watchlist",auth,async(req,res)=>{
     res.status(500).json({error:"Could not save watchlist"});
   }finally{
     client.release();
+  }
+});
+
+function escapeHtml(value){
+  return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+}
+
+function renderOtherCryptoCards(coins){
+  return coins.map(c=>{
+    const id=escapeHtml(c.id);
+    const name=escapeHtml(c.name||"Unknown");
+    const symbol=escapeHtml(String(c.symbol||"").toUpperCase());
+    const image=escapeHtml(c.image||("https://assets.coincap.io/assets/icons/"+String(c.symbol||"").toLowerCase()+"@2x.png"));
+    const price=Number(c.current_price);
+    const change=Number(c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h);
+    const priceText=Number.isFinite(price)&&price>0?"$"+price.toLocaleString("en-US",{maximumFractionDigits:price>=1?2:8}):"--";
+    const changeText=Number.isFinite(change)?(change>=0?"+":"")+change.toFixed(2)+"%":"Live";
+    const cls=change>=0?"positive":"negative";
+    return '<div class="crypto-directory-card">'+
+      '<button class="crypto-favorite-button" data-favorite="'+id+'" title="Add to favorites">☆</button>'+
+      '<a class="crypto-directory-main" href="crypto.html?coin='+encodeURIComponent(c.id)+'">'+
+      '<img src="'+image+'" alt="'+name+' logo" loading="lazy">'+
+      '<span class="crypto-directory-info"><b>'+name+'</b><small>'+symbol+'</small></span>'+
+      '<strong>'+priceText+'</strong>'+
+      '<span class="'+cls+'">'+changeText+'</span>'+
+      '</a></div>';
+  }).join("");
+}
+
+app.get("/others.html",async(req,res)=>{
+  try{
+    const file=fs.readFileSync(path.join(__dirname,"others.html"),"utf8");
+    const coins=await getTop1000Coins();
+    const cards=renderOtherCryptoCards(coins.slice(0,1000));
+    const html=file.replace(
+      '<div id="othersGrid" class="crypto-directory-grid"></div>',
+      '<div id="othersGrid" class="crypto-directory-grid">'+cards+'</div>'
+    );
+    res.type("html").send(html);
+  }catch(error){
+    console.error("Server-rendered others page failed:",error);
+    res.sendFile(path.join(__dirname,"others.html"));
   }
 });
 
