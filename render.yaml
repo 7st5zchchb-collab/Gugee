@@ -15,6 +15,8 @@ services:
         fromDatabase:
           name: gugee-db
           property: connectionString
+      - key: FRONTEND_URL
+        value: https://gugee.onrender.com
 
 databases:
   - name: gugee-db
