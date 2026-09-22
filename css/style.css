@@ -205,3 +205,10 @@
 .screener-table .negative{color:#ff5b63}
 @media(max-width:800px){.screener-controls{grid-template-columns:1fr 1fr}.screener-controls button{align-self:end}}
 @media(max-width:500px){.screener-controls{grid-template-columns:1fr}}
+
+
+.screener-advanced{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:9px}
+.screener-advanced label{font-size:8px;color:#666;display:flex;flex-direction:column;gap:5px}
+.screener-advanced select{border:1px solid #242429;background:#101012;color:#bbb;border-radius:6px;padding:7px;font-size:9px;outline:none}
+@media(max-width:800px){.screener-advanced{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.screener-advanced{grid-template-columns:1fr}}
