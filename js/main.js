@@ -76,12 +76,12 @@ const exchangeDirectory = [
   { name: "BTCTurk", symbol: "Exchange", target: "btcturk" },
   { name: "Bitci", symbol: "Exchange", target: "bitci" },
   { name: "Pionex", symbol: "Exchange", target: "pionex" },
-  { name: "Poloniex US", symbol: "Exchange", target: "poloniexus" },
+  { name: "BitTrade", symbol: "Exchange", target: "bittrade" },
   { name: "Uphold", symbol: "Exchange", target: "uphold" },
   { name: "BigONE", symbol: "Exchange", target: "bigone" },
-  { name: "Bitrue US", symbol: "Exchange", target: "bitrueus" },
+  { name: "Bitvavo", symbol: "Exchange", target: "bitvavo" },
   { name: "EXMO", symbol: "Exchange", target: "exmo" },
-  { name: "CoinField", symbol: "Exchange", target: "coinfield" }
+  { name: "BTC Markets", symbol: "Exchange", target: "btcmarkets" }
 ];
 
 function escapeSearchText(value) {
