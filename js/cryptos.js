@@ -1,4 +1,3 @@
-const grid=document.getElementById("cryptoDirectoryGrid");
 const input=document.getElementById("cryptoDirectorySearch");
 const count=document.getElementById("cryptoDirectoryCount");
 const favoritesGrid=document.getElementById("cryptoFavoritesGrid");
@@ -58,7 +57,6 @@ function toggleFavorite(id){
   saveFavorites(favorites);
   renderFavorites();
   render();
-  renderOthersPreview();
 }
 
 function coinCard(c){
@@ -103,30 +101,21 @@ function renderOthersPreview(){
 }
 
 function render(){
+  if(!othersPreview)return;
   const q=input.value.trim().toLowerCase();
   const favoriteIds=new Set(getFavorites().map(x=>x.id));
-  const filtered=allCoins.filter(c=>!favoriteIds.has(c.id)&&(!q||String(c.name||"").toLowerCase().includes(q)||String(c.symbol||"").toLowerCase().includes(q)||String(c.id||"").toLowerCase().includes(q)));
-  count.textContent=filtered.length+" cryptocurrencies";
-  grid.innerHTML=filtered.length?filtered.map(coinCard).join(""):'<div class="exchange-directory-empty">No cryptocurrency found.</div>';
-  grid.querySelectorAll(".crypto-directory-card[data-coin-link]").forEach(card=>{
+  const filtered=allCoins.filter(c=>!favoriteIds.has(c.id)&&(!q||String(c.name||"").toLowerCase().includes(q)||String(c.symbol||"").toLowerCase().includes(q)||String(c.id||"").toLowerCase().includes(q))).slice(0,8);
+  count.textContent=(allCoins.length?allCoins.length:1000)+" cryptocurrencies";
+  othersPreview.innerHTML=filtered.length?filtered.map(coinCard).join(""):'<div class="exchange-directory-empty">No cryptocurrency found.</div>';
+  othersPreview.querySelectorAll(".crypto-directory-card[data-coin-link]").forEach(card=>{
     const openCoin=()=>{ window.location.href="crypto.html?coin="+decodeURIComponent(card.dataset.coinLink); };
-    card.addEventListener("click",event=>{
-      if(event.target.closest("[data-favorite]"))return;
-      openCoin();
-    });
+    card.addEventListener("click",event=>{ if(event.target.closest("[data-favorite]"))return; openCoin(); });
     card.addEventListener("keydown",event=>{
-      if((event.key==="Enter"||event.key===" ")&&!event.target.closest("[data-favorite]")){
-        event.preventDefault();
-        openCoin();
-      }
+      if((event.key==="Enter"||event.key===" ")&&!event.target.closest("[data-favorite]")){event.preventDefault();openCoin();}
     });
   });
-  grid.querySelectorAll("[data-favorite]").forEach(button=>{
-    button.addEventListener("click",event=>{
-      event.preventDefault();
-      event.stopPropagation();
-      toggleFavorite(button.dataset.favorite);
-    });
+  othersPreview.querySelectorAll("[data-favorite]").forEach(button=>{
+    button.addEventListener("click",event=>{event.preventDefault();event.stopPropagation();toggleFavorite(button.dataset.favorite);});
   });
 }
 
