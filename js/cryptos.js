@@ -2,7 +2,6 @@ const grid=document.getElementById("cryptoDirectoryGrid");
 const input=document.getElementById("cryptoDirectorySearch");
 const count=document.getElementById("cryptoDirectoryCount");
 const favoritesGrid=document.getElementById("cryptoFavoritesGrid");
-const analysisGrid=document.getElementById("cryptoAnalysisGrid");
 const favoritesCount=document.getElementById("cryptoFavoritesCount");
 const loadStatus=document.getElementById("cryptoLoadStatus");
 
@@ -76,7 +75,8 @@ function coinCard(c){
 
 function render(){
   const q=input.value.trim().toLowerCase();
-  const filtered=allCoins.filter(c=>!q||String(c.name||"").toLowerCase().includes(q)||String(c.symbol||"").toLowerCase().includes(q)||String(c.id||"").toLowerCase().includes(q));
+  const favoriteIds=new Set(getFavorites().map(x=>x.id));
+  const filtered=allCoins.filter(c=>!favoriteIds.has(c.id)&&(!q||String(c.name||"").toLowerCase().includes(q)||String(c.symbol||"").toLowerCase().includes(q)||String(c.id||"").toLowerCase().includes(q)));
   count.textContent=filtered.length+" cryptocurrencies";
   grid.innerHTML=filtered.length?filtered.map(coinCard).join(""):'<div class="exchange-directory-empty">No cryptocurrency found.</div>';
   grid.querySelectorAll("[data-favorite]").forEach(button=>{
@@ -86,26 +86,6 @@ function render(){
       toggleFavorite(button.dataset.favorite);
     });
   });
-}
-
-function renderAnalysis(){
-  const favorites=getFavorites();
-  if(!favorites.length){
-    analysisGrid.innerHTML='<div class="crypto-analysis-empty">Add up to 5 favorites to show their analysis shortcuts here.</div>';
-    return;
-  }
-  analysisGrid.innerHTML=favorites.map(c=>{
-    const live=allCoins.find(x=>x.id===c.id)||c;
-    const price=Number(live.current_price);
-    const ch=Number(live.price_change_percentage_24h_in_currency??live.price_change_percentage_24h);
-    const state=Number.isFinite(ch)?(ch>0?"Rising":ch<0?"Falling":"Flat"):"Live";
-    return '<a class="crypto-analysis-card" href="crypto.html?coin='+encodeURIComponent(live.id)+'">'+
-      '<img src="'+logoFor(live)+'" alt="'+String(live.name||"Crypto")+' logo" onerror="this.onerror=null;this.src=\'https://assets.coincap.io/assets/icons/'+encodeURIComponent(String(live.symbol||"").toLowerCase())+'@2x.png\';">'+
-      '<span><b>'+String(live.name||"Unknown")+'</b><small>'+String(live.symbol||"").toUpperCase()+'</small></span>'+
-      '<strong>'+(Number.isFinite(price)&&price>0?"$"+price.toLocaleString("en-US",{maximumFractionDigits:price>=1?2:8}):"--")+'</strong>'+
-      '<em class="'+(ch>=0?"positive":"negative")+'">'+(Number.isFinite(ch)&&price>0?(ch>=0?"+":"")+ch.toFixed(2)+"% · "+state:"Live analysis")+'</em>'+
-      '</a>';
-  }).join("");
 }
 
 function renderFavorites(){
@@ -129,7 +109,6 @@ function renderFavorites(){
   favoritesGrid.querySelectorAll(".crypto-favorite-remove").forEach(button=>{
     button.addEventListener("click",()=>toggleFavorite(button.dataset.favorite));
   });
-  renderAnalysis();
 }
 
 async function load(){
