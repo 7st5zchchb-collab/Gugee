@@ -3,11 +3,15 @@ const path=require("path");
 const bcrypt=require("bcryptjs");
 const jwt=require("jsonwebtoken");
 const {Pool}=require("pg");
+const crypto=require("crypto");
+const {Resend}=require("resend");
 
 const app=express();
 const PORT=process.env.PORT||3000;
 const JWT_SECRET=process.env.JWT_SECRET;
 const DATABASE_URL=process.env.DATABASE_URL;
+const RESEND_API_KEY=process.env.RESEND_API_KEY;
+const EMAIL_FROM=process.env.EMAIL_FROM||"Gugee <noreply@gugee.com>";
 
 if(!JWT_SECRET||!DATABASE_URL){
   console.error("Missing JWT_SECRET or DATABASE_URL environment variables.");
@@ -93,6 +97,15 @@ app.use("/api/exchanges",async(req,res)=>{
   }
 });
 
+function hashToken(token){return crypto.createHash("sha256").update(token).digest("hex");}
+function createToken(){return crypto.randomBytes(32).toString("hex");}
+async function sendAccountEmail(to,subject,html){
+  if(!RESEND_API_KEY){console.warn("RESEND_API_KEY is not configured; account email was not sent.");return false;}
+  const resend=new Resend(RESEND_API_KEY);
+  const {error}=await resend.emails.send({from:EMAIL_FROM,to,subject,html});
+  if(error){console.error("Email error:",error);return false;}
+  return true;
+}
 function parseCookies(header=""){
   return Object.fromEntries(header.split(";").map(v=>v.trim().split("=")).filter(v=>v.length===2).map(([k,...rest])=>[k,decodeURIComponent(rest.join("="))]));
 }
@@ -162,9 +175,13 @@ app.post("/api/auth/register",async(req,res)=>{\n  if(!rateLimit("register:"+cli
     if(!/^\S+@\S+\.\S+$/.test(email))return res.status(400).json({error:"Enter a valid email address."});
     if(password.length<8)return res.status(400).json({error:"Password must be at least 8 characters."});
     const passwordHash=await bcrypt.hash(password,12);
-    const {rows}=await pool.query("INSERT INTO users(name,email,password_hash) VALUES($1,$2,$3) RETURNING id,name,email,created_at",[name,email,passwordHash]);
+    const verificationToken=createToken();
+    const verificationHash=hashToken(verificationToken);
+    const {rows}=await pool.query("INSERT INTO users(name,email,password_hash,verification_token_hash,verification_expires_at) VALUES($1,$2,$3,$4,NOW()+INTERVAL '24 hours') RETURNING id,name,email,email_verified,created_at",[name,email,passwordHash,verificationHash]);
+    const verifyUrl=(process.env.FRONTEND_URL||"")+"/verify-email.html?token="+verificationToken+"&email="+encodeURIComponent(email);
+    await sendAccountEmail(email,"Verify your Gugee account",'<h2>Welcome to Gugee</h2><p>Verify your email to activate your account.</p><p><a href="'+verifyUrl+'">Verify email</a></p>');
     setAuthCookie(res,signUser(rows[0]));
-    res.status(201).json({user:rows[0]});
+    res.status(201).json({user:rows[0],verificationSent:Boolean(RESEND_API_KEY)});
   }catch(e){
     if(e.code==="23505")return res.status(409).json({error:"An account with this email already exists."});
     console.error(e);res.status(500).json({error:"Could not create account"});
