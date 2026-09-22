@@ -172,7 +172,7 @@ async function loadExchangeOverview(){
   const spread=Number.isFinite(x.price)&&min>0?((x.price/min-1)*100):null;
   const cls=x.change==null?"neutral":x.change>=0?"positive":"negative";
   const ch=x.change==null?"--":(x.change>=0?"+":"")+x.change.toFixed(2)+"%";
-  return '<div class="exchange-live-card"><div class="exchange-live-top"><div class="exchange-brand"><img src="'+x.logo+'" alt="'+x.name+' logo" loading="lazy"><b>'+x.name+'</b></div><span>BTC / USD</span></div><strong>'+exchangeMoney(x.price)+'</strong><div class="exchange-live-metrics"><span>24H</span><b class="'+cls+'">'+ch+'</b><span>Volume</span><b>'+exchangeMoney(x.volume)+'</b></div><div class="exchange-spread">'+(spread==null?"Unavailable":"+"+spread.toFixed(3)+"% vs lowest price")+'</div></div>'
+  return '<a class="exchange-live-card exchange-analysis-link" href="exchange.html?exchange='+x.provider+'"><div class="exchange-live-top"><div class="exchange-brand"><img src="'+x.logo+'" alt="'+x.name+' logo" loading="lazy"><b>'+x.name+'</b></div><span>BTC / USD</span></div><strong>'+exchangeMoney(x.price)+'</strong><div class="exchange-live-metrics"><span>24H</span><b class="'+cls+'">'+ch+'</b><span>Volume</span><b>'+exchangeMoney(x.volume)+'</b></div><div class="exchange-spread">'+(spread==null?"Unavailable":"+"+spread.toFixed(3)+"% vs lowest price")+'</div></div>'
  }).join("");
  exchangeUpdated.textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
 }
