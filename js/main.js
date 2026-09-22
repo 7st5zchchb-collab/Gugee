@@ -130,8 +130,8 @@ async function searchEverything(query) {
 
   const coins = (data.coins || []).slice(0, 6);
   const exchanges = exchangeDirectory
-    .filter(exchange => exchange.name.toLowerCase().startsWith(normalized))
-    .slice(0, 4);
+    .filter(exchange => exchange.name.toLowerCase().includes(normalized))
+    .slice(0, 8);
 
   return { coins, exchanges };
 }
