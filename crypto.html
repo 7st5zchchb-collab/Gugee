@@ -2,25 +2,53 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Gugee — Crypto</title><link rel="stylesheet" href="css/style.css">
+<meta name="description" content="Gugee cryptocurrency market analysis with historical performance, technical indicators, risk and exchange data.">
+<title>Gugee — Crypto Analysis</title><link rel="stylesheet" href="css/style.css">
 </head>
 <body><div class="background-glow"></div>
 <header class="site-header"><a class="brand" href="./"><span class="brand-mark">G</span><span>Gugee</span></a><nav class="nav"><a href="markets.html">Markets</a><a class="active" href="cryptos.html">Crypto</a><a href="./#analysis">Analysis</a><a href="exchanges.html">Exchanges</a></nav><a class="login-button" href="login.html">Log in</a></header>
-<main class="crypto-page"><a class="back-link" href="./">← Back to markets</a>
-<section class="favorite-action"><button id="favoriteButton" class="favorite-button">☆ Add to Favorites</button></section>
-<section class="crypto-head"><div class="coin-title"><div class="coin-icon"><img id="coinIconImage" src="" alt="Coin logo"><span id="coinIconFallback">₿</span></div><div><h1 id="coinName">Bitcoin</h1><p id="coinSymbol">BTC</p></div></div><div class="price-box"><strong id="coinPrice">$--</strong><span id="coinChange">--</span></div></section>
-<section class="stats-grid"><div class="stat-card"><small>Market Cap</small><strong id="marketCap">$--</strong></div><div class="stat-card"><small>24H Volume</small><strong id="volume">$--</strong></div><div class="stat-card"><small>24H High</small><strong id="high">$--</strong></div><div class="stat-card"><small>24H Low</small><strong id="low">$--</strong></div><div class="stat-card"><small>Circulating Supply</small><strong id="supply">--</strong></div><div class="stat-card"><small>ATH</small><strong id="ath">$--</strong></div><div class="stat-card"><small>ATH Date</small><strong id="athDate">--</strong></div><div class="stat-card"><small>Last Updated</small><strong id="updated">--</strong></div></section>
-<section class="chart-card"><div class="chart-head"><h2>Price history</h2><div class="ranges"><button class="range active" data-range="24H">24H</button><button class="range" data-range="7D">7D</button><button class="range" data-range="30D">30D</button><button class="range" data-range="1Y">1Y</button><button class="range" data-range="5Y">5Y</button><button class="range" data-range="MAX">MAX</button></div></div><div class="chart-placeholder" id="chartPlaceholder">Loading historical data...</div></section>
-<section class="signal-card"><div><p class="section-label">GUGEE SIGNALS</p><h2>Market indicators</h2></div><div class="signal-grid"><div class="signal"><span>Trend</span><b id="signalTrend">--</b></div><div class="signal"><span>Momentum</span><b id="signalMomentum">--</b></div><div class="signal"><span>Volume</span><b id="signalVolume">--</b></div><div class="signal"><span>Risk</span><b id="signalRisk">--</b></div></div></section><section class="crypto-history-analysis">
-  <div class="exchange-panel-heading">
-    <div><p class="section-label">PERFORMANCE ANALYSIS</p><h2>Current vs previous days</h2></div>
-    <small id="dailyAnalysisUpdated">Updating...</small>
-  </div>
-  <div class="crypto-period-grid" id="cryptoPeriodGrid"></div>
-  <div class="daily-moves-wrap">
-    <div class="daily-moves-heading"><span>DAILY MOVEMENT</span><small>Latest 7 completed daily periods</small></div>
-    <div class="daily-moves" id="dailyMoves"></div>
-  </div>
+<main class="crypto-page">
+<a class="back-link" href="cryptos.html">← All cryptocurrencies</a>
+<section class="crypto-head">
+  <div class="coin-title"><div class="coin-icon"><img id="coinIconImage" src="" alt="Coin logo"><span id="coinIconFallback">₿</span></div><div><h1 id="coinName">Bitcoin</h1><p id="coinSymbol">BTC</p></div></div>
+  <div class="crypto-head-actions"><button id="favoriteButton" class="favorite-button">☆ Add to Favorites</button><div class="price-box"><strong id="coinPrice">$--</strong><span id="coinChange">--</span></div></div>
 </section>
-<section class="bottom-grid"><div class="analysis-card"><h2>Market analysis</h2><div class="analysis-summary" id="analysisSummary">Calculating market signals...</div><div class="row"><span>Distance from ATH</span><b id="athDistance">--</b></div><div class="row"><span>24H performance</span><b id="analysisChange">--</b></div><div class="row"><span>7D performance</span><b id="analysis7d">--</b></div><div class="row"><span>30D performance</span><b id="analysis30d">--</b></div><div class="row"><span>30D volatility</span><b id="volatility30d">--</b></div><div class="row"><span>30D volume change</span><b id="volumeChange30d">--</b></div><div class="row"><span>Volume / Market Cap</span><b id="volumeCapRatio">--</b></div><div class="row"><span>ATH distance</span><b id="athDistance2">--</b></div><div class="row"><span>Trend</span><b id="trendSignal">--</b></div><div class="row"><span>Momentum</span><b id="momentumSignal">--</b></div><div class="row"><span>Volume strength</span><b id="volumeSignal">--</b></div><div class="row"><span>RSI (14)</span><b id="rsi14">--</b></div><div class="row"><span>MA 20</span><b id="ma20">--</b></div><div class="row"><span>MA 50</span><b id="ma50">--</b></div><div class="row"><span>MACD</span><b id="macdSignal">--</b></div><div class="row"><span>Data source</span><b>CoinGecko + exchanges</b></div></div><div class="analysis-card"><h2>Exchange prices</h2><div class="exchange-row"><b>Binance</b><span id="binancePrice">--</span></div><div class="exchange-row"><b>Coinbase</b><span id="coinbasePrice">--</span></div><div class="exchange-row"><b>Kraken</b><span id="krakenPrice">--</span></div><div class="exchange-row"><b>Bybit</b><span id="bybitPrice">--</span></div><div class="exchange-row"><b>Price spread</b><span id="priceSpread">--</span></div></div></section>
-</main><footer><span>© 2026 Gugee</span><span>Crypto analytics platform</span></footer><script src="js/auth.js"></script><script src="js/crypto.js"></script></body></html>
+
+<section class="stats-grid">
+<div class="stat-card"><small>Market Cap</small><strong id="marketCap">$--</strong></div><div class="stat-card"><small>24H Volume</small><strong id="volume">$--</strong></div><div class="stat-card"><small>24H High</small><strong id="high">$--</strong></div><div class="stat-card"><small>24H Low</small><strong id="low">$--</strong></div><div class="stat-card"><small>Circulating Supply</small><strong id="supply">--</strong></div><div class="stat-card"><small>ATH</small><strong id="ath">$--</strong></div><div class="stat-card"><small>ATH Date</small><strong id="athDate">--</strong></div><div class="stat-card"><small>Last Updated</small><strong id="updated">--</strong></div>
+</section>
+
+<section class="chart-card">
+<div class="chart-head"><div><p class="section-label">PRICE HISTORY</p><h2>Market price</h2></div><div class="ranges"><button class="range active" data-range="1">24H</button><button class="range" data-range="3">3D</button><button class="range" data-range="7">7D</button><button class="range" data-range="30">30D</button><button class="range" data-range="365">1Y</button><button class="range" data-range="1825">5Y</button><button class="range" data-range="max">MAX</button></div></div>
+<div class="chart-placeholder" id="chartPlaceholder">Loading historical data...</div>
+</section>
+
+<section class="crypto-analysis-section">
+<div class="section-heading"><div><p class="section-label">PERFORMANCE</p><h2>Current vs previous periods</h2></div><small id="dailyAnalysisUpdated">Updating...</small></div>
+<div class="crypto-period-grid" id="cryptoPeriodGrid"></div>
+<div class="daily-moves-wrap"><div class="daily-moves-heading"><span>DAILY PERFORMANCE</span><small>Latest completed daily periods</small></div><div class="daily-moves" id="dailyMoves"></div></div>
+</section>
+
+<section class="signal-card"><div><p class="section-label">GUGEE ANALYSIS</p><h2>Market signals</h2></div><div class="signal-grid"><div class="signal"><span>Trend</span><b id="signalTrend">--</b></div><div class="signal"><span>Momentum</span><b id="signalMomentum">--</b></div><div class="signal"><span>Volume</span><b id="signalVolume">--</b></div><div class="signal"><span>Risk</span><b id="signalRisk">--</b></div></div></section>
+
+<section class="analysis-dashboard">
+<div class="analysis-card"><div class="analysis-card-title"><p class="section-label">TECHNICAL</p><h2>Technical indicators</h2></div>
+<div class="metric-grid">
+<div class="metric"><span>RSI (14)</span><b id="rsi14">--</b><small id="rsiState">--</small></div><div class="metric"><span>MA 20</span><b id="ma20">--</b><small id="ma20State">--</small></div><div class="metric"><span>MA 50</span><b id="ma50">--</b><small id="ma50State">--</small></div><div class="metric"><span>MACD</span><b id="macdValue">--</b><small id="macdState">--</small></div><div class="metric"><span>ATR (14)</span><b id="atr14">--</b><small>Daily range proxy</small></div><div class="metric"><span>Bollinger</span><b id="bollinger">--</b><small id="bollingerState">--</small></div>
+</div></div>
+<div class="analysis-card"><div class="analysis-card-title"><p class="section-label">RISK & RANGE</p><h2>Risk analysis</h2></div>
+<div class="row"><span>30D volatility</span><b id="volatility30d">--</b></div><div class="row"><span>30D max drawdown</span><b id="maxDrawdown">--</b></div><div class="row"><span>30D high</span><b id="periodHigh">--</b></div><div class="row"><span>30D low</span><b id="periodLow">--</b></div><div class="row"><span>Support zone</span><b id="support">--</b></div><div class="row"><span>Resistance zone</span><b id="resistance">--</b></div><div class="row"><span>Distance from ATH</span><b id="athDistance">--</b></div>
+</div>
+<div class="analysis-card"><div class="analysis-card-title"><p class="section-label">VOLUME</p><h2>Liquidity & activity</h2></div>
+<div class="row"><span>24H volume</span><b id="analysisVolume">--</b></div><div class="row"><span>7D avg volume</span><b id="avgVolume7d">--</b></div><div class="row"><span>30D avg volume</span><b id="avgVolume30d">--</b></div><div class="row"><span>7D volume change</span><b id="volumeChange7d">--</b></div><div class="row"><span>Volume / market cap</span><b id="volumeCapRatio">--</b></div><div class="row"><span>Activity</span><b id="volumeActivity">--</b></div>
+</div>
+<div class="analysis-card"><div class="analysis-card-title"><p class="section-label">SUMMARY</p><h2>What the data shows</h2></div><div class="analysis-summary" id="analysisSummary">Calculating market signals...</div><div class="row"><span>3D performance</span><b id="analysis3d">--</b></div><div class="row"><span>7D performance</span><b id="analysis7d">--</b></div><div class="row"><span>30D performance</span><b id="analysis30d">--</b></div><div class="row"><span>Trend</span><b id="trendSignal">--</b></div><div class="row"><span>Momentum</span><b id="momentumSignal">--</b></div></div>
+</section>
+
+<section class="analysis-card exchange-analysis-card"><div class="analysis-card-title"><p class="section-label">EXCHANGES</p><h2>Market prices across exchanges</h2><small id="exchangeAnalysisStatus">Loading major exchanges...</small></div><div class="exchange-analysis-table" id="exchangeAnalysisTable"></div></section>
+
+<section class="analysis-note"><b>How to read this analysis</b><p>Performance values compare the current market price with the closest available historical observation. RSI, moving averages, MACD, volatility, drawdown, volume and range values are calculated from the available historical market data. They describe market conditions and are not a prediction of future price.</p></section>
+</main>
+<footer><span>© 2026 Gugee</span><span>Crypto analytics platform</span></footer>
+<script src="js/auth.js"></script><script src="js/crypto.js"></script>
+</body></html>
