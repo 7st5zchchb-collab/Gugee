@@ -64,7 +64,7 @@ function render(){
 async function load(){
   if(loading)return;
   loading=true;
-  status.textContent="Loading 1000...";
+  status.textContent="Loading 1000 cryptocurrencies...";
   try{
     const r=await fetch(API,{cache:"no-store"});
     const body=await r.text();
