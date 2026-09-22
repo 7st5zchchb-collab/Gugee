@@ -1497,3 +1497,23 @@ footer {
 @media(max-width:1050px){.crypto-favorites-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:650px){.crypto-favorites-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:430px){.crypto-favorites-grid{grid-template-columns:1fr}}
+
+/* Crypto analysis shortcuts and others section */
+.crypto-analysis-section{margin:0 0 18px;padding:20px;border:1px solid #1e2025;border-radius:14px;background:linear-gradient(145deg,#101114,#090a0c)}
+.crypto-analysis-heading{display:flex;justify-content:space-between;align-items:end;gap:15px;margin-bottom:12px}
+.crypto-analysis-heading h2{margin:3px 0 0;color:#eee;font-size:17px}
+.crypto-analysis-heading>span{color:#62656d;font-size:9px}
+.crypto-analysis-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.crypto-analysis-card{display:grid;grid-template-columns:32px minmax(0,1fr);grid-template-rows:auto auto;column-gap:9px;padding:11px;border:1px solid #1c1e23;border-radius:9px;background:#0b0c0e;color:inherit;text-decoration:none;transition:.15s ease}
+.crypto-analysis-card:hover{border-color:#30343b;transform:translateY(-1px)}
+.crypto-analysis-card img{grid-row:1 / span 2;width:32px;height:32px;border-radius:50%;background:#fff;object-fit:contain}
+.crypto-analysis-card span{min-width:0}
+.crypto-analysis-card b{display:block;color:#eee;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crypto-analysis-card small{display:block;margin-top:3px;color:#60636b;font-size:8px}
+.crypto-analysis-card strong{display:none}
+.crypto-analysis-card em{grid-column:2;margin-top:5px;font-size:8px;font-style:normal;font-weight:700}
+.crypto-others-heading{display:flex;align-items:end;margin:6px 0 10px}
+.crypto-others-heading h2{margin:3px 0 0;color:#eee;font-size:17px}
+@media(max-width:1050px){.crypto-analysis-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.crypto-analysis-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:430px){.crypto-analysis-grid{grid-template-columns:1fr}}
