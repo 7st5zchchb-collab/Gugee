@@ -1,5 +1,26 @@
 const searchForm = document.getElementById("cryptoSearch");
 const searchInput = document.getElementById("searchInput");
+const searchSuggestions = document.getElementById("searchSuggestions");
+let searchTimer;
+
+searchInput.addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  const query = searchInput.value.trim();
+  if (query.length < 2) { searchSuggestions.innerHTML = ""; searchSuggestions.classList.remove("show"); return; }
+  searchTimer = setTimeout(async () => {
+    try {
+      const response = await fetch("https://api.coingecko.com/api/v3/search?query=" + encodeURIComponent(query));
+      if (!response.ok) throw new Error("Search request failed");
+      const data = await response.json();
+      const coins = (data.coins || []).slice(0, 6);
+      searchSuggestions.innerHTML = coins.map(coin => '<button type="button" class="suggestion" data-coin="' + coin.id + '"><span class="suggestion-name">' + coin.name + '</span><span class="suggestion-symbol">' + (coin.symbol || "").toUpperCase() + '</span></button>').join("");
+      searchSuggestions.classList.toggle("show", coins.length > 0);
+      searchSuggestions.querySelectorAll(".suggestion").forEach(btn => btn.addEventListener("click", () => { window.location.href = "crypto.html?coin=" + encodeURIComponent(btn.dataset.coin); }));
+    } catch (error) { console.error("Gugee search:", error); }
+  }, 300);
+});
+
+document.addEventListener("click", event => { if (!searchForm.contains(event.target)) searchSuggestions?.classList.remove("show"); });
 
 searchForm.addEventListener("submit", (event) => {
   event.preventDefault();
