@@ -202,6 +202,49 @@ app.post("/api/auth/login",async(req,res)=>{\n  if(!rateLimit("login:"+clientKey
   }catch(e){console.error(e);res.status(500).json({error:"Could not log in"});}
 });
 
+app.get("/api/auth/verify-email",async(req,res)=>{
+  try{
+    const token=String(req.query.token||"");
+    const email=String(req.query.email||"").trim().toLowerCase();
+    if(!token||!email)return res.status(400).json({error:"Verification link is invalid."});
+    const {rows}=await pool.query("SELECT id,email FROM users WHERE email=$1 AND verification_token_hash=$2 AND verification_expires_at>NOW()",[email,hashToken(token)]);
+    if(!rows[0])return res.status(400).json({error:"Verification link is invalid or expired."});
+    await pool.query("UPDATE users SET email_verified=TRUE,verification_token_hash=NULL,verification_expires_at=NULL WHERE id=$1",[rows[0].id]);
+    res.json({ok:true});
+  }catch(e){console.error(e);res.status(500).json({error:"Could not verify email"});}
+});
+
+app.post("/api/auth/forgot-password",async(req,res)=>{
+  if(!rateLimit("forgot:"+clientKey(req),5,15*60*1000))return res.status(429).json({error:"Too many requests. Try again later."});
+  try{
+    const email=String(req.body.email||"").trim().toLowerCase();
+    const {rows}=await pool.query("SELECT id,email FROM users WHERE email=$1",[email]);
+    if(rows[0]){
+      const token=createToken();
+      await pool.query("UPDATE users SET reset_token_hash=$1,reset_expires_at=NOW()+INTERVAL '1 hour' WHERE id=$2",[hashToken(token),rows[0].id]);
+      const resetUrl=(process.env.FRONTEND_URL||"")+"/reset-password.html?token="+token+"&email="+encodeURIComponent(email);
+      await sendAccountEmail(email,"Reset your Gugee password",'<h2>Password reset</h2><p>This link expires in 1 hour.</p><p><a href="'+resetUrl+'">Reset password</a></p>');
+    }
+    res.json({ok:true,message:"If an account exists for that email, a reset link has been sent."});
+  }catch(e){console.error(e);res.status(500).json({error:"Could not process request"});}
+});
+
+app.post("/api/auth/reset-password",async(req,res)=>{
+  if(!rateLimit("reset:"+clientKey(req),10,15*60*1000))return res.status(429).json({error:"Too many requests. Try again later."});
+  try{
+    const email=String(req.body.email||"").trim().toLowerCase();
+    const token=String(req.body.token||"");
+    const password=String(req.body.password||"");
+    if(password.length<8)return res.status(400).json({error:"Password must be at least 8 characters."});
+    const {rows}=await pool.query("SELECT id FROM users WHERE email=$1 AND reset_token_hash=$2 AND reset_expires_at>NOW()",[email,hashToken(token)]);
+    if(!rows[0])return res.status(400).json({error:"Reset link is invalid or expired."});
+    const passwordHash=await bcrypt.hash(password,12);
+    await pool.query("UPDATE users SET password_hash=$1,reset_token_hash=NULL,reset_expires_at=NULL WHERE id=$2",[passwordHash,rows[0].id]);
+    clearAuthCookie(res);
+    res.json({ok:true});
+  }catch(e){console.error(e);res.status(500).json({error:"Could not reset password"});}
+});
+
 app.get("/api/auth/me",auth,(req,res)=>res.json({user:req.user}));
 
 app.post("/api/auth/logout",(req,res)=>{
