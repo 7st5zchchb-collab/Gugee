@@ -1407,3 +1407,25 @@ footer {
 }
 
 .exchange-analysis-link{display:block;color:inherit;text-decoration:none}.exchange-analysis-link:hover{color:inherit;text-decoration:none}
+
+
+/* Exchanges directory */
+.exchanges-directory{width:min(1200px,calc(100% - 32px));margin:0 auto;padding:58px 0 85px}
+.exchanges-directory-hero{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:22px}
+.exchanges-directory-hero h1{margin:4px 0 8px;color:#f4f4f5;font-size:38px;letter-spacing:-1.2px}
+.exchanges-directory-hero p{margin:0;color:#686a72;font-size:11px;line-height:1.7}
+.exchange-directory-search{width:min(360px,100%);min-height:42px;padding:0 13px;border:1px solid #25272d;border-radius:9px;background:#0c0d0f;color:#eee;outline:none}
+.exchange-directory-search:focus{border-color:rgba(53,224,139,.45);box-shadow:0 0 0 3px rgba(53,224,139,.05)}
+.exchange-directory-count{margin:0 0 12px;color:#555860;font-size:9px}
+.exchange-directory-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.exchange-directory-card{display:flex;align-items:center;gap:12px;min-width:0;padding:15px;text-decoration:none;color:inherit;border:1px solid #1e2025;border-radius:12px;background:linear-gradient(145deg,#0e0f11,#090a0c);transition:.18s ease}
+.exchange-directory-card:hover{transform:translateY(-2px);border-color:#373941;background:#111216}
+.exchange-directory-logo{width:34px;height:34px;flex:0 0 34px;border-radius:9px;background:#fff;padding:5px;object-fit:contain}
+.exchange-directory-info{min-width:0;flex:1}
+.exchange-directory-info b{display:block;color:#e8e8eb;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exchange-directory-info span{display:block;margin-top:4px;color:#5e6169;font-size:8px}
+.exchange-directory-arrow{color:#35e08b;font-size:14px}
+.exchange-directory-empty{padding:35px;border:1px dashed #282a30;border-radius:12px;color:#62656d;text-align:center;font-size:10px}
+@media(max-width:950px){.exchange-directory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.exchanges-directory-hero{align-items:stretch;flex-direction:column}.exchange-directory-search{width:100%}}
+@media(max-width:650px){.exchanges-directory{width:calc(100% - 20px);padding-top:35px}.exchanges-directory-hero h1{font-size:30px}.exchange-directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:430px){.exchange-directory-grid{grid-template-columns:1fr}}
