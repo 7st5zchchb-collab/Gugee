@@ -1517,3 +1517,9 @@ footer {
 @media(max-width:1050px){.crypto-analysis-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:650px){.crypto-analysis-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:430px){.crypto-analysis-grid{grid-template-columns:1fr}}
+
+
+/* Other cryptocurrencies preview */
+.crypto-others-section{margin-top:4px}
+.crypto-others-more{display:block;width:max-content;max-width:100%;margin:18px auto 0;padding:11px 16px;border:1px solid #292b31;border-radius:9px;color:#ddd;text-decoration:none;font-size:10px;background:#0d0e10;transition:.15s ease}
+.crypto-others-more:hover{border-color:#35e08b;color:#35e08b;transform:translateY(-1px)}
