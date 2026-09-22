@@ -63,7 +63,7 @@ app.use("/api/exchanges",async(req,res)=>{
   try{
     const provider=String(req.query.provider||"").toLowerCase();
     const symbol=String(req.query.symbol||"").toUpperCase().replace(/\/(TICKER|SPOT)$/,"");
-    const allowedProviders=["binance","coinbase","kraken","bybit"];
+    const allowedProviders=["binance","coinbase","kraken","bybit","okx","kucoin","bitget","gate","mexc","cryptocom"];
     if(!allowedProviders.includes(provider))return res.status(400).json({error:"Unsupported exchange"});
     if(!/^[A-Z0-9._-]{2,30}$/.test(symbol))return res.status(400).json({error:"Invalid symbol"});
 
@@ -79,7 +79,13 @@ app.use("/api/exchanges",async(req,res)=>{
       binance:"https://api.binance.com/api/v3/ticker/24hr?symbol="+encodeURIComponent(symbol),
       coinbase:"https://api.exchange.coinbase.com/products/"+encodeURIComponent(symbol)+"/ticker",
       kraken:"https://api.kraken.com/0/public/Ticker?pair="+encodeURIComponent(symbol),
-      bybit:"https://api.bybit.com/v5/market/tickers?category=spot&symbol="+encodeURIComponent(symbol)
+      bybit:"https://api.bybit.com/v5/market/tickers?category=spot&symbol="+encodeURIComponent(symbol),
+      okx:"https://www.okx.com/api/v5/market/ticker?instId="+encodeURIComponent(symbol.replace("USDT","-USDT")),
+      kucoin:"https://api.kucoin.com/api/v1/market/stats?symbol="+encodeURIComponent(symbol.replace("USDT","-USDT")),
+      bitget:"https://api.bitget.com/api/v2/spot/market/tickers?symbol="+encodeURIComponent(symbol),
+      gate:"https://api.gateio.ws/api/v4/spot/tickers?currency_pair="+encodeURIComponent(symbol.replace("USDT","_USDT")),
+      mexc:"https://api.mexc.com/api/v3/ticker/24hr?symbol="+encodeURIComponent(symbol),
+      cryptocom:"https://api.crypto.com/exchange/v1/public/get-ticker?instrument_name="+encodeURIComponent(symbol.replace("USDT","_USDT"))
     };
     const response=await fetch(endpoints[provider],{headers:{accept:"application/json","user-agent":"Gugee/1.0"}});
     const body=await response.text();
