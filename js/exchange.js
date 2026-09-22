@@ -69,12 +69,12 @@ const exchanges=[
 {name:"BTCTurk",provider:"btcturk",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/btcturk"},
 {name:"Bitci",provider:"bitci",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/bitci"},
 {name:"Pionex",provider:"pionex",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/pionex"},
-{name:"Poloniex US",provider:"poloniexus",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/poloniexus"},
+{name:"BitTrade",provider:"bittrade",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/bittrade"},
 {name:"Uphold",provider:"uphold",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/uphold"},
 {name:"BigONE",provider:"bigone",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/bigone"},
-{name:"Bitrue US",provider:"bitrueus",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/bitrueus"},
+{name:"Bitvavo",provider:"bitvavo",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/bitvavo"},
 {name:"EXMO",provider:"exmo",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/exmo"},
-{name:"CoinField",provider:"coinfield",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/coinfield"}}
+{name:"BTC Markets",provider:"btcmarkets",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/btcmarkets"}}
 ];
 const $=id=>document.getElementById(id);
 const money=v=>Number.isFinite(v)?v.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:v<1?6:2}):"--";
