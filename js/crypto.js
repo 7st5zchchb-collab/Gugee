@@ -180,7 +180,7 @@ loadCoin();
 setInterval(async () => { try { await loadCoin(); } catch(e) { console.error(e); } }, 60000);
 
 const favoriteButton=document.getElementById("favoriteButton");
-const WATCHLIST_KEY="gugee_watchlist";
+const WATCHLIST_KEY=window.gugeeAuth?.getCurrentUser()? "gugee_watchlist_"+window.gugeeAuth.emailKey(window.gugeeAuth.getCurrentUser().email) : "gugee_watchlist_guest";
 function getFavorites(){return JSON.parse(localStorage.getItem(WATCHLIST_KEY)||"[]")}
 function updateFavoriteButton(){
   if(!favoriteButton)return;
