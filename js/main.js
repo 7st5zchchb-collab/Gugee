@@ -49,8 +49,9 @@ async function loadMarketSnapshot() {
     if (!response.ok) throw new Error("Market API request failed");
     const coins = await response.json();
 
-    coins.forEach((coin, index) => {
-      const card = marketCards[index];
+    coins.forEach((coin) => {
+      const index = marketCoins.indexOf(coin.id);
+      const card = index >= 0 ? marketCards[index] : null;
       if (!card) return;
       const price = coin.current_price;
       const change = coin.price_change_percentage_24h;
