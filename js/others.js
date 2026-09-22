@@ -51,8 +51,8 @@ function card(c){
 function render(){
   const q=input.value.trim().toLowerCase();
   const favorites=new Set(getFavorites().map(x=>x.id));
-  const filtered=allCoins.filter(c=>!favorites.has(c.id)&&(!q||String(c.name||"").toLowerCase().includes(q)||String(c.symbol||"").toLowerCase().includes(q)||String(c.id||"").toLowerCase().includes(q)));
-  count.textContent=filtered.length+" cryptocurrencies";
+  const filtered=allCoins.filter(c=>!q||String(c.name||"").toLowerCase().includes(q)||String(c.symbol||"").toLowerCase().includes(q)||String(c.id||"").toLowerCase().includes(q));
+  count.textContent=(filtered.length||allCoins.length)+" cryptocurrencies";
   grid.innerHTML=filtered.length?filtered.map(card).join(""):'<div class="exchange-directory-empty">No cryptocurrency found.</div>';
   grid.querySelectorAll("[data-favorite]").forEach(button=>button.addEventListener("click",event=>{
     event.preventDefault();
