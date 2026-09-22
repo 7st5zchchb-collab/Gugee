@@ -59,6 +59,31 @@ app.use((req,res,next)=>{
 
 const marketCache=new Map();
 
+const COINGECKO_BASE="https://api.coingecko.com/api/v3";
+async function coingeckoProxy(req,res,next){
+  const p=req.path;
+  let target=null;
+  if(p==="/global") target=COINGECKO_BASE+"/global";
+  else if(p==="/global/market_cap_chart") target=COINGECKO_BASE+"/global/market_cap_chart?"+new URLSearchParams(req.query).toString();
+  else if(p==="/search") target=COINGECKO_BASE+"/search?"+new URLSearchParams(req.query).toString();
+  else if(p==="/coins/markets") target=COINGECKO_BASE+"/coins/markets?"+new URLSearchParams(req.query).toString();
+  else if(p.startsWith("/coins/") && p.endsWith("/market_chart")){
+    const id=p.split("/")[2];
+    target=COINGECKO_BASE+"/coins/"+encodeURIComponent(id)+"/market_chart?"+new URLSearchParams(req.query).toString();
+  } else if(/^\/coins\/[^/]+$/.test(p)){
+    const id=p.split("/")[2];
+    target=COINGECKO_BASE+"/coins/"+encodeURIComponent(id)+"?"+new URLSearchParams(req.query).toString();
+  } else return next();
+  try{
+    const r=await fetch(target,{headers:{accept:"application/json","user-agent":"Gugee/1.0"}});
+    const body=await r.text();
+    res.status(r.status).type("application/json").send(body);
+  }catch(e){
+    res.status(502).json({error:"CoinGecko request failed"});
+  }
+}
+app.use("/api/coingecko",coingeckoProxy);
+
 app.use("/api/exchanges",async(req,res)=>{
   try{
     const provider=String(req.query.provider||"").toLowerCase();
