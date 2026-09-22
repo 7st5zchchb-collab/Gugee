@@ -3,7 +3,7 @@ const input=document.getElementById("othersSearch");
 const count=document.getElementById("othersCount");
 const status=document.getElementById("othersStatus");
 
-const API="/api/coingecko/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=";
+const API="/api/coingecko/top1000";
 const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
 let allCoins=[],loading=false;
@@ -66,27 +66,26 @@ async function load(){
   loading=true;
   status.textContent="Loading 1000...";
   try{
-    const loaded=[];
-    for(const page of [1,2,3,4]){
-      status.textContent="Loading "+Math.min(page*250,1000)+"/1000...";
-      const r=await fetch(API+page+"&sparkline=false&price_change_percentage=24h,7d,30d",{cache:"no-store"});
-      const body=await r.text();
-      if(!r.ok)throw new Error(body||("HTTP "+r.status));
-      const rows=JSON.parse(body);
-      if(!Array.isArray(rows)||!rows.length)throw new Error("Invalid response");
-      loaded.push(...rows);
-    }
+    const r=await fetch(API,{cache:"no-store"});
+    const body=await r.text();
+    if(!r.ok)throw new Error(body||("HTTP "+r.status));
+    const payload=JSON.parse(body);
+    if(!payload||!Array.isArray(payload.coins)||payload.coins.length<900)throw new Error("Invalid top 1000 response");
     const map=new Map();
-    loaded.forEach(c=>map.set(c.id,c));
+    payload.coins.forEach(c=>map.set(c.id,c));
     allCoins=Array.from(map.values()).slice(0,1000);
-    status.textContent="1000 loaded";
+    count.textContent=allCoins.length+" cryptocurrencies";
+    status.textContent=allCoins.length+" loaded";
     render();
   }catch(error){
     console.error("Others directory error:",error);
+    allCoins=[];
+    count.textContent="0 cryptocurrencies";
     status.textContent="Live list unavailable";
-    render();
-  }finally{loading=false;}
+    grid.innerHTML='<div class="exchange-directory-empty">Could not load the cryptocurrency list. Refresh the page.</div>';
+  }finally{
+    loading=false;
+  }
 }
-
 input.addEventListener("input",render);
 load();
