@@ -63,7 +63,7 @@ function coinCard(c){
   const ch=Number(c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h);
   const price=Number(c.current_price);
   const fav=isFavorite(c.id);
-  return '<div class="crypto-directory-card">'+
+  return '<div class="crypto-directory-card" role="link" tabindex="0" data-coin-link="'+encodeURIComponent(c.id)+'">'+
     '<button class="crypto-favorite-button '+(fav?"active":"")+'" data-favorite="'+String(c.id).replace(/"/g,"&quot;")+'" aria-label="'+(fav?"Remove from favorites":"Add to favorites")+'" title="'+(fav?"Remove from favorites":"Add to favorites")+'">'+(fav?"★":"☆")+'</button>'+
     '<a class="crypto-directory-main" href="crypto.html?coin='+encodeURIComponent(c.id)+'">'+
     '<img src="'+logoFor(c)+'" alt="'+String(c.name||"Crypto")+' logo" loading="lazy" onerror="this.onerror=null;this.src=\'https://assets.coincap.io/assets/icons/'+encodeURIComponent(String(c.symbol||"").toLowerCase())+'@2x.png\';">'+
@@ -79,6 +79,19 @@ function render(){
   const filtered=allCoins.filter(c=>!favoriteIds.has(c.id)&&(!q||String(c.name||"").toLowerCase().includes(q)||String(c.symbol||"").toLowerCase().includes(q)||String(c.id||"").toLowerCase().includes(q)));
   count.textContent=filtered.length+" cryptocurrencies";
   grid.innerHTML=filtered.length?filtered.map(coinCard).join(""):'<div class="exchange-directory-empty">No cryptocurrency found.</div>';
+  grid.querySelectorAll(".crypto-directory-card[data-coin-link]").forEach(card=>{
+    const openCoin=()=>{ window.location.href="crypto.html?coin="+decodeURIComponent(card.dataset.coinLink); };
+    card.addEventListener("click",event=>{
+      if(event.target.closest("[data-favorite]"))return;
+      openCoin();
+    });
+    card.addEventListener("keydown",event=>{
+      if((event.key==="Enter"||event.key===" ")&&!event.target.closest("[data-favorite]")){
+        event.preventDefault();
+        openCoin();
+      }
+    });
+  });
   grid.querySelectorAll("[data-favorite]").forEach(button=>{
     button.addEventListener("click",event=>{
       event.preventDefault();
