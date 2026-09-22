@@ -12,3 +12,5 @@
 .market-favorite{border:1px solid transparent;background:transparent;color:#66666d;font-size:17px;cursor:pointer;padding:4px 7px;border-radius:6px}.market-favorite:hover{background:#151518;color:#ddd}.market-favorite.active{color:var(--green)}.market-table th:nth-child(3),.market-table td:nth-child(3){text-align:center;width:45px}
 
 .sparkline-cell{width:125px}.sparkline{display:block;width:110px;height:34px}.market-table td.sparkline-cell{padding:4px 8px}
+
+.highlight-link{cursor:pointer}.highlight-link:hover{background:#151518;border-radius:7px;padding-left:8px;padding-right:8px}
