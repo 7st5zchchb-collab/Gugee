@@ -60,7 +60,7 @@ function drawChart(points, volumes) {
 }
 
 async function fetchHistory(days) {
-  const url="https://api.coingecko.com/api/v3/coins/"+encodeURIComponent(coinId)+"/market_chart?vs_currency=usd&days="+days;
+  const url="/api/coingecko/coins/"+encodeURIComponent(coinId)+"/market_chart?vs_currency=usd&days="+days;
   const response=await fetch(url); if(!response.ok) throw new Error("History request failed"); return response.json();
 }
 function pct(v){return (v>=0?"+":"")+v.toFixed(2)+"%"}
@@ -96,7 +96,7 @@ function calculateAnalysis(data){
 async function loadChart(days) {
   els.chart.textContent = "Loading " + (days === "max" ? "all-time" : days + "-day") + " history...";
   try {
-    const url = "https://api.coingecko.com/api/v3/coins/" + encodeURIComponent(coinId) + "/market_chart?vs_currency=usd&days=" + days;
+    const url = "/api/coingecko/coins/" + encodeURIComponent(coinId) + "/market_chart?vs_currency=usd&days=" + days;
     const response = await fetch(url);
     if (!response.ok) throw new Error("Chart API request failed");
     const data = await response.json();
@@ -129,7 +129,7 @@ async function loadExchanges(symbol) {
 
 async function loadCoin() {
   try {
-    const url = "https://api.coingecko.com/api/v3/coins/" + encodeURIComponent(coinId) +
+    const url = "/api/coingecko/coins/" + encodeURIComponent(coinId) +
       "?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false";
     const response = await fetch(url);
     if (!response.ok) throw new Error("Coin API request failed");
