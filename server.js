@@ -21,6 +21,49 @@ const pool=new Pool({
 
 app.use(express.json({limit:"20kb"}));
 
+const marketCache=new Map();
+const COINGECKO_BASE="https://api.coingecko.com/api/v3";
+const COINGECKO_CACHE_MS=30000;
+
+app.use("/api/coingecko",async(req,res)=>{
+  try{
+    const requestedPath=req.originalUrl.replace(/^\\/api\\/coingecko/,"");
+    if(!requestedPath.startsWith("/"))return res.status(400).json({error:"Invalid market-data path"});
+    const target=new URL(requestedPath,COINGECKO_BASE);
+    if(target.origin!==COINGECKO_BASE)return res.status(400).json({error:"Invalid market-data path"});
+    const allowed=["/coins/","/global","/simple/","/search"];
+    if(!allowed.some(prefix=>target.pathname.startsWith(prefix)))return res.status(403).json({error:"Market-data endpoint not allowed"});
+
+    const cacheKey=target.toString();
+    const cached=marketCache.get(cacheKey);
+    const now=Date.now();
+    if(cached&&now-cached.time<COINGECKO_CACHE_MS){
+      res.set("X-Gugee-Cache","HIT");
+      return res.json(cached.data);
+    }
+
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),10000);
+    let response;
+    try{
+      response=await fetch(target,{headers:{accept:"application/json","user-agent":"Gugee/1.0"},signal:controller.signal});
+    }finally{clearTimeout(timeout);}
+
+    const body=await response.text();
+    if(!response.ok)return res.status(response.status).type("application/json").send(body);
+
+    let data;
+    try{data=JSON.parse(body);}catch{return res.status(502).json({error:"Invalid market-data response"});}
+    marketCache.set(cacheKey,{time:now,data});
+    if(marketCache.size>500)marketCache.delete(marketCache.keys().next().value);
+    res.set("X-Gugee-Cache","MISS");
+    res.json(data);
+  }catch(e){
+    console.error("CoinGecko proxy error:",e.message);
+    res.status(502).json({error:"Market data temporarily unavailable"});
+  }
+});
+
 function parseCookies(header=""){
   return Object.fromEntries(header.split(";").map(v=>v.trim().split("=")).filter(v=>v.length===2).map(([k,...rest])=>[k,decodeURIComponent(rest.join("="))]));
 }
