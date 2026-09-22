@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Gugee — crypto market analytics and research terminal." />
+  <title>Gugee — Crypto Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="background-glow"></div>
+
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Gugee home">
+      <span class="brand-mark">G</span>
+      <span>Gugee</span>
+    </a>
+
+    <nav class="nav">
+      <a class="active" href="#markets">Markets</a>
+      <a href="#analysis">Analysis</a>
+      <a href="#exchanges">Exchanges</a>
+    </nav>
+
+    <a class="login-button" href="login.html">Log in</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="eyebrow"><span class="live-dot"></span> CRYPTO MARKET INTELLIGENCE</div>
+      <h1>Understand the market.<br /><span>Find your next move.</span></h1>
+      <p class="hero-text">
+        Search any cryptocurrency and explore price, volume, market cap,
+        historical data and exchange information in one place.
+      </p>
+
+      <form class="search-box" id="cryptoSearch">
+        <span class="search-icon">⌕</span>
+        <input id="searchInput" type="search" autocomplete="off"
+          placeholder="Search Bitcoin, Ethereum, Solana..." aria-label="Search cryptocurrency" />
+        <button type="submit">Search</button>
+      </form>
+      <p class="search-hint">Try <button class="coin-link" data-coin="bitcoin">Bitcoin</button>,
+        <button class="coin-link" data-coin="ethereum">Ethereum</button> or
+        <button class="coin-link" data-coin="solana">Solana</button></p>
+    </section>
+
+    <section class="market-section" id="markets">
+      <div class="section-heading">
+        <div>
+          <p class="section-label">MARKET OVERVIEW</p>
+          <h2>Live market snapshot</h2>
+        </div>
+        <span class="status"><span class="live-dot"></span> Data ready</span>
+      </div>
+
+      <div class="market-grid">
+        <article class="market-card">
+          <div class="card-top"><span>Bitcoin</span><span class="symbol">BTC</span></div>
+          <strong>$--</strong>
+          <div class="change positive">--</div>
+        </article>
+        <article class="market-card">
+          <div class="card-top"><span>Ethereum</span><span class="symbol">ETH</span></div>
+          <strong>$--</strong>
+          <div class="change positive">--</div>
+        </article>
+        <article class="market-card">
+          <div class="card-top"><span>Solana</span><span class="symbol">SOL</span></div>
+          <strong>$--</strong>
+          <div class="change positive">--</div>
+        </article>
+        <article class="market-card">
+          <div class="card-top"><span>BNB</span><span class="symbol">BNB</span></div>
+          <strong>$--</strong>
+          <div class="change positive">--</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="feature-section" id="analysis">
+      <div class="feature-card">
+        <div class="feature-icon">↗</div>
+        <p class="section-label">DEEP ANALYSIS</p>
+        <h2>Everything you need to research a coin.</h2>
+        <p>Price action, market cap, volume, ATH distance, historical ranges and exchange data — organized into one clean dashboard.</p>
+      </div>
+
+      <div class="feature-list">
+        <div><span>01</span><b>Price & performance</b><small>24H, 7D, 30D, 1Y, 5Y and MAX</small></div>
+        <div><span>02</span><b>Market fundamentals</b><small>Market cap, supply, volume and ATH</small></div>
+        <div><span>03</span><b>Exchange comparison</b><small>Compare prices and volume across exchanges</small></div>
+      </div>
+    </section>
+
+    <section class="exchange-section" id="exchanges">
+      <div class="section-heading">
+        <div>
+          <p class="section-label">EXCHANGES</p>
+          <h2>Market data from major exchanges</h2>
+        </div>
+      </div>
+      <div class="exchange-grid">
+        <div class="exchange-card"><b>Binance</b><span>Price / Volume</span></div>
+        <div class="exchange-card"><b>Coinbase</b><span>Price / Volume</span></div>
+        <div class="exchange-card"><b>Kraken</b><span>Price / Volume</span></div>
+        <div class="exchange-card"><b>Bybit</b><span>Price / Volume</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>© 2026 Gugee</span>
+    <span>Crypto analytics platform</span>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
