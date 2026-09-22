@@ -1429,3 +1429,36 @@ footer {
 @media(max-width:950px){.exchange-directory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.exchanges-directory-hero{align-items:stretch;flex-direction:column}.exchange-directory-search{width:100%}}
 @media(max-width:650px){.exchanges-directory{width:calc(100% - 20px);padding-top:35px}.exchanges-directory-hero h1{font-size:30px}.exchange-directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:430px){.exchange-directory-grid{grid-template-columns:1fr}}
+
+/* Cryptocurrency directory + daily analysis */
+.cryptos-directory{width:min(1200px,calc(100% - 32px));margin:0 auto;padding:58px 0 85px}
+.cryptos-directory-hero{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:18px}
+.cryptos-directory-hero h1{margin:4px 0 8px;color:#f4f4f5;font-size:38px;letter-spacing:-1.2px}
+.cryptos-directory-hero p{margin:0;color:#686a72;font-size:11px;line-height:1.7}
+.crypto-directory-search{width:min(390px,100%);min-height:42px;padding:0 13px;border:1px solid #25272d;border-radius:9px;background:#0c0d0f;color:#eee;outline:none}
+.crypto-directory-search:focus{border-color:rgba(53,224,139,.45);box-shadow:0 0 0 3px rgba(53,224,139,.05)}
+.crypto-directory-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;color:#555860;font-size:9px}
+.crypto-directory-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.crypto-directory-card{display:grid;grid-template-columns:36px minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:11px;align-items:center;padding:14px;text-decoration:none;color:inherit;border:1px solid #1e2025;border-radius:12px;background:linear-gradient(145deg,#0e0f11,#090a0c);transition:.18s ease}
+.crypto-directory-card:hover{transform:translateY(-2px);border-color:#373941;background:#111216}
+.crypto-directory-card img{grid-row:1 / span 2;width:34px;height:34px;border-radius:50%;background:#fff;object-fit:contain}
+.crypto-directory-info{min-width:0}
+.crypto-directory-info b{display:block;color:#e8e8eb;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crypto-directory-info small{display:block;margin-top:4px;color:#5e6169;font-size:8px}
+.crypto-directory-card>strong{color:#eee;font-size:10px;text-align:right}
+.crypto-directory-card>.positive,.crypto-directory-card>.negative{grid-column:3;text-align:right;font-size:9px;font-weight:700}
+.crypto-period-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.crypto-period-card{padding:16px;border:1px solid #1e2025;border-radius:12px;background:#0b0c0e}
+.crypto-period-card span{display:block;color:#62656d;font-size:8px}
+.crypto-period-card strong{display:block;margin-top:9px;color:#f0f0f2;font-size:18px}
+.crypto-period-card small{display:block;margin-top:7px;color:#666870;font-size:9px}
+.daily-moves-wrap{margin-top:12px;border:1px solid #1e2025;border-radius:12px;background:#0b0c0e;padding:14px}
+.daily-moves-heading{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px;color:#777a82;font-size:8px;letter-spacing:.08em}
+.daily-moves-heading small{letter-spacing:0;color:#555860}
+.daily-moves{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+.daily-move{padding:10px;border:1px solid #191b20;border-radius:8px;background:#0d0e10}
+.daily-move span{display:block;color:#5f626a;font-size:8px}.daily-move b{display:block;margin:5px 0;color:#ddd;font-size:10px}.daily-move strong{font-size:9px}
+.crypto-history-analysis{padding:20px;margin-bottom:12px;border:1px solid #1e2025;border-radius:14px;background:linear-gradient(145deg,#0e0f11,#090a0c)}
+@media(max-width:950px){.crypto-directory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.cryptos-directory-hero{align-items:stretch;flex-direction:column}.crypto-directory-search{width:100%}.crypto-period-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-moves{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:650px){.cryptos-directory{width:calc(100% - 20px);padding-top:35px}.cryptos-directory-hero h1{font-size:30px}.crypto-directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-moves{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:430px){.crypto-directory-grid{grid-template-columns:1fr}.crypto-period-grid{grid-template-columns:1fr}}
