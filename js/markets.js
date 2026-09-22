@@ -113,11 +113,18 @@ async function loadExchangeAssets(){
  }).join('');
 }
 const exchangeSources=[
- {name:"Binance",url:"/api/exchanges?provider=binance&symbol=BTCUSDT"},
- {name:"Coinbase",url:"/api/exchanges?provider=coinbase&symbol=BTC-USD/ticker"},
- {name:"Kraken",url:"/api/exchanges?provider=kraken&symbol=XBTUSD"},
- {name:"Bybit",url:"/api/exchanges?provider=bybit&symbol=BTCUSDT"}
+ {name:"Binance",provider:"binance",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/binance"},
+ {name:"Coinbase",provider:"coinbase",symbol:"BTC-USD/ticker",logo:"https://cdn.simpleicons.org/coinbase"},
+ {name:"Kraken",provider:"kraken",symbol:"XBTUSD",logo:"https://cdn.simpleicons.org/kraken"},
+ {name:"Bybit",provider:"bybit",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bybit"},
+ {name:"OKX",provider:"okx",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/okx"},
+ {name:"KuCoin",provider:"kucoin",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/kucoin"},
+ {name:"Bitget",provider:"bitget",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitget"},
+ {name:"Gate.io",provider:"gate",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/gate"),
+ {name:"MEXC",provider:"mexc",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/mexc"},
+ {name:"Crypto.com",provider:"cryptocom",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/crypto-dot-com"}
 ];
+function exchangeApiUrl(e){return "/api/exchanges?provider="+encodeURIComponent(e.provider)+"&symbol="+encodeURIComponent(e.symbol)}
 function exchangeMoney(v){return Number.isFinite(v)?v.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}):"--"}
 async function loadSpreadMonitor(){
  if(!spreadGrid)return;
@@ -141,14 +148,21 @@ async function loadSpreadMonitor(){
 }
 async function loadExchangeOverview(){
  const results=await Promise.all(exchangeSources.map(async e=>{
-  try{const r=await fetch(e.url);if(!r.ok)throw new Error();const d=await r.json();
-   let price=null,volume=null;
-   if(e.name==="Binance"){price=Number(d.lastPrice);volume=Number(d.quoteVolume)}
-   if(e.name==="Coinbase"){price=Number(d.price);volume=Number(d.volume_24h)*Number(d.price)}
-   if(e.name==="Kraken"){const x=d.result?.XXBTZUSD||Object.values(d.result||{})[0];price=Number(x?.c?.[0]);volume=Number(x?.v?.[1])*price}
-   if(e.name==="Bybit"){const x=d.result?.list?.[0];price=Number(x?.lastPrice);volume=Number(x?.turnover24h)}
-   return {...e,price,volume};
-  }catch{return {...e,price:null,volume:null}}
+  try{
+   const r=await fetch(exchangeApiUrl(e));if(!r.ok)throw new Error();
+   const d=await r.json();let price=null,volume=null,change=null;
+   if(e.provider==="binance"){price=Number(d.lastPrice);volume=Number(d.quoteVolume);change=Number(d.priceChangePercent)}
+   if(e.provider==="coinbase"){price=Number(d.price);volume=Number(d.volume_24h)*price}
+   if(e.provider==="kraken"){const x=d.result?.XXBTZUSD||Object.values(d.result||{})[0];price=Number(x?.c?.[0]);volume=Number(x?.v?.[1])*price}
+   if(e.provider==="bybit"){const x=d.result?.list?.[0];price=Number(x?.lastPrice);volume=Number(x?.turnover24h);change=Number(x?.price24hPcnt)*100}
+   if(e.provider==="okx"){const x=d.data?.[0];price=Number(x?.last);volume=Number(x?.volCcy24h);change=Number(x?.open24h)?(price/Number(x.open24h)-1)*100:null}
+   if(e.provider==="kucoin"){price=Number(d.data?.last);volume=Number(d.data?.volValue);change=Number(d.data?.changeRate)*100}
+   if(e.provider==="bitget"){const x=d.data?.[0];price=Number(x?.lastPr);volume=Number(x?.quoteVolume);change=Number(x?.change24h)*100}
+   if(e.provider==="gate"){const x=Array.isArray(d)?d[0]:d;price=Number(x?.last);volume=Number(x?.quote_volume);change=Number(x?.change_percentage)}
+   if(e.provider==="mexc"){price=Number(d.lastPrice);volume=Number(d.quoteVolume);change=Number(d.priceChangePercent)}
+   if(e.provider==="cryptocom"){const x=d.result?.data?.[0];price=Number(x?.k);volume=Number(x?.v);change=Number(x?.c)}
+   return {...e,price,volume,change};
+  }catch{return {...e,price:null,volume:null,change:null}}
  }));
  const valid=results.filter(x=>Number.isFinite(x.price));
  if(!exchangeOverview)return;
@@ -156,7 +170,9 @@ async function loadExchangeOverview(){
  const min=Math.min(...valid.map(x=>x.price));
  exchangeOverview.innerHTML=results.map(x=>{
   const spread=Number.isFinite(x.price)&&min>0?((x.price/min-1)*100):null;
-  return '<button class="exchange-live-card" type="button"><div class="exchange-live-top"><b>'+x.name+'</b><span>BTC / USD</span></div><strong>'+exchangeMoney(x.price)+'</strong><div class="exchange-live-bottom"><span>24H volume</span><b>'+exchangeMoney(x.volume)+'</b></div><div class="exchange-spread">'+(spread==null?"Unavailable":"+"+spread.toFixed(3)+"% vs lowest")+'</div></button>'
+  const cls=x.change==null?"neutral":x.change>=0?"positive":"negative";
+  const ch=x.change==null?"--":(x.change>=0?"+":"")+x.change.toFixed(2)+"%";
+  return '<div class="exchange-live-card"><div class="exchange-live-top"><div class="exchange-brand"><img src="'+x.logo+'" alt="'+x.name+' logo" loading="lazy"><b>'+x.name+'</b></div><span>BTC / USD</span></div><strong>'+exchangeMoney(x.price)+'</strong><div class="exchange-live-metrics"><span>24H</span><b class="'+cls+'">'+ch+'</b><span>Volume</span><b>'+exchangeMoney(x.volume)+'</b></div><div class="exchange-spread">'+(spread==null?"Unavailable":"+"+spread.toFixed(3)+"% vs lowest price")+'</div></div>'
  }).join("");
  exchangeUpdated.textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
 }
