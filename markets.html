@@ -22,7 +22,14 @@
 <section class="global-chart-section"><div class="global-chart-heading"><div><p class="section-label">GLOBAL MARKET CAP</p><h2>Market cap history</h2></div><div class="global-chart-ranges"><button class="global-range active" data-days="1">24H</button><button class="global-range" data-days="7">7D</button><button class="global-range" data-days="30">30D</button><button class="global-range" data-days="365">1Y</button></div></div><div class="global-chart-wrap"><canvas id="globalMarketChart"></canvas><div id="globalChartTooltip" class="global-chart-tooltip"></div></div></section>
 <section class="exchange-overview">
 <div class="exchange-overview-heading"><div><p class="section-label">EXCHANGE OVERVIEW</p><h2>Live exchange prices</h2></div><small id="exchangeUpdated">Updating...</small></div>
-<div class="exchange-overview-grid" id="exchangeOverview"><div class="exchange-overview-empty">Loading exchange data...</div></div><div class="exchange-spread-panel">
+<div class="exchange-overview-grid" id="exchangeOverview"><div class="exchange-overview-empty">Loading exchange data...</div></div><section class="market-signals-panel">
+  <div class="exchange-overview-heading">
+    <div><p class="section-label">MARKET SIGNALS</p><h2>Live market condition</h2></div>
+    <small>Descriptive indicators</small>
+  </div>
+  <div class="signals-grid" id="marketSignals"><div class="exchange-overview-empty">Loading signals...</div></div>
+</section>
+<div class="exchange-spread-panel">
   <div class="exchange-overview-heading">
     <div><p class="section-label">PRICE SPREAD</p><h2>Cross-exchange spread monitor</h2></div>
     <small>Descriptive market data</small>
