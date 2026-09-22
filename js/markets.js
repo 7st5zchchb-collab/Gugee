@@ -1,8 +1,8 @@
-async function loadBtcHistory(days=30){
+async function loadBtcHistory(days=30,coin="bitcoin",label="BTC"){
  const svg=document.getElementById("btcHistoryChart"),tip=document.getElementById("btcHistoryTooltip"),metrics=document.getElementById("btcHistoryMetrics");
  if(!svg)return;
  try{
-  const r=await fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days="+days);
+  const r=await fetch("https://api.coingecko.com/api/v3/coins/"+coin+"/market_chart?vs_currency=usd&days="+days);
   if(!r.ok)throw new Error();
   const d=await r.json(),pts=(d.prices||[]).filter(x=>Number.isFinite(x[1]));
   if(pts.length<2)throw new Error();
@@ -15,7 +15,7 @@ async function loadBtcHistory(days=30){
   svg.onmouseleave=()=>tip.style.display="none";
  }catch{svg.innerHTML='<text x="50%" y="50%" text-anchor="middle" fill="currentColor">Historical data unavailable</text>'}
 }
-document.querySelectorAll(".history-range").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".history-range").forEach(x=>x.classList.remove("active"));btn.classList.add("active");loadBtcHistory(Number(btn.dataset.days))}));
+document.querySelectorAll(".history-range").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".history-range").forEach(x=>x.classList.remove("active"));btn.classList.add("active");const a=document.querySelector(".history-asset.active");loadBtcHistory(Number(btn.dataset.days),a?.dataset.coin||"bitcoin",a?.dataset.label||"BTC")})); document.querySelectorAll(".history-asset").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".history-asset").forEach(x=>x.classList.remove("active"));btn.classList.add("active");document.getElementById("historyTitle").textContent=btn.dataset.label+" historical trend";const r=document.querySelector(".history-range.active");loadBtcHistory(Number(r?.dataset.days||30),btn.dataset.coin,btn.dataset.label)}));
 const API="https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=";
 const GLOBAL_API="https://api.coingecko.com/api/v3/global";
 const globalCap=document.getElementById("globalCap"),globalVolume=document.getElementById("globalVolume"),btcDominance=document.getElementById("btcDominance"),activeCoins=document.getElementById("activeCoins"),marketBreadth=document.getElementById("marketBreadth"),topGainers=document.getElementById("topGainers"),topLosers=document.getElementById("topLosers"),marketHeatmap=document.getElementById("marketHeatmap"),globalMarketChart=document.getElementById("globalMarketChart"),globalChartTooltip=document.getElementById("globalChartTooltip");
@@ -229,4 +229,4 @@ search.addEventListener("input",()=>{visible=50;render()});favoritesOnly.addEven
  btn.classList.add("active");loadGlobalChart(Number(btn.dataset.days));
 }));
 window.addEventListener("resize",drawGlobalChart);
-load();loadGlobal();loadGlobalChart(1);loadExchangeOverview();loadExchangeAssets();loadSpreadMonitor();loadBtcHistory();setInterval(load,60000);setInterval(loadGlobal,60000);setInterval(loadExchangeOverview,60000);setInterval(loadExchangeAssets,60000);setInterval(loadSpreadMonitor,60000);
+load();loadGlobal();loadGlobalChart(1);loadExchangeOverview();loadExchangeAssets();loadSpreadMonitor();loadBtcHistory(30,"bitcoin","BTC");setInterval(load,60000);setInterval(loadGlobal,60000);setInterval(loadExchangeOverview,60000);setInterval(loadExchangeAssets,60000);setInterval(loadSpreadMonitor,60000);
