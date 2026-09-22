@@ -28,7 +28,7 @@ const COINGECKO_CACHE_MS=30000;
 app.use("/api/exchanges",async(req,res)=>{
   try{
     const provider=String(req.query.provider||"").toLowerCase();
-    const symbol=String(req.query.symbol||"").toUpperCase();
+    const symbol=String(req.query.symbol||"").toUpperCase().replace(/\/(TICKER|SPOT)$/,"");
     const allowedProviders=["binance","coinbase","kraken","bybit"];
     if(!allowedProviders.includes(provider))return res.status(400).json({error:"Unsupported exchange"});
     if(!/^[A-Z0-9._-]{2,30}$/.test(symbol))return res.status(400).json({error:"Invalid symbol"});
