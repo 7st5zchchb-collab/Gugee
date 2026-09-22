@@ -65,7 +65,7 @@ app.use("/api/exchanges",async(req,res)=>{
     const symbol=String(req.query.symbol||"").toUpperCase().replace(/\/(TICKER|SPOT)$/,"");
     const allowedProviders=["binance","coinbase","kraken","bybit","okx","kucoin","bitget","gate","mexc","cryptocom","gemini","bitstamp","bitfinex","htx","poloniex","bitmart","lbank","bingx","phemex","whitebit","coinex","xt","deepcoin","ascendex","bitrue","coinw","digifinex","toobit","weex","p2pb2b","upbit","bitflyer","bithumb","coinone","korbit","bitmex","deribit","woo","hashkey","bitkub","indodax","mercado","foxbit","bitso","ripio","rain","coincheck","zaif","bitbank","okcoin","blofin","btse","bitunix","dydx","coinmetro","coinzoom","bit2me","latoken","tokocrypto","coinspot","independentreserve","cex","currencycom","timex","novadax","bitexen","icrypex","paribu","btcturk","bitci","pionex","poloniexus","uphold","bigone","bitrueus","exmo","coinfield"];
     if(!allowedProviders.includes(provider))return res.status(400).json({error:"Unsupported exchange"});
-    if(!/^[A-Z0-9._-]{2,30}$/.test(symbol))return res.status(400).json({error:"Invalid symbol"});
+    if(!/^[A-Z0-9._\/-]{2,30}$/.test(symbol))return res.status(400).json({error:"Invalid symbol"});
 
     const cacheKey=provider+":"+symbol;
     const cached=marketCache.get("exchange:"+cacheKey);
