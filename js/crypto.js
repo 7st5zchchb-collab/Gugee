@@ -28,24 +28,34 @@ function compact(v) {
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
 }
-function drawChart(points) {
+function drawChart(points, volumes) {
   if (!points.length) { els.chart.textContent = "No historical data available."; return; }
   const width = 1000, height = 300, pad = 18;
   const values = points.map(p => p[1]);
-  const min = Math.min(...values), max = Math.max(...values);
-  const range = max - min || 1;
+  const min = Math.min(...values), max = Math.max(...values), range = max - min || 1;
   const line = points.map((p,i) => {
     const x = pad + (i/(points.length-1 || 1))*(width-pad*2);
     const y = height-pad-((p[1]-min)/range)*(height-pad*2);
     return (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
   }).join(" ");
   const area = line + " L " + (width-pad) + " " + (height-pad) + " L " + pad + " " + (height-pad) + " Z";
-  const first = money(values[0]), last = money(values[values.length-1]);
-  els.chart.innerHTML = '<div class="chart-value-row"><span>Low ' + money(min) + '</span><b>' + last + '</b><span>High ' + money(max) + '</span></div>' +
-    '<svg class="price-svg" viewBox="0 0 1000 300" preserveAspectRatio="none" role="img" aria-label="Historical price chart">' +
+  els.chart.innerHTML = '<div class="chart-value-row"><span>Low ' + money(min) + '</span><b>' + money(values[values.length-1]) + '</b><span>High ' + money(max) + '</span></div>' +
+    '<div class="chart-interactive"><svg class="price-svg" viewBox="0 0 1000 300" preserveAspectRatio="none" role="img" aria-label="Historical price chart">' +
     '<defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="rgba(53,224,139,.22)"/><stop offset="100%" stop-color="rgba(53,224,139,0)"/></linearGradient></defs>' +
-    '<path d="' + area + '" fill="url(#chartFill)"/><path d="' + line + '" fill="none" stroke="#35e08b" stroke-width="3" vector-effect="non-scaling-stroke"/></svg>' +
-    '<div class="chart-times"><span>' + new Date(points[0][0]).toLocaleDateString() + '</span><span>' + new Date(points[points.length-1][0]).toLocaleDateString() + '</span></div>';
+    '<path d="' + area + '" fill="url(#chartFill)"/><path d="' + line + '" fill="none" stroke="#35e08b" stroke-width="3" vector-effect="non-scaling-stroke"/></svg><div class="chart-tooltip" id="chartTooltip"></div><div class="chart-hover-line" id="chartHoverLine"></div><div class="chart-hover-dot" id="chartHoverDot"></div></div>' +
+    '<div class="chart-times"><span>' + new Date(points[0][0]).toLocaleDateString() + '</span><span>' + new Date(points[points.length-1][0]).toLocaleDateString() + '</span></div>' +
+    '<div class="volume-title">Volume</div><div class="volume-bars">' + volumes.map((v,i) => '<span style="height:' + Math.max(4,Math.min(100,(v[1]/Math.max(...volumes.map(x=>x[1])))*100)) + '%" data-index="' + i + '"></span>').join("") + '</div>';
+  const wrap=document.querySelector(".chart-interactive"), tip=document.getElementById("chartTooltip"), lineEl=document.getElementById("chartHoverLine"), dot=document.getElementById("chartHoverDot");
+  wrap.addEventListener("mousemove", e => {
+    const r=wrap.getBoundingClientRect(), ratio=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+    const i=Math.round(ratio*(points.length-1)), p=points[i], v=volumes[Math.min(i,volumes.length-1)]?.[1]||0;
+    const x=ratio*100;
+    const y=(height-pad-((p[1]-min)/range)*(height-pad*2))/height*100;
+    tip.innerHTML='<b>'+money(p[1])+'</b><br><span>'+new Date(p[0]).toLocaleString()+'</span><br><span>Volume: '+compact(v)+'</span>';
+    tip.style.left=Math.min(82,Math.max(2,x))+'%'; tip.style.top='8px'; tip.style.display='block';
+    lineEl.style.left=x+'%'; lineEl.style.display='block'; dot.style.left=x+'%'; dot.style.top=y+'%'; dot.style.display='block';
+  });
+  wrap.addEventListener("mouseleave",()=>{tip.style.display="none";lineEl.style.display="none";dot.style.display="none";});
 }
 
 async function loadChart(days) {
@@ -55,7 +65,7 @@ async function loadChart(days) {
     const response = await fetch(url);
     if (!response.ok) throw new Error("Chart API request failed");
     const data = await response.json();
-    drawChart(data.prices || []);
+    drawChart(data.prices || [], data.total_volumes || []);
   } catch (e) {
     console.error(e);
     els.chart.textContent = "Historical chart could not be loaded. Try again.";
