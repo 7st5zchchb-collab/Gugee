@@ -1,3 +1,17 @@
+async function loadCorrelation(){
+ const box=document.getElementById("correlationTable");if(!box)return;
+ const ids=["bitcoin","ethereum","solana","binancecoin"],labels=["BTC","ETH","SOL","BNB"];
+ try{
+  const series=await Promise.all(ids.map(async id=>{
+   const r=await fetch("https://api.coingecko.com/api/v3/coins/"+id+"/market_chart?vs_currency=usd&days=30");
+   if(!r.ok)throw new Error();const d=await r.json();return (d.prices||[]).map(x=>x[1]);
+  }));
+  const n=Math.min(...series.map(x=>x.length));if(n<10)throw new Error();
+  const returns=series.map(s=>{const x=s.slice(-n);return x.slice(1).map((v,i)=>Math.log(v/x[i]))});
+  function corr(a,b){const ma=a.reduce((x,y)=>x+y,0)/a.length,mb=b.reduce((x,y)=>x+y,0)/b.length;let num=0,da=0,db=0;for(let i=0;i<a.length;i++){const x=a[i]-ma,y=b[i]-mb;num+=x*y;da+=x*x;db+=y*y}return da&&db?num/Math.sqrt(da*db):0}
+  box.innerHTML='<table class="correlation-table"><thead><tr><th></th>'+labels.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+labels.map((l,i)=>'<tr><th>'+l+'</th>'+labels.map((_,j)=>'<td class="'+(corr(returns[i],returns[j])>=0?"corr-positive":"corr-negative")+'">'+corr(returns[i],returns[j]).toFixed(2)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
+ }catch{box.innerHTML='<div class="exchange-overview-empty">Correlation data unavailable.</div>'}
+}
 async function loadBtcHistory(days=30,coin="bitcoin",label="BTC"){
  const svg=document.getElementById("btcHistoryChart"),tip=document.getElementById("btcHistoryTooltip"),metrics=document.getElementById("btcHistoryMetrics");
  if(!svg)return;
@@ -229,4 +243,4 @@ search.addEventListener("input",()=>{visible=50;render()});favoritesOnly.addEven
  btn.classList.add("active");loadGlobalChart(Number(btn.dataset.days));
 }));
 window.addEventListener("resize",drawGlobalChart);
-load();loadGlobal();loadGlobalChart(1);loadExchangeOverview();loadExchangeAssets();loadSpreadMonitor();loadBtcHistory(30,"bitcoin","BTC");setInterval(load,60000);setInterval(loadGlobal,60000);setInterval(loadExchangeOverview,60000);setInterval(loadExchangeAssets,60000);setInterval(loadSpreadMonitor,60000);
+load();loadGlobal();loadGlobalChart(1);loadExchangeOverview();loadExchangeAssets();loadSpreadMonitor();loadBtcHistory(30,"bitcoin","BTC");loadCorrelation();setInterval(load,60000);setInterval(loadGlobal,60000);setInterval(loadExchangeOverview,60000);setInterval(loadExchangeAssets,60000);setInterval(loadSpreadMonitor,60000);
