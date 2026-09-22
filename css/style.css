@@ -161,3 +161,13 @@
 .history-assets{display:flex;gap:4px;margin-top:6px}
 .history-asset{border:1px solid #242429;background:#101012;color:#666;border-radius:5px;padding:4px 7px;font-size:8px;cursor:pointer}
 .history-asset.active{color:#eee;border-color:#555}
+
+
+.correlation-panel{margin-bottom:14px;background:#0b0b0d;border:1px solid #242429;border-radius:12px;padding:16px}
+.correlation-table-wrap{overflow-x:auto;border:1px solid #1d1d21;border-radius:8px}
+.correlation-table{width:100%;border-collapse:collapse;min-width:420px}
+.correlation-table th,.correlation-table td{padding:10px;text-align:center;border-bottom:1px solid #1d1d21;font-size:9px}
+.correlation-table th{color:#777;font-weight:500;background:#101012}
+.correlation-table td{font-variant-numeric:tabular-nums;color:#aaa}
+.correlation-table td.corr-positive{color:var(--green)}
+.correlation-table td.corr-negative{color:#ff777d}
