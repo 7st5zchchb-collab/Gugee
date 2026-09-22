@@ -3,7 +3,45 @@ const GLOBAL_API="https://api.coingecko.com/api/v3/global";
 const globalCap=document.getElementById("globalCap"),globalVolume=document.getElementById("globalVolume"),btcDominance=document.getElementById("btcDominance"),activeCoins=document.getElementById("activeCoins"),marketBreadth=document.getElementById("marketBreadth"),topGainers=document.getElementById("topGainers"),topLosers=document.getElementById("topLosers"),marketHeatmap=document.getElementById("marketHeatmap"),globalMarketChart=document.getElementById("globalMarketChart"),globalChartTooltip=document.getElementById("globalChartTooltip");
 let globalChartData=[];
 const body=document.getElementById("marketTableBody"),liquidity=document.getElementById("liquiditySelect"),search=document.getElementById("marketSearch"),sort=document.getElementById("sortSelect"),category=document.getElementById("categorySelect"),changePeriod=document.getElementById("changePeriod"),changeDirection=document.getElementById("changeDirection"),more=document.getElementById("loadMore"),status=document.getElementById("marketStatus"),favoritesOnly=document.getElementById("favoritesOnly");
-const exchangeOverview=document.getElementById("exchangeOverview"),exchangeUpdated=document.getElementById("exchangeUpdated");
+const exchangeOverview=document.getElementById("exchangeOverview"),exchangeUpdated=document.getElementById("exchangeUpdated"),exchangeAssetRows=document.getElementById("exchangeAssetRows");
+const exchangeAssets=[
+ {id:"BTC",label:"BTC / USD",binance:"BTCUSDT",coinbase:"BTC-USD",kraken:"XBTUSD",bybit:"BTCUSDT"},
+ {id:"ETH",label:"ETH / USD",binance:"ETHUSDT",coinbase:"ETH-USD",kraken:"ETHUSD",bybit:"ETHUSDT"},
+ {id:"SOL",label:"SOL / USD",binance:"SOLUSDT",coinbase:"SOL-USD",kraken:"SOLUSD",bybit:"SOLUSDT"},
+ {id:"BNB",label:"BNB / USD",binance:"BNBUSDT",coinbase:null,kraken:null,bybit:"BNBUSDT"}
+];
+async function fetchExchangePrice(exchange,symbol){
+ try{
+  let url,price=null;
+  if(exchange==="Binance")url="https://api.binance.com/api/v3/ticker/price?symbol="+symbol;
+  if(exchange==="Coinbase")url="https://api.exchange.coinbase.com/products/"+symbol+"/ticker";
+  if(exchange==="Kraken")url="https://api.kraken.com/0/public/Ticker?pair="+symbol;
+  if(exchange==="Bybit")url="https://api.bybit.com/v5/market/tickers?category=spot&symbol="+symbol;
+  if(!url)return null;
+  const r=await fetch(url);if(!r.ok)throw new Error();const d=await r.json();
+  if(exchange==="Binance")price=Number(d.price);
+  if(exchange==="Coinbase")price=Number(d.price);
+  if(exchange==="Kraken"){const x=d.result?.[Object.keys(d.result||{})[0]];price=Number(x?.c?.[0])}
+  if(exchange==="Bybit")price=Number(d.result?.list?.[0]?.lastPrice);
+  return Number.isFinite(price)?price:null;
+ }catch{return null}
+}
+async function loadExchangeAssets(){
+ if(!exchangeAssetRows)return;
+ const rows=await Promise.all(exchangeAssets.map(async a=>{
+  const values=await Promise.all([
+   fetchExchangePrice("Binance",a.binance),
+   fetchExchangePrice("Coinbase",a.coinbase),
+   fetchExchangePrice("Kraken",a.kraken),
+   fetchExchangePrice("Bybit",a.bybit)
+  ]);
+  return {a,values};
+ }));
+ exchangeAssetRows.innerHTML=rows.map(({a,values})=>{
+  const valid=values.filter(Number.isFinite),avg=valid.length?valid.reduce((x,y)=>x+y,0)/valid.length:null;
+  return '<div class="exchange-asset-row"><b>'+a.label+'</b>'+values.map(v=>'<span>'+exchangeMoney(v)+'</span>').join('')+'</div>';
+ }).join('');
+}
 const exchangeSources=[
  {name:"Binance",url:"https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT"},
  {name:"Coinbase",url:"https://api.exchange.coinbase.com/products/BTC-USD/ticker"},
@@ -25,7 +63,7 @@ async function loadExchangeOverview(){
  const valid=results.filter(x=>Number.isFinite(x.price));
  if(!exchangeOverview)return;
  if(!valid.length){exchangeOverview.innerHTML='<div class="exchange-overview-empty">Exchange data unavailable.</div>';return}
- const min=Math.min(...valid.map(x=>x.price)),max=Math.max(...valid.map(x=>x.price));
+ const min=Math.min(...valid.map(x=>x.price));
  exchangeOverview.innerHTML=results.map(x=>{
   const spread=Number.isFinite(x.price)&&min>0?((x.price/min-1)*100):null;
   return '<button class="exchange-live-card" type="button"><div class="exchange-live-top"><b>'+x.name+'</b><span>BTC / USD</span></div><strong>'+exchangeMoney(x.price)+'</strong><div class="exchange-live-bottom"><span>24H volume</span><b>'+exchangeMoney(x.volume)+'</b></div><div class="exchange-spread">'+(spread==null?"Unavailable":"+"+spread.toFixed(3)+"% vs lowest")+'</div></button>'
@@ -116,4 +154,4 @@ search.addEventListener("input",()=>{visible=50;render()});favoritesOnly.addEven
  btn.classList.add("active");loadGlobalChart(Number(btn.dataset.days));
 }));
 window.addEventListener("resize",drawGlobalChart);
-load();loadGlobal();loadGlobalChart(1);loadExchangeOverview();setInterval(load,60000);setInterval(loadGlobal,60000);setInterval(loadExchangeOverview,60000);
+load();loadGlobal();loadGlobalChart(1);loadExchangeOverview();loadExchangeAssets();setInterval(load,60000);setInterval(loadGlobal,60000);setInterval(loadExchangeOverview,60000);setInterval(loadExchangeAssets,60000);
