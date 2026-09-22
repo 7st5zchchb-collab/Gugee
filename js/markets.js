@@ -2,7 +2,7 @@ const API="https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=
 const GLOBAL_API="https://api.coingecko.com/api/v3/global";
 const globalCap=document.getElementById("globalCap"),globalVolume=document.getElementById("globalVolume"),btcDominance=document.getElementById("btcDominance"),activeCoins=document.getElementById("activeCoins"),marketBreadth=document.getElementById("marketBreadth"),topGainers=document.getElementById("topGainers"),topLosers=document.getElementById("topLosers"),marketHeatmap=document.getElementById("marketHeatmap"),globalMarketChart=document.getElementById("globalMarketChart"),globalChartTooltip=document.getElementById("globalChartTooltip");
 let globalChartData=[];
-const marketSignals=document.getElementById("marketSignals"),body=document.getElementById("marketTableBody"),liquidity=document.getElementById("liquiditySelect"),search=document.getElementById("marketSearch"),sort=document.getElementById("sortSelect"),category=document.getElementById("categorySelect"),changePeriod=document.getElementById("changePeriod"),changeDirection=document.getElementById("changeDirection"),more=document.getElementById("loadMore"),status=document.getElementById("marketStatus"),favoritesOnly=document.getElementById("favoritesOnly");
+const marketSignals=document.getElementById("marketSignals"),analysisEngine=document.getElementById("analysisEngine"),body=document.getElementById("marketTableBody"),liquidity=document.getElementById("liquiditySelect"),search=document.getElementById("marketSearch"),sort=document.getElementById("sortSelect"),category=document.getElementById("categorySelect"),changePeriod=document.getElementById("changePeriod"),changeDirection=document.getElementById("changeDirection"),more=document.getElementById("loadMore"),status=document.getElementById("marketStatus"),favoritesOnly=document.getElementById("favoritesOnly");
 const exchangeOverview=document.getElementById("exchangeOverview"),exchangeUpdated=document.getElementById("exchangeUpdated"),exchangeAssetRows=document.getElementById("exchangeAssetRows"),spreadGrid=document.getElementById("spreadGrid");
 const exchangeAssets=[
  {id:"BTC",label:"BTC / USD",binance:"BTCUSDT",coinbase:"BTC-USD",kraken:"XBTUSD",bybit:"BTCUSDT"},
@@ -100,6 +100,23 @@ function signalLabel(change,volatility){
  const risk=volatility==null?"Unknown":volatility>8?"High":volatility>4?"Medium":"Low";
  return {trend,risk};
 }
+function renderAnalysisEngine(){
+ if(!analysisEngine||!coins.length)return;
+ const ids=["bitcoin","ethereum","solana","binancecoin"];
+ const labels={bitcoin:"BTC",ethereum:"ETH",solana:"SOL",binancecoin:"BNB"};
+ analysisEngine.innerHTML=ids.map(id=>{
+  const c=coins.find(x=>x.id===id);
+  if(!c)return "";
+  const ch24=Number(c.price_change_percentage_24h);
+  const ch7=Number(c.price_change_percentage_7d_in_currency);
+  const ch30=Number(c.price_change_percentage_30d_in_currency);
+  const ratio=Number(c.market_cap)>0?Number(c.total_volume)/Number(c.market_cap)*100:null;
+  const score=(Number.isFinite(ch24)?(ch24>0?1:-1):0)+(Number.isFinite(ch7)?(ch7>0?1:-1):0)+(Number.isFinite(ch30)?(ch30>0?1:-1):0)+(ratio!=null?(ratio>5?1:ratio<1?-1:0):0);
+  const signal=score>=3?"Positive":score<=-2?"Negative":"Mixed";
+  const cls=signal==="Positive"?"positive":signal==="Negative"?"negative":"neutral";
+  return '<div class="analysis-engine-card"><div class="analysis-engine-top"><b>'+labels[id]+'</b><span class="'+cls+'">'+signal+'</span></div><div class="analysis-score">Factor score <strong>'+score+'/4</strong></div><div class="analysis-factors"><span>24H <b>'+ (Number.isFinite(ch24)?(ch24>=0?"+":"")+ch24.toFixed(2)+"%":"--") +'</b></span><span>7D <b>'+ (Number.isFinite(ch7)?(ch7>=0?"+":"")+ch7.toFixed(2)+"%":"--") +'</b></span><span>30D <b>'+ (Number.isFinite(ch30)?(ch30>=0?"+":"")+ch30.toFixed(2)+"%":"--") +'</b></span><span>Liquidity <b>'+ (ratio==null?"--":ratio.toFixed(2)+"%") +'</b></span></div></div>';
+ }).join("");
+}
 function renderMarketSignals(){
  if(!marketSignals||!coins.length)return;
  const ids=["bitcoin","ethereum","solana","binancecoin"];
@@ -188,7 +205,7 @@ function renderHeatmap(){
 function updateBreadth(){const valid=coins.filter(c=>Number.isFinite(c.price_change_percentage_24h));const up=valid.filter(c=>c.price_change_percentage_24h>0).length;const down=valid.filter(c=>c.price_change_percentage_24h<0).length;marketBreadth.textContent=valid.length?((up/valid.length)*100).toFixed(1)+"% up · "+((down/valid.length)*100).toFixed(1)+"% down":"--"}
 function highlights(){const valid=coins.filter(c=>Number.isFinite(c.price_change_percentage_24h));const gain=valid.slice().sort((a,b)=>b.price_change_percentage_24h-a.price_change_percentage_24h).slice(0,5);const lose=valid.slice().sort((a,b)=>a.price_change_percentage_24h-b.price_change_percentage_24h).slice(0,5);const item=c=>"<div class=\"highlight-row highlight-link\" data-coin=\""+c.id+"\"><span>"+c.name+"</span><b class=\""+(c.price_change_percentage_24h>=0?"positive":"negative")+"\">"+(c.price_change_percentage_24h>=0?"+":"")+c.price_change_percentage_24h.toFixed(2)+"%</b></div>";topGainers.innerHTML=gain.map(item).join("");topLosers.innerHTML=lose.map(item).join("");document.querySelectorAll(".highlight-link").forEach(row=>row.onclick=()=>location.href="crypto.html?coin="+encodeURIComponent(row.dataset.coin))}
 async function loadGlobal(){try{const r=await fetch(GLOBAL_API);if(!r.ok)throw new Error();const d=await r.json();globalCap.textContent=globalMoney(d.data.total_market_cap.usd);globalVolume.textContent=globalMoney(d.data.total_volume.usd);btcDominance.textContent=d.data.market_cap_percentage.btc.toFixed(2)+"%";activeCoins.textContent=d.data.active_cryptocurrencies.toLocaleString()}catch(e){}}
-async function load(page=1){try{const r=await fetch(API+page+"&sparkline=true&sparkline_duration=7d&price_change_percentage=24h%2C7d%2C30d");if(!r.ok)throw new Error("API failed");const data=await r.json();if(page===1){coins=data;currentPage=1;hasMore=data.length===100}else{const ids=new Set(coins.map(c=>c.id));coins.push(...data.filter(c=>!ids.has(c.id)));currentPage=page;hasMore=data.length===100}status.textContent="Live CoinGecko data · "+coins.length+" coins";render();renderMarketSignals();renderHeatmap();highlights();updateBreadth();if(page===1)loadGlobal()}catch(e){if(page===1)body.innerHTML='<tr><td colspan="8" class="market-loading">Market data could not be loaded. Try again.</td></tr>';status.textContent="Data unavailable"}}
+async function load(page=1){try{const r=await fetch(API+page+"&sparkline=true&sparkline_duration=7d&price_change_percentage=24h%2C7d%2C30d");if(!r.ok)throw new Error("API failed");const data=await r.json();if(page===1){coins=data;currentPage=1;hasMore=data.length===100}else{const ids=new Set(coins.map(c=>c.id));coins.push(...data.filter(c=>!ids.has(c.id)));currentPage=page;hasMore=data.length===100}status.textContent="Live CoinGecko data · "+coins.length+" coins";render();renderMarketSignals();renderAnalysisEngine();renderHeatmap();highlights();updateBreadth();if(page===1)loadGlobal()}catch(e){if(page===1)body.innerHTML='<tr><td colspan="8" class="market-loading">Market data could not be loaded. Try again.</td></tr>';status.textContent="Data unavailable"}}
 search.addEventListener("input",()=>{visible=50;render()});favoritesOnly.addEventListener("change",()=>{visible=50;render()});liquidity.addEventListener("change",()=>{visible=50;render()});category.addEventListener("change",()=>{visible=50;render()});changePeriod.addEventListener("change",()=>{visible=50;render()});changeDirection.addEventListener("change",()=>{visible=50;render()});sort.addEventListener("change",render);more.addEventListener("click",async()=>{if(loadingMore||!hasMore)return;loadingMore=true;more.textContent="Loading...";await load(currentPage+1);loadingMore=false;more.textContent="Load more"});document.querySelectorAll(".global-range").forEach(btn=>btn.addEventListener("click",()=>{
  document.querySelectorAll(".global-range").forEach(b=>b.classList.remove("active"));
  btn.classList.add("active");loadGlobalChart(Number(btn.dataset.days));
