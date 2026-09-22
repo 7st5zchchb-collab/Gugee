@@ -124,7 +124,7 @@ app.put("/api/watchlist",auth,async(req,res)=>{
 });
 
 app.use(express.static(path.join(__dirname,".")));
-app.get("*",(req,res)=>{
+app.use((req,res)=>{
   if(req.path.startsWith("/api/"))return res.status(404).json({error:"API route not found"});
   res.sendFile(path.join(__dirname,"index.html"));
 });
