@@ -77,6 +77,7 @@ const WATCHLIST_KEY="gugee_watchlist";
 function getWatchlist(){return JSON.parse(localStorage.getItem(WATCHLIST_KEY)||"[]")}
 function saveWatchlist(list){localStorage.setItem(WATCHLIST_KEY,JSON.stringify([...new Set(list)]));renderWatchlist()}
 let watchlistFilter="all";
+function applyWatchlistFilter(){document.querySelectorAll(".watchlist-card").forEach(card=>{const c=Number(card.dataset.change);card.style.display=watchlistFilter==="all"||Number.isNaN(c)||(watchlistFilter==="gainers"&&c>=0)||(watchlistFilter==="losers"&&c<0)?"":"none"})}
 function renderWatchlist(){
   if(!watchlistGrid)return;
   const list=getWatchlist();
@@ -95,7 +96,7 @@ function renderWatchlist(){
         if(!item) return;
         priceEl.textContent="$"+Number(item.usd).toLocaleString(undefined,{maximumSignificantDigits:7});
         const change=item.usd_24h_change;
-        changeEl.textContent=change==null?"--":(change>=0?"+":"")+change.toFixed(2)+"%";
+        changeEl.textContent=change==null?"--":(change>=0?"+":"")+change.toFixed(2)+"%"; card.dataset.change=change; applyWatchlistFilter();
         changeEl.style.color=change>=0?"var(--green)":"#ff5c5c";
       }).catch(()=>{});
   });
