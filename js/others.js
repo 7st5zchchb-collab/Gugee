@@ -61,18 +61,45 @@ function render(){
   }));
 }
 
+async function fetchServerList(){
+  const r=await fetch(API,{cache:"no-store"});
+  const body=await r.text();
+  if(!r.ok)throw new Error(body||("HTTP "+r.status));
+  const payload=JSON.parse(body);
+  if(!payload||!Array.isArray(payload.coins)||payload.coins.length<900)throw new Error("Invalid server crypto list");
+  return payload.coins.slice(0,1000);
+}
+
+async function fetchDirectCoinCap(){
+  const r=await fetch("https://api.coincap.io/v2/assets?limit=1000",{cache:"no-store"});
+  if(!r.ok)throw new Error("CoinCap HTTP "+r.status);
+  const payload=await r.json();
+  if(!payload||!Array.isArray(payload.data)||payload.data.length<900)throw new Error("CoinCap returned too few assets");
+  return payload.data.map(c=>({
+    id:c.id,
+    name:c.name,
+    symbol:c.symbol,
+    image:"https://assets.coincap.io/assets/icons/"+encodeURIComponent(String(c.symbol||"").toLowerCase())+"@2x.png",
+    current_price:Number(c.priceUsd),
+    price_change_percentage_24h:Number(c.changePercent24Hr)
+  }));
+}
+
 async function load(){
   if(loading)return;
   loading=true;
   status.textContent="Loading 1000 cryptocurrencies...";
+  grid.innerHTML='<div class="exchange-directory-empty">Loading 1000 cryptocurrency cards...</div>';
   try{
-    const r=await fetch(API,{cache:"no-store"});
-    const body=await r.text();
-    if(!r.ok)throw new Error(body||("HTTP "+r.status));
-    const payload=JSON.parse(body);
-    if(!payload||!Array.isArray(payload.coins)||payload.coins.length<900)throw new Error("Invalid top 1000 response");
+    let coins;
+    try{
+      coins=await fetchServerList();
+    }catch(serverError){
+      console.warn("Gugee API failed, using direct CoinCap fallback:",serverError);
+      coins=await fetchDirectCoinCap();
+    }
     const map=new Map();
-    payload.coins.forEach(c=>map.set(c.id,c));
+    coins.forEach(c=>map.set(c.id,c));
     allCoins=Array.from(map.values()).slice(0,1000);
     count.textContent=allCoins.length+" cryptocurrencies";
     status.textContent=allCoins.length+" loaded";
@@ -81,8 +108,8 @@ async function load(){
     console.error("Others directory error:",error);
     allCoins=[];
     count.textContent="0 cryptocurrencies";
-    status.textContent="Live list unavailable";
-    grid.innerHTML='<div class="exchange-directory-empty">Could not load the cryptocurrency list. Refresh the page.</div>';
+    status.textContent="Loading failed";
+    grid.innerHTML='<div class="exchange-directory-empty">Could not load the 1000 cryptocurrencies. Please refresh the page.</div>';
   }finally{
     loading=false;
   }
