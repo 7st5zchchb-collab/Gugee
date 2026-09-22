@@ -4,6 +4,7 @@ const count=document.getElementById("cryptoDirectoryCount");
 const favoritesGrid=document.getElementById("cryptoFavoritesGrid");
 const favoritesCount=document.getElementById("cryptoFavoritesCount");
 const loadStatus=document.getElementById("cryptoLoadStatus");
+const othersPreview=document.getElementById("cryptoOthersPreview");
 
 const API="/api/coingecko/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=";
 const FAVORITES_KEY="gugeeFavoriteCryptos";
@@ -57,6 +58,7 @@ function toggleFavorite(id){
   saveFavorites(favorites);
   renderFavorites();
   render();
+  renderOthersPreview();
 }
 
 function coinCard(c){
@@ -71,6 +73,33 @@ function coinCard(c){
     '<strong>'+(Number.isFinite(price)&&price>0?"$"+price.toLocaleString("en-US",{maximumFractionDigits:price>=1?2:8}):"--")+'</strong>'+
     '<span class="'+(ch>=0?"positive":"negative")+'">'+(Number.isFinite(ch)&&price>0?(ch>=0?"+":"")+ch.toFixed(2)+"%":"Live")+'</span>'+
     '</a></div>';
+}
+
+function renderOthersPreview(){
+  if(!othersPreview)return;
+  const favoriteIds=new Set(getFavorites().map(x=>x.id));
+  const preview=allCoins.filter(c=>!favoriteIds.has(c.id)).slice(0,8);
+  othersPreview.innerHTML=preview.length?preview.map(coinCard).join(""):'<div class="exchange-directory-empty">No cryptocurrencies available.</div>';
+  othersPreview.querySelectorAll(".crypto-directory-card[data-coin-link]").forEach(card=>{
+    const openCoin=()=>{ window.location.href="crypto.html?coin="+decodeURIComponent(card.dataset.coinLink); };
+    card.addEventListener("click",event=>{
+      if(event.target.closest("[data-favorite]"))return;
+      openCoin();
+    });
+    card.addEventListener("keydown",event=>{
+      if((event.key==="Enter"||event.key===" ")&&!event.target.closest("[data-favorite]")){
+        event.preventDefault();
+        openCoin();
+      }
+    });
+  });
+  othersPreview.querySelectorAll("[data-favorite]").forEach(button=>{
+    button.addEventListener("click",event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      toggleFavorite(button.dataset.favorite);
+    });
+  });
 }
 
 function render(){
@@ -151,11 +180,13 @@ async function load(){
     loadStatus.textContent="1000 loaded";
     render();
     renderFavorites();
+    renderOthersPreview();
   }catch(error){
     console.error("Crypto directory error:",error);
     loadStatus.textContent="Live list unavailable — showing saved fallback";
     render();
     renderFavorites();
+    renderOthersPreview();
   }finally{
     loading=false;
   }
@@ -164,4 +195,5 @@ async function load(){
 input.addEventListener("input",render);
 renderFavorites();
 render();
+renderOthersPreview();
 load();
