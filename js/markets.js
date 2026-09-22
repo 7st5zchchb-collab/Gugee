@@ -123,7 +123,26 @@ const exchangeSources=[
  {name:"Gate.io",provider:"gate",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/gate"},
  {name:"MEXC",provider:"mexc",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/mexc"},
  {name:"Crypto.com",provider:"cryptocom",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/crypto-dot-com"}
-];
+, {name:"Gemini",provider:"gemini",symbol:"BTCUSD",logo:"https://cdn.simpleicons.org/gemini"},
+ {name:"Bitstamp",provider:"bitstamp",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitstamp"},
+ {name:"Bitfinex",provider:"bitfinex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitfinex"},
+ {name:"HTX",provider:"htx",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/htx"},
+ {name:"Poloniex",provider:"poloniex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/poloniex"},
+ {name:"BitMart",provider:"bitmart",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitmart"},
+ {name:"LBank",provider:"lbank",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/lbank"},
+ {name:"BingX",provider:"bingx",symbol:"BTC-USDT",logo:"https://cdn.simpleicons.org/bingx"},
+ {name:"Phemex",provider:"phemex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/phemex"},
+ {name:"WhiteBIT",provider:"whitebit",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/whitebit"},
+ {name:"CoinEx",provider:"coinex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/coinex"},
+ {name:"XT.COM",provider:"xt",symbol:"BTC_USDT",logo:"https://cdn.simpleicons.org/xt"},
+ {name:"Deepcoin",provider:"deepcoin",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/deepcoin"},
+ {name:"AscendEX",provider:"ascendex",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/ascendex"},
+ {name:"Bitrue",provider:"bitrue",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitrue"},
+ {name:"CoinW",provider:"coinw",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/coinw"},
+ {name:"DigiFinex",provider:"digifinex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/digifinex"},
+ {name:"Toobit",provider:"toobit",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/toobit"},
+ {name:"WEEX",provider:"weex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/weex"},
+ {name:"P2PB2B",provider:"p2pb2b",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/p2pb2b"}];
 function exchangeApiUrl(e){return "/api/exchanges?provider="+encodeURIComponent(e.provider)+"&symbol="+encodeURIComponent(e.symbol)}
 function exchangeMoney(v){return Number.isFinite(v)?v.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}):"--"}
 async function loadSpreadMonitor(){
