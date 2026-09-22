@@ -38,6 +38,28 @@ if(periodField){
  more.style.display=hasMore&&!search.value.trim()&&!favoritesOnly.checked&&changePeriod.value==="all"&&changeDirection.value==="all"?"":"none";
 }
 function drawSparklines(){document.querySelectorAll(".sparkline").forEach(canvas=>{const v=JSON.parse(canvas.dataset.values||"[]"),ctx=canvas.getContext("2d");canvas.width=110;canvas.height=34;if(v.length<2)return;const min=Math.min(...v),max=Math.max(...v),range=max-min||1;ctx.beginPath();v.forEach((p,i)=>{const x=i/(v.length-1)*110,y=30-(p-min)/range*26;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle=v[v.length-1]>=v[0]?"#22c55e":"#ef4444";ctx.lineWidth=1.5;ctx.stroke()})}
+function drawGlobalChart(){
+ if(!globalMarketChart)return;
+ const wrap=globalMarketChart.parentElement,w=Math.max(320,wrap.clientWidth),h=260,dpr=window.devicePixelRatio||1;
+ globalMarketChart.width=w*dpr;globalMarketChart.height=h*dpr;globalMarketChart.style.width=w+"px";globalMarketChart.style.height=h+"px";
+ const ctx=globalMarketChart.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+ if(globalChartData.length<2){ctx.fillStyle="#66666d";ctx.font="11px Arial";ctx.fillText("Historical market data unavailable.",20,30);return}
+ const vals=globalChartData.map(p=>p[1]),min=Math.min(...vals),max=Math.max(...vals),range=max-min||1,left=10,right=w-10,top=16,bottom=h-24;
+ const x=i=>left+i/(vals.length-1)*(right-left),y=v=>bottom-(v-min)/range*(bottom-top);
+ ctx.beginPath();globalChartData.forEach((p,i)=>i?ctx.lineTo(x(i),y(p[1])):ctx.moveTo(x(i),y(p[1])));
+ ctx.strokeStyle="#22c55e";ctx.lineWidth=2;ctx.stroke();
+ ctx.lineTo(right,bottom);ctx.lineTo(left,bottom);ctx.closePath();ctx.fillStyle="rgba(34,197,94,.06)";ctx.fill();
+ ctx.fillStyle="#55555c";ctx.font="9px Arial";ctx.fillText(globalMoney(max),left,10);ctx.fillText(globalMoney(min),left,bottom+15);
+ globalMarketChart.onmousemove=e=>{
+   const rect=globalMarketChart.getBoundingClientRect(),idx=Math.max(0,Math.min(vals.length-1,Math.round((e.clientX-rect.left)/(rect.width)*(vals.length-1)))),p=globalChartData[idx];
+   const d=new Date(p[0]);globalChartTooltip.style.display="block";globalChartTooltip.textContent=d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})+" · "+globalMoney(p[1]);globalChartTooltip.style.left=Math.min(w-180,Math.max(8,(idx/(vals.length-1))*w-80))+"px";globalChartTooltip.style.top="8px";
+ };
+ globalMarketChart.onmouseleave=()=>globalChartTooltip.style.display="none";
+}
+async function loadGlobalChart(days=1){
+ try{const r=await fetch(GLOBAL_CHART_API+days);if(!r.ok)throw new Error();const d=await r.json();globalChartData=d.market_cap||[];drawGlobalChart()}
+ catch(e){globalChartData=[];drawGlobalChart()}
+}
 function globalMoney(v){return v==null?"--":v.toLocaleString("en-US",{style:"currency",currency:"USD",notation:"compact",maximumFractionDigits:2})}
 function renderHeatmap(){
  const valid=coins.filter(c=>Number.isFinite(c.market_cap)&&Number.isFinite(c.price_change_percentage_24h));
@@ -57,4 +79,9 @@ function renderHeatmap(){
 function highlights(){const valid=coins.filter(c=>Number.isFinite(c.price_change_percentage_24h));const gain=valid.slice().sort((a,b)=>b.price_change_percentage_24h-a.price_change_percentage_24h).slice(0,5);const lose=valid.slice().sort((a,b)=>a.price_change_percentage_24h-b.price_change_percentage_24h).slice(0,5);const item=c=>"<div class=\"highlight-row highlight-link\" data-coin=\""+c.id+"\"><span>"+c.name+"</span><b class=\""+(c.price_change_percentage_24h>=0?"positive":"negative")+"\">"+(c.price_change_percentage_24h>=0?"+":"")+c.price_change_percentage_24h.toFixed(2)+"%</b></div>";topGainers.innerHTML=gain.map(item).join("");topLosers.innerHTML=lose.map(item).join("");document.querySelectorAll(".highlight-link").forEach(row=>row.onclick=()=>location.href="crypto.html?coin="+encodeURIComponent(row.dataset.coin))}
 async function loadGlobal(){try{const r=await fetch(GLOBAL_API);if(!r.ok)throw new Error();const d=await r.json();globalCap.textContent=globalMoney(d.data.total_market_cap.usd);globalVolume.textContent=globalMoney(d.data.total_volume.usd);btcDominance.textContent=d.data.market_cap_percentage.btc.toFixed(2)+"%";activeCoins.textContent=d.data.active_cryptocurrencies.toLocaleString()}catch(e){}}
 async function load(page=1){try{const r=await fetch(API+page+"&sparkline=true&sparkline_duration=7d&price_change_percentage=24h%2C7d%2C30d");if(!r.ok)throw new Error("API failed");const data=await r.json();if(page===1){coins=data;currentPage=1;hasMore=data.length===100}else{const ids=new Set(coins.map(c=>c.id));coins.push(...data.filter(c=>!ids.has(c.id)));currentPage=page;hasMore=data.length===100}status.textContent="Live CoinGecko data · "+coins.length+" coins";render();renderHeatmap();highlights();if(page===1)loadGlobal()}catch(e){if(page===1)body.innerHTML='<tr><td colspan="8" class="market-loading">Market data could not be loaded. Try again.</td></tr>';status.textContent="Data unavailable"}}
-search.addEventListener("input",()=>{visible=50;render()});favoritesOnly.addEventListener("change",()=>{visible=50;render()});category.addEventListener("change",()=>{visible=50;render()});changePeriod.addEventListener("change",()=>{visible=50;render()});changeDirection.addEventListener("change",()=>{visible=50;render()});sort.addEventListener("change",render);more.addEventListener("click",async()=>{if(loadingMore||!hasMore)return;loadingMore=true;more.textContent="Loading...";await load(currentPage+1);loadingMore=false;more.textContent="Load more"});load();loadGlobal();setInterval(load,60000);setInterval(loadGlobal,60000);
+search.addEventListener("input",()=>{visible=50;render()});favoritesOnly.addEventListener("change",()=>{visible=50;render()});category.addEventListener("change",()=>{visible=50;render()});changePeriod.addEventListener("change",()=>{visible=50;render()});changeDirection.addEventListener("change",()=>{visible=50;render()});sort.addEventListener("change",render);more.addEventListener("click",async()=>{if(loadingMore||!hasMore)return;loadingMore=true;more.textContent="Loading...";await load(currentPage+1);loadingMore=false;more.textContent="Load more"});document.querySelectorAll(".global-range").forEach(btn=>btn.addEventListener("click",()=>{
+ document.querySelectorAll(".global-range").forEach(b=>b.classList.remove("active"));
+ btn.classList.add("active");loadGlobalChart(Number(btn.dataset.days));
+}));
+window.addEventListener("resize",drawGlobalChart);
+load();loadGlobal();loadGlobalChart(1);setInterval(load,60000);setInterval(loadGlobal,60000);
