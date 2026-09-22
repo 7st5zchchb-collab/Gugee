@@ -83,10 +83,10 @@ const exchangeAssets=[
 async function fetchExchangePrice(exchange,symbol){
  try{
   let url,price=null;
-  if(exchange==="Binance")url="https://api.binance.com/api/v3/ticker/price?symbol="+symbol;
-  if(exchange==="Coinbase")url="https://api.exchange.coinbase.com/products/"+symbol+"/ticker";
-  if(exchange==="Kraken")url="https://api.kraken.com/0/public/Ticker?pair="+symbol;
-  if(exchange==="Bybit")url="https://api.bybit.com/v5/market/tickers?category=spot&symbol="+symbol;
+  if(exchange==="Binance")url="/api/exchanges?provider=binance&symbol="+symbol;
+  if(exchange==="Coinbase")url="/api/exchanges?provider=coinbase&symbol="+symbol+"/ticker";
+  if(exchange==="Kraken")url="/api/exchanges?provider=kraken&symbol="+symbol;
+  if(exchange==="Bybit")url="/api/exchanges?provider=bybit&symbol="+symbol;
   if(!url)return null;
   const r=await fetch(url);if(!r.ok)throw new Error();const d=await r.json();
   if(exchange==="Binance")price=Number(d.price);
@@ -113,10 +113,10 @@ async function loadExchangeAssets(){
  }).join('');
 }
 const exchangeSources=[
- {name:"Binance",url:"https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT"},
- {name:"Coinbase",url:"https://api.exchange.coinbase.com/products/BTC-USD/ticker"},
- {name:"Kraken",url:"https://api.kraken.com/0/public/Ticker?pair=XBTUSD"},
- {name:"Bybit",url:"https://api.bybit.com/v5/market/tickers?category=spot&symbol=BTCUSDT"}
+ {name:"Binance",url:"/api/exchanges?provider=binance&symbol=BTCUSDT"},
+ {name:"Coinbase",url:"/api/exchanges?provider=coinbase&symbol=BTC-USD/ticker"},
+ {name:"Kraken",url:"/api/exchanges?provider=kraken&symbol=XBTUSD"},
+ {name:"Bybit",url:"/api/exchanges?provider=bybit&symbol=BTCUSDT"}
 ];
 function exchangeMoney(v){return Number.isFinite(v)?v.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}):"--"}
 async function loadSpreadMonitor(){
