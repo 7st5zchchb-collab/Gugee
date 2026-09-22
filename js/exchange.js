@@ -85,6 +85,7 @@ const state={current:exchanges[0],ticker:null,candles:[]};
 function rawTicker(d){return d.data?.[0]||d.data||d.result?.[0]||d.result||d} 
 function tickerValues(e,d){
  let price=null,volume=null,change=null;
+ if(d?.source==="ccxt"){price=+d.lastPrice;volume=+d.quoteVolume;change=+d.priceChangePercent;return {price,volume,change};}
  if(e.provider==="binance"){price=+d.lastPrice;volume=+d.quoteVolume;change=+d.priceChangePercent}
  if(e.provider==="coinbase"){price=+d.price;volume=+d.volume_24h*price}
  if(e.provider==="kraken"){const x=d.result?.XXBTZUSD||Object.values(d.result||{})[0];price=+x?.c?.[0];volume=+x?.v?.[1]*price}
@@ -126,7 +127,7 @@ async function getCandles(e){
  const symbol=e.candle||e.symbol;
  const r=await fetch("/api/exchanges/candles?provider="+encodeURIComponent(e.provider)+"&symbol="+encodeURIComponent(symbol));
  if(!r.ok)throw new Error();
- const d=await r.json();return d.rows||[];
+ const d=await r.json();return Array.isArray(d)?d:(d.rows||[]);
 }
 function metric(label,value,cls=""){return '<div class="analysis-metric"><span>'+label+'</span><b class="'+cls+'">'+value+'</b></div>'}
 function renderSummary(t){
