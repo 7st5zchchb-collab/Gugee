@@ -81,7 +81,6 @@ function saveWatchlist(list){
   const clean=[...new Set(list)];
   localStorage.setItem(WATCHLIST_KEY,JSON.stringify(clean));
   renderWatchlist();
-setTimeout(syncWatchlistFromServer,0);
   if(window.gugeeAuth?.getCurrentUser()){
     window.gugeeAuth.api("/api/watchlist",{method:"PUT",body:JSON.stringify({watchlist:clean})}).catch(()=>{});
   }
@@ -121,3 +120,4 @@ function renderWatchlist(){
 }
 document.getElementById("clearWatchlist")?.addEventListener("click",()=>saveWatchlist([]));
 renderWatchlist();
+setTimeout(syncWatchlistFromServer,0);
