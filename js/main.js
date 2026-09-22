@@ -9,7 +9,7 @@ searchInput.addEventListener("input", () => {
   if (query.length < 2) { searchSuggestions.innerHTML = ""; searchSuggestions.classList.remove("show"); return; }
   searchTimer = setTimeout(async () => {
     try {
-      const response = await fetch("https://api.coingecko.com/api/v3/search?query=" + encodeURIComponent(query));
+      const response = await fetch("/api/coingecko/search?query=" + encodeURIComponent(query));
       if (!response.ok) throw new Error("Search request failed");
       const data = await response.json();
       const coins = (data.coins || []).slice(0, 6);
@@ -43,7 +43,7 @@ const marketCards = document.querySelectorAll(".market-card");
 
 async function loadMarketSnapshot() {
   try {
-    const url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=" +
+    const url = "/api/coingecko/coins/markets?vs_currency=usd&ids=" +
       marketCoins.join(",") + "&order=market_cap_desc&per_page=4&page=1&sparkline=false";
     const response = await fetch(url);
     if (!response.ok) throw new Error("Market API request failed");
@@ -106,7 +106,7 @@ function renderWatchlist(){
     card.className="watchlist-card"; card.href="crypto.html?coin="+encodeURIComponent(id);
     card.innerHTML='<div><b>'+coin.name+'</b><span>'+coin.symbol+'</span></div><div class="watchlist-market"><strong class="watch-price">Loading...</strong><span class="watch-change">--</span></div>';
     watchlistGrid.appendChild(card);
-    fetch("https://api.coingecko.com/api/v3/simple/price?ids="+encodeURIComponent(id)+"&vs_currencies=usd&include_24hr_change=true")
+    fetch("/api/coingecko/simple/price?ids="+encodeURIComponent(id)+"&vs_currencies=usd&include_24hr_change=true")
       .then(r=>r.json()).then(data=>{
         const item=data[id];
         const priceEl=card.querySelector(".watch-price"), changeEl=card.querySelector(".watch-change");
