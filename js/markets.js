@@ -1,11 +1,20 @@
 function runScreener(){
  const body=document.getElementById("screenerBody"),count=document.getElementById("screenerCount");if(!body)return;
  const min24=Number(document.getElementById("screen24")?.value),min30=Number(document.getElementById("screen30")?.value),minCap=Number(document.getElementById("screenCap")?.value),minRatio=Number(document.getElementById("screenRatio")?.value);
- let list=coins.filter(c=>(!Number.isFinite(min24)||Number(c.price_change_percentage_24h)>=min24)&&(!Number.isFinite(min30)||Number(c.price_change_percentage_30d_in_currency)>=min30)&&(!minCap||Number(c.market_cap)>=minCap*1e6)&&(!minRatio||Number(c.market_cap)>0&&Number(c.total_volume)/Number(c.market_cap)*100>=minRatio));
+ const direction=document.getElementById("screenDirection")?.value||"all",liq=document.getElementById("screenLiquidity")?.value||"all",vol=document.getElementById("screenVolatility")?.value||"all",sortBy=document.getElementById("screenSort")?.value||"cap";
+ let list=coins.filter(c=>{
+  const ch24=Number(c.price_change_percentage_24h),ch30=Number(c.price_change_percentage_30d_in_currency),ratio=Number(c.market_cap)>0?Number(c.total_volume)/Number(c.market_cap)*100:null;
+  return (!Number.isFinite(min24)||ch24>=min24)&&(!Number.isFinite(min30)||ch30>=min30)&&(!minCap||Number(c.market_cap)>=minCap*1e6)&&(!minRatio||ratio!=null&&ratio>=minRatio)&&
+   (direction==="all"||(direction==="gainers"&&ch24>0)||(direction==="losers"&&ch24<0))&&
+   (liq==="all"||(ratio!=null&&(liq==="high"?ratio>5:liq==="medium"?ratio>=1&&ratio<=5:ratio<1)));
+ });
+ if(vol!=="all")list=list.filter(c=>{const v=Math.abs(Number(c.price_change_percentage_30d_in_currency)||0);return vol==="high"?v>30:vol==="medium"?v>=10&&v<=30:v<10});
+ list.sort((a,b)=>sortBy==="24h"?Number(b.price_change_percentage_24h||-Infinity)-Number(a.price_change_percentage_24h||-Infinity):sortBy==="30d"?Number(b.price_change_percentage_30d_in_currency||-Infinity)-Number(a.price_change_percentage_30d_in_currency||-Infinity):sortBy==="volume"?Number(b.total_volume||0)-Number(a.total_volume||0):Number(b.market_cap||0)-Number(a.market_cap||0));
  count.textContent=list.length+" assets";
  body.innerHTML=list.slice(0,50).map(c=>{const ratio=c.market_cap>0?c.total_volume/c.market_cap*100:null;return '<tr data-id="'+c.id+'"><td><b>'+c.symbol.toUpperCase()+'</b><small>'+c.name+'</small></td><td>'+money(c.current_price)+'</td><td class="'+(c.price_change_percentage_24h>=0?"positive":"negative")+'">'+(c.price_change_percentage_24h>=0?"+":"")+Number(c.price_change_percentage_24h||0).toFixed(2)+'%</td><td>'+ (Number.isFinite(c.price_change_percentage_30d_in_currency)?(c.price_change_percentage_30d_in_currency>=0?"+":"")+c.price_change_percentage_30d_in_currency.toFixed(2)+"%":"--") +'</td><td>'+compact(c.market_cap)+'</td><td>'+ (ratio==null?"--":ratio.toFixed(2)+"%") +'</td></tr>'}).join("")||'<tr><td colspan="6">No assets match these filters.</td></tr>';
  body.querySelectorAll("tr[data-id]").forEach(row=>row.addEventListener("click",()=>location.href="crypto.html?coin="+row.dataset.id));
 }
+
 document.getElementById("runScreener")?.addEventListener("click",runScreener);
 async function loadRiskDashboard(){
  const box=document.getElementById("riskDashboard");if(!box)return;
