@@ -122,3 +122,21 @@
 .signal-card-top .neutral{color:#aaa}
 @media(max-width:800px){.signals-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:500px){.signals-grid{grid-template-columns:1fr}}
+
+
+.analysis-engine-panel{margin-bottom:14px;background:#0b0b0d;border:1px solid #242429;border-radius:12px;padding:16px}
+.analysis-engine-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.analysis-engine-card{border:1px solid #242429;background:#101012;border-radius:9px;padding:12px}
+.analysis-engine-top{display:flex;justify-content:space-between;align-items:center;padding-bottom:9px;border-bottom:1px solid #1d1d21}
+.analysis-engine-top b{font-size:11px;color:#f3f3f3}
+.analysis-engine-top span{font-size:9px}
+.analysis-engine-top .positive{color:var(--green)}
+.analysis-engine-top .negative{color:#ff5b63}
+.analysis-engine-top .neutral{color:#aaa}
+.analysis-score{margin-top:10px;color:#777;font-size:8px}
+.analysis-score strong{float:right;color:#ddd;font-size:10px}
+.analysis-factors{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:11px}
+.analysis-factors span{display:flex;justify-content:space-between;gap:5px;color:#66666d;font-size:8px}
+.analysis-factors b{color:#aaa}
+@media(max-width:800px){.analysis-engine-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.analysis-engine-grid{grid-template-columns:1fr}}
