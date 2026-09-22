@@ -76,6 +76,7 @@ const watchlistEmpty=document.getElementById("watchlistEmpty");
 const WATCHLIST_KEY="gugee_watchlist";
 function getWatchlist(){return JSON.parse(localStorage.getItem(WATCHLIST_KEY)||"[]")}
 function saveWatchlist(list){localStorage.setItem(WATCHLIST_KEY,JSON.stringify([...new Set(list)]));renderWatchlist()}
+let watchlistFilter="all";
 function renderWatchlist(){
   if(!watchlistGrid)return;
   const list=getWatchlist();
