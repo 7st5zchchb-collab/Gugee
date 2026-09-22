@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="Gugee — live cryptocurrency market overview.">
+<title>Gugee — Markets</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body><div class="background-glow"></div>
+<header class="site-header">
+<a class="brand" href="./"><span class="brand-mark">G</span><span>Gugee</span></a>
+<nav class="nav"><a class="active" href="markets.html">Markets</a><a href="./#analysis">Analysis</a><a href="./#exchanges">Exchanges</a></nav>
+<a class="login-button" href="login.html">Log in</a>
+</header>
+<main class="markets-page">
+<section class="markets-header">
+<div><p class="section-label">CRYPTO MARKETS</p><h1>Market overview</h1><p>Live prices, market caps, volume and 24H performance.</p></div>
+<div class="markets-controls"><input id="marketSearch" type="search" placeholder="Search crypto..." autocomplete="off"><select id="sortSelect"><option value="market_cap_desc">Market cap ↓</option><option value="price_desc">Price ↓</option><option value="change_desc">24H gainers ↓</option><option value="change_asc">24H losers ↓</option><option value="volume_desc">Volume ↓</option><option value="rank_asc">Rank ↑</option></select></div>
+</section>
+<div class="market-table-wrap"><table class="market-table"><thead><tr><th>#</th><th>Asset</th><th>Price</th><th>24H</th><th>Market Cap</th><th>24H Volume</th></tr></thead><tbody id="marketTableBody"><tr><td colspan="6" class="market-loading">Loading market data...</td></tr></tbody></table></div>
+<div class="markets-footer"><button id="loadMore" class="watchlist-clear">Load more</button><span id="marketStatus">Updating...</span></div>
+</main>
+<footer><span>© 2026 Gugee</span><span>Crypto analytics platform</span></footer>
+<script src="js/markets.js"></script>
+</body></html>
