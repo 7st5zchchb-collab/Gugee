@@ -5,7 +5,7 @@ const coinId = aliases[requestedCoin.toLowerCase()] || requestedCoin.toLowerCase
 
 const els = {
   name: document.getElementById("coinName"), symbol: document.getElementById("coinSymbol"),
-  icon: document.getElementById("coinIcon"), price: document.getElementById("coinPrice"),
+  icon: document.getElementById("coinIcon"), iconImage: document.getElementById("coinIconImage"), iconFallback: document.getElementById("coinIconFallback"), price: document.getElementById("coinPrice"),
   change: document.getElementById("coinChange"), marketCap: document.getElementById("marketCap"),
   volume: document.getElementById("volume"), high: document.getElementById("high"), low: document.getElementById("low"),
   supply: document.getElementById("supply"), ath: document.getElementById("ath"), athDate: document.getElementById("athDate"),
@@ -135,7 +135,7 @@ async function loadCoin() {
     currentMarket = market;
     els.name.textContent = coin.name || coinId;
     els.symbol.textContent = (coin.symbol || "").toUpperCase();
-    els.icon.textContent = (coin.symbol || "C").toUpperCase().slice(0,3);
+    const logo = coin.image?.large || coin.image?.small || coin.image?.thumb || "";\n    if (els.iconImage && logo) { els.iconImage.src = logo; els.iconImage.style.display = "block"; if (els.iconFallback) els.iconFallback.style.display = "none"; }\n    else if (els.iconFallback) { els.iconFallback.textContent = (coin.symbol || "C").toUpperCase().slice(0,3); els.iconFallback.style.display = "block"; }
     els.price.textContent = money(market.current_price.usd);
     const change = market.price_change_percentage_24h || 0;
     els.change.textContent = (change >= 0 ? "+" : "") + change.toFixed(2) + "%";
