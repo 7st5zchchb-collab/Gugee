@@ -121,6 +121,11 @@ async function initDb(){
       name TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+      verification_token_hash TEXT,
+      verification_expires_at TIMESTAMPTZ,
+      reset_token_hash TEXT,
+      reset_expires_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE TABLE IF NOT EXISTS watchlist(
@@ -130,6 +135,17 @@ async function initDb(){
       PRIMARY KEY(user_id,coin_id)
     );
   `);
+}
+
+async function addAccountSecurityColumns(){
+  const statements=[
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_hash TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_expires_at TIMESTAMPTZ",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_hash TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_expires_at TIMESTAMPTZ"
+  ];
+  for(const sql of statements)await pool.query(sql);
 }
 
 app.get("/api/health",async(req,res)=>{
