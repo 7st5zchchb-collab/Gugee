@@ -1,282 +1,124 @@
-const params = new URLSearchParams(window.location.search);
-const requestedCoin = params.get("coin") || "bitcoin";
-const aliases = {btc:"bitcoin",eth:"ethereum",sol:"solana",bnb:"binancecoin"};
-const coinId = aliases[requestedCoin.toLowerCase()] || requestedCoin.toLowerCase().trim().replace(/\s+/g,"-");
-
-const els = {
-  name: document.getElementById("coinName"), symbol: document.getElementById("coinSymbol"),
-  icon: document.getElementById("coinIcon"), iconImage: document.getElementById("coinIconImage"), iconFallback: document.getElementById("coinIconFallback"), price: document.getElementById("coinPrice"),
-  change: document.getElementById("coinChange"), marketCap: document.getElementById("marketCap"),
-  volume: document.getElementById("volume"), high: document.getElementById("high"), low: document.getElementById("low"),
-  supply: document.getElementById("supply"), ath: document.getElementById("ath"), athDate: document.getElementById("athDate"),
-  updated: document.getElementById("updated"), athDistance: document.getElementById("athDistance"),
-  analysisChange: document.getElementById("analysisChange"), analysis7d: document.getElementById("analysis7d"), analysis30d: document.getElementById("analysis30d"), volatility30d: document.getElementById("volatility30d"), volumeChange30d: document.getElementById("volumeChange30d"), volumeCapRatio: document.getElementById("volumeCapRatio"), athDistance2: document.getElementById("athDistance2"), trend: document.getElementById("trendSignal"), momentum: document.getElementById("momentumSignal"), volumeSignal: document.getElementById("volumeSignal"), rsi14: document.getElementById("rsi14"), ma20: document.getElementById("ma20"), ma50: document.getElementById("ma50"), macdSignal: document.getElementById("macdSignal"), summary: document.getElementById("analysisSummary"), signalTrend: document.getElementById("signalTrend"), signalMomentum: document.getElementById("signalMomentum"), signalVolume: document.getElementById("signalVolume"), signalRisk: document.getElementById("signalRisk"), binance: document.getElementById("binancePrice"), coinbase: document.getElementById("coinbasePrice"), kraken: document.getElementById("krakenPrice"), bybit: document.getElementById("bybitPrice"), spread: document.getElementById("priceSpread"), chart: document.getElementById("chartPlaceholder")
+const params=new URLSearchParams(location.search);
+const requestedCoin=params.get("coin")||"bitcoin";
+const aliases={btc:"bitcoin",eth:"ethereum",sol:"solana",bnb:"binancecoin",xrp:"ripple",doge:"dogecoin"};
+const coinId=aliases[requestedCoin.toLowerCase()]||requestedCoin.toLowerCase().trim().replace(/\s+/g,"-");
+const $=id=>document.getElementById(id);
+const els={
+ name:$("coinName"),symbol:$("coinSymbol"),icon:$("coinIconImage"),fallback:$("coinIconFallback"),price:$("coinPrice"),change:$("coinChange"),
+ marketCap:$("marketCap"),volume:$("volume"),high:$("high"),low:$("low"),supply:$("supply"),ath:$("ath"),athDate:$("athDate"),updated:$("updated"),
+ chart:$("chartPlaceholder"),periodGrid:$("cryptoPeriodGrid"),dailyMoves:$("dailyMoves"),dailyUpdated:$("dailyAnalysisUpdated"),
+ trend:$("signalTrend"),momentum:$("signalMomentum"),volumeSignal:$("signalVolume"),risk:$("signalRisk"),
+ rsi:$("rsi14"),rsiState:$("rsiState"),ma20:$("ma20"),ma20State:$("ma20State"),ma50:$("ma50"),ma50State:$("ma50State"),macd:$("macdValue"),macdState:$("macdState"),atr:$("atr14"),boll:$("bollinger"),bollState:$("bollingerState"),
+ volatility:$("volatility30d"),drawdown:$("maxDrawdown"),periodHigh:$("periodHigh"),periodLow:$("periodLow"),support:$("support"),resistance:$("resistance"),athDistance:$("athDistance"),
+ analysisVolume:$("analysisVolume"),avgVol7:$("avgVolume7d"),avgVol30:$("avgVolume30d"),volChange:$("volumeChange7d"),volRatio:$("volumeCapRatio"),volActivity:$("volumeActivity"),
+ summary:$("analysisSummary"),a3:$("analysis3d"),a7:$("analysis7d"),a30:$("analysis30d"),trendText:$("trendSignal"),momentumText:$("momentumSignal"),
+ exchangeTable:$("exchangeAnalysisTable"),exchangeStatus:$("exchangeAnalysisStatus"),favorite:$("favoriteButton")
 };
+const ranges=["1","3","7","30","365","1825","max"];
+let coin=null,market=null,latestHistory=null;
 
-const ranges = { "24H": "1", "7D": "7", "30D": "30", "1Y": "365", "5Y": "1825", "MAX": "max" };
-let currentRange = "1";
-let currentMarket = null;
+function money(v){if(!Number.isFinite(Number(v)))return"$--";v=Number(v);if(Math.abs(v)>=1000)return"$"+Math.round(v).toLocaleString("en-US");if(Math.abs(v)>=1)return"$"+v.toLocaleString("en-US",{maximumFractionDigits:2});return"$"+v.toLocaleString("en-US",{maximumSignificantDigits:6});}
+function compact(v){return Number.isFinite(Number(v))?new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(Number(v)):"--";}
+function pct(v){return Number.isFinite(Number(v))?(Number(v)>=0?"+":"")+Number(v).toFixed(2)+"%":"--";}
+function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}
+function cls(v){return Number(v)>=0?"positive":"negative";}
+function set(el,text,color){if(!el)return;el.textContent=text;if(color)el.style.color=color;}
+function colorFor(v){return Number(v)>=0?"var(--green)":"#ff5c5c";}
+function nearest(points,target){return points.reduce((best,p)=>Math.abs(p[0]-target)<Math.abs(best[0]-target)?p:best,points[0]);}
+function dailySeries(prices){const m=new Map();for(const p of prices){const d=new Date(p[0]),key=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());if(!m.has(key)||p[0]>m.get(key)[0])m.set(key,p);}return [...m.values()].sort((a,b)=>a[0]-b[0]);}
 
-function money(v) {
-  if (v == null) return "$--";
-  if (v >= 1000) return "$" + Math.round(v).toLocaleString();
-  if (v >= 1) return "$" + v.toLocaleString(undefined,{maximumFractionDigits:2});
-  return "$" + v.toLocaleString(undefined,{maximumSignificantDigits:5});
-}
-function compact(v) {
-  return v == null ? "--" : new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(v);
-}
-function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
-}
-function drawChart(points, volumes) {
-  if (!points.length) { els.chart.textContent = "No historical data available."; return; }
-  const width = 1000, height = 300, pad = 18;
-  const values = points.map(p => p[1]);
-  const min = Math.min(...values), max = Math.max(...values), range = max - min || 1;
-  const line = points.map((p,i) => {
-    const x = pad + (i/(points.length-1 || 1))*(width-pad*2);
-    const y = height-pad-((p[1]-min)/range)*(height-pad*2);
-    return (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
-  }).join(" ");
-  const area = line + " L " + (width-pad) + " " + (height-pad) + " L " + pad + " " + (height-pad) + " Z";
-  els.chart.innerHTML = '<div class="chart-value-row"><span>Low ' + money(min) + '</span><b>' + money(values[values.length-1]) + '</b><span>High ' + money(max) + '</span></div>' +
-    '<div class="chart-interactive"><svg class="price-svg" viewBox="0 0 1000 300" preserveAspectRatio="none" role="img" aria-label="Historical price chart">' +
-    '<defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="rgba(53,224,139,.22)"/><stop offset="100%" stop-color="rgba(53,224,139,0)"/></linearGradient></defs>' +
-    '<path d="' + area + '" fill="url(#chartFill)"/><path d="' + line + '" fill="none" stroke="#35e08b" stroke-width="3" vector-effect="non-scaling-stroke"/></svg><div class="chart-tooltip" id="chartTooltip"></div><div class="chart-hover-line" id="chartHoverLine"></div><div class="chart-hover-dot" id="chartHoverDot"></div></div>' +
-    '<div class="chart-times"><span>' + new Date(points[0][0]).toLocaleDateString() + '</span><span>' + new Date(points[points.length-1][0]).toLocaleDateString() + '</span></div>' +
-    '<div class="volume-title">Volume</div><div class="volume-bars">' + volumes.map((v,i) => '<span style="height:' + Math.max(4,Math.min(100,(v[1]/Math.max(...volumes.map(x=>x[1])))*100)) + '%" data-index="' + i + '"></span>').join("") + '</div>';
-  const wrap=document.querySelector(".chart-interactive"), tip=document.getElementById("chartTooltip"), lineEl=document.getElementById("chartHoverLine"), dot=document.getElementById("chartHoverDot");
-  wrap.addEventListener("mousemove", e => {
-    const r=wrap.getBoundingClientRect(), ratio=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
-    const i=Math.round(ratio*(points.length-1)), p=points[i], v=volumes[Math.min(i,volumes.length-1)]?.[1]||0;
-    const x=ratio*100;
-    const y=(height-pad-((p[1]-min)/range)*(height-pad*2))/height*100;
-    tip.innerHTML='<b>'+money(p[1])+'</b><br><span>'+new Date(p[0]).toLocaleString()+'</span><br><span>Volume: '+compact(v)+'</span>';
-    tip.style.left=Math.min(82,Math.max(2,x))+'%'; tip.style.top='8px'; tip.style.display='block';
-    lineEl.style.left=x+'%'; lineEl.style.display='block'; dot.style.left=x+'%'; dot.style.top=y+'%'; dot.style.display='block';
-  });
-  wrap.addEventListener("mouseleave",()=>{tip.style.display="none";lineEl.style.display="none";dot.style.display="none";});
+function sma(values,n){return values.length>=n?avg(values.slice(-n)):null;}
+function ema(values,n){if(values.length<n)return null;let e=avg(values.slice(0,n)),k=2/(n+1);for(let i=n;i<values.length;i++)e=values[i]*k+e*(1-k);return e;}
+function rsi(values,n=14){if(values.length<n+1)return null;let gains=0,losses=0;for(let i=values.length-n;i<values.length;i++){const d=values[i]-values[i-1];if(d>=0)gains+=d;else losses-=d;}if(losses===0)return 100;return 100-(100/(1+(gains/n)/(losses/n)));}
+function atr(candles,n=14){if(candles.length<n+1)return null;const trs=[];for(let i=1;i<candles.length;i++){const c=candles[i],prev=candles[i-1];trs.push(Math.max(c.high-c.low,Math.abs(c.high-prev.close),Math.abs(c.low-prev.close)));}return avg(trs.slice(-n));}
+function maxDrawdown(values){let peak=values[0]||0,best=0;for(const v of values){if(v>peak)peak=v;if(peak)best=Math.min(best,(v/peak-1)*100);}return best;}
+function std(values){if(!values.length)return 0;const m=avg(values);return Math.sqrt(avg(values.map(x=>(x-m)**2)));}
+function returns(values){const r=[];for(let i=1;i<values.length;i++)if(values[i-1]>0)r.push((values[i]/values[i-1]-1)*100);return r;}
+
+function drawChart(points,volumes){
+ if(!points.length){els.chart.textContent="No historical data available.";return;}
+ const W=1000,H=300,P=20,vals=points.map(x=>x[1]),min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;
+ const line=points.map((p,i)=>{const x=P+i/(points.length-1||1)*(W-P*2),y=H-P-(p[1]-min)/range*(H-P*2);return(i?"L":"M")+x.toFixed(1)+" "+y.toFixed(1)}).join(" ");
+ const area=line+" L "+(W-P)+" "+(H-P)+" L "+P+" "+(H-P)+" Z";
+ const maxVol=Math.max(...volumes.map(x=>Number(x[1])||0),1);
+ els.chart.innerHTML='<div class="chart-value-row"><span>Low '+money(min)+'</span><b>'+money(vals.at(-1))+'</b><span>High '+money(max)+'</span></div><div class="chart-interactive"><svg class="price-svg" viewBox="0 0 1000 300" preserveAspectRatio="none"><defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="rgba(53,224,139,.20)"/><stop offset="100%" stop-color="rgba(53,224,139,0)"/></linearGradient></defs><path d="'+area+'" fill="url(#chartFill)"/><path d="'+line+'" fill="none" stroke="#35e08b" stroke-width="3" vector-effect="non-scaling-stroke"/></svg><div class="chart-tooltip" id="chartTooltip"></div><div class="chart-hover-line" id="chartHoverLine"></div><div class="chart-hover-dot" id="chartHoverDot"></div></div><div class="chart-times"><span>'+new Date(points[0][0]).toLocaleDateString()+'</span><span>'+new Date(points.at(-1)[0]).toLocaleDateString()+'</span></div><div class="volume-title">Volume</div><div class="volume-bars">'+volumes.map((v,i)=>'<span style="height:'+Math.max(4,Number(v[1]||0)/maxVol*100)+'%"></span>').join("")+'</div>';
+ const wrap=$("chartPlaceholder").querySelector(".chart-interactive"),tip=$("chartTooltip"),hl=$("chartHoverLine"),dot=$("chartHoverDot");
+ wrap.addEventListener("mousemove",e=>{const r=wrap.getBoundingClientRect(),q=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),i=Math.round(q*(points.length-1)),p=points[i],v=volumes[Math.min(i,volumes.length-1)]?.[1]||0,y=(H-P-(p[1]-min)/range*(H-P*2))/H*100;tip.innerHTML="<b>"+money(p[1])+"</b><br><span>"+new Date(p[0]).toLocaleString()+"</span><br><span>Volume: "+compact(v)+"</span>";tip.style.left=Math.min(82,Math.max(2,q*100))+"%";tip.style.display="block";hl.style.left=q*100+"%";hl.style.display="block";dot.style.left=q*100+"%";dot.style.top=y+"%";dot.style.display="block";});
+ wrap.addEventListener("mouseleave",()=>{tip.style.display=hl.style.display=dot.style.display="none";});
 }
 
-async function fetchHistory(days) {
-  const url="/api/coingecko/coins/"+encodeURIComponent(coinId)+"/market_chart?vs_currency=usd&days="+days;
-  const response=await fetch(url); if(!response.ok) throw new Error("History request failed"); return response.json();
-}
-function pct(v){return (v>=0?"+":"")+v.toFixed(2)+"%"}
-function setMetric(el,v){if(el){el.textContent=pct(v);el.style.color=v>=0?"var(--green)":"#ff5c5c"}}
-function calculateAnalysis(data){
-  const p=(data.prices||[]).map(x=>x[1]), vols=(data.total_volumes||[]).map(x=>x[1]);
-  if(p.length<2)return;
-  const pointsPerDay=Math.max(1,Math.floor(p.length/30));
-  const priceAtDaysAgo=(days)=>p[Math.max(0,p.length-1-Math.round(pointsPerDay*days))];
-  const ret7=(p[p.length-1]/priceAtDaysAgo(7)-1)*100;
-  const ret30=(p[p.length-1]/priceAtDaysAgo(30)-1)*100;
-  const changes=[]; for(let i=1;i<p.length;i++) changes.push((p[i]/p[i-1]-1)*100);
-  const mean=changes.reduce((a,b)=>a+b,0)/changes.length;
-  const variance=changes.reduce((a,b)=>a+(b-mean)**2,0)/changes.length;
-  const vol=Math.sqrt(variance)*Math.sqrt(24*365);
-  const recentVolume=avg(vols.slice(Math.max(0,vols.length-7))); const previousVolume=avg(vols.slice(Math.max(0,vols.length-14),Math.max(0,vols.length-7))); const volChange=previousVolume?((recentVolume/previousVolume)-1)*100:0;
-  const last=p[p.length-1], n=p.length;
-  const sma=(arr,period)=>arr.length<period?null:avg(arr.slice(-period));
-  const ma20=sma(p,20), ma50=sma(p,50);
-  const gains=[], losses=[];
-  for(let i=1;i<p.length;i++){const d=p[i]-p[i-1]; gains.push(Math.max(d,0)); losses.push(Math.max(-d,0));}
-  const rsiPeriod=14, recentG=gains.slice(-rsiPeriod), recentL=losses.slice(-rsiPeriod);
-  const avgGain=recentG.length?avg(recentG):0, avgLoss=recentL.length?avg(recentL):0;
-  const rsi=avgLoss===0?100:100-(100/(1+(avgGain/avgLoss)));
-  const ema=(arr,period)=>{if(arr.length<period)return null;let e=avg(arr.slice(0,period));const k=2/(period+1);for(let i=period;i<arr.length;i++)e=arr[i]*k+e*(1-k);return e;};
-  const ema12=ema(p,12), ema26=ema(p,26), macd=ema12!=null&&ema26!=null?ema12-ema26:null;
-  if(els.rsi14){els.rsi14.textContent=rsi.toFixed(1);els.rsi14.style.color=rsi>=70?"#ff5c5c":rsi<=30?"var(--green)":"#f5f5f5";}
-  if(els.ma20){els.ma20.textContent=ma20==null?"--":money(ma20);els.ma20.style.color=ma20!=null&&last>=ma20?"var(--green)":"#ff5c5c";}
-  if(els.ma50){els.ma50.textContent=ma50==null?"--":money(ma50);els.ma50.style.color=ma50!=null&&last>=ma50?"var(--green)":"#ff5c5c";}
-  if(els.macdSignal){els.macdSignal.textContent=macd==null?"--":(macd>=0?"Positive":"Negative");els.macdSignal.style.color=macd==null?"#f5f5f5":macd>=0?"var(--green)":"#ff5c5c";} const short=avg(p.slice(Math.max(0,n-24))); const long=avg(p); const momentum=(p[n-1]/p[Math.max(0,n-8)]-1)*100; const recentVol=avg(vols.slice(Math.max(0,vols.length-12))); const oldVol=avg(vols.slice(0,Math.max(1,Math.floor(vols.length/2)))); const volumeRatio=oldVol?recentVol/oldVol:1; els.trend.textContent=short>long?"Uptrend":"Downtrend"; els.trend.style.color=short>long?"var(--green)":"#ff5c5c"; els.momentum.textContent=momentum>=0? "Positive":"Negative"; els.momentum.style.color=momentum>=0?"var(--green)":"#ff5c5c"; els.volumeSignal.textContent=volumeRatio>=1.2?"Strong":"Normal"; els.volumeSignal.style.color=volumeRatio>=1.2?"var(--green)":"#aaa"; els.summary.textContent=(short>long?"Price is trading above its longer average. ":"Price is trading below its longer average.")+(momentum>=0?"Recent momentum is positive. ":"Recent momentum is negative.")+(volumeRatio>=1.2?"Recent volume is elevated.":"Recent volume is within a normal range."); const risk=vol>100?"High":vol>50?"Medium":"Low"; els.signalTrend.textContent=short>long?"Up":"Down"; els.signalMomentum.textContent=momentum>=0?"Positive":"Negative"; els.signalVolume.textContent=volumeRatio>=1.2?"High":"Normal"; els.signalRisk.textContent=risk; [els.signalTrend,els.signalMomentum,els.signalVolume,els.signalRisk].forEach(e=>e.style.color="#f5f5f5"); setMetric(els.analysis30d,ret30); setMetric(els.volatility30d,vol); setMetric(els.volumeChange30d,volChange); setMetric(els.analysis7d,ret7);
+async function api(path){const r=await fetch(path);if(!r.ok)throw new Error("API "+r.status);return r.json();}
+async function history(days){return api("/api/coingecko/coins/"+encodeURIComponent(coinId)+"/market_chart?vs_currency=usd&days="+days+"&interval="+(days==="max"?"daily":""));}
+
+function renderPeriods(prices){
+ const now=prices.at(-1),targets=[{label:"Now",days:0},{label:"3 days ago",days:3},{label:"7 days ago",days:7},{label:"30 days ago",days:30}];
+ els.periodGrid.innerHTML=targets.map(t=>{const p=t.days?nearest(prices,now[0]-t.days*86400000):now;const ch=t.days?(now[1]/p[1]-1)*100:null;return '<div class="crypto-period-card"><span>'+t.label+'</span><strong>'+money(p[1])+'</strong><small class="'+(ch==null?"":cls(ch))+'">'+(ch==null?"Live market price":pct(ch)+" from that period")+'</small></div>';}).join("");
+ const days=dailySeries(prices),moves=[];for(let i=Math.max(1,days.length-8);i<days.length;i++)moves.push({d:new Date(days[i][0]),p:days[i][1],c:(days[i][1]/days[i-1][1]-1)*100});
+ els.dailyMoves.innerHTML=moves.reverse().map(x=>'<div class="daily-move"><span>'+x.d.toLocaleDateString("en-US",{month:"short",day:"numeric"})+'</span><b>'+money(x.p)+'</b><strong class="'+cls(x.c)+'">'+pct(x.c)+'</strong></div>').join("");
+ els.dailyUpdated.textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
 }
 
-async function loadChart(days) {
-  els.chart.textContent = "Loading " + (days === "max" ? "all-time" : days + "-day") + " history...";
-  try {
-    const url = "/api/coingecko/coins/" + encodeURIComponent(coinId) + "/market_chart?vs_currency=usd&days=" + days;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Chart API request failed");
-    const data = await response.json();
-    drawChart(data.prices || [], data.total_volumes || []);
-    if(days==="30") calculateAnalysis(data);
-  } catch (e) {
-    console.error(e);
-    els.chart.textContent = "Historical chart could not be loaded. Try again.";
-  }
+function analyze(data){
+ const p=(data.prices||[]).map(x=>x[1]).filter(Number.isFinite),vol=(data.total_volumes||[]).map(x=>x[1]).filter(Number.isFinite);
+ if(p.length<10)return;
+ const last=p.at(-1), r=returns(p), ma20=sma(p,20),ma50=sma(p,50),rsi14=rsi(p),e12=ema(p,12),e26=ema(p,26),macd=e12!=null&&e26!=null?e12-e26:null;
+ const sd=std(r),annualVol=sd*Math.sqrt(365)*100,dd=maxDrawdown(p),hi=Math.max(...p),lo=Math.min(...p);
+ const support=Math.min(...p.slice(-10)),resistance=Math.max(...p.slice(-10)),atr14=atr(p.map((x,i)=>({high:x,low:x,close:x})),14);
+ const bollMid=ma20,bollStd=p.length>=20?std(p.slice(-20)):null,bollUp=bollMid!=null?bollMid+2*bollStd:null,bollLow=bollMid!=null?bollMid-2*bollStd:null;
+ const v7=avg(vol.slice(-7)),v30=avg(vol.slice(-30)),prev7=avg(vol.slice(-14,-7)),vchg=prev7?((v7/prev7)-1)*100:0,ratio=market?.market_cap?.usd?((market.total_volume?.usd||0)/market.market_cap.usd)*100:0;
+ const p3=nearest(data.prices,last[0]-3*86400000)[1],p7=nearest(data.prices,last[0]-7*86400000)[1],p30=nearest(data.prices,last[0]-30*86400000)[1];
+ const c3=(last/p3-1)*100,c7=(last/p7-1)*100,c30=(last/p30-1)*100,trend=ma20!=null&&ma50!=null?(last>ma20&&ma20>ma50?"Uptrend":last<ma20&&ma20<ma50?"Downtrend":"Mixed"):"--";
+ const momentum=c7>2?"Positive":c7<-2?"Negative":"Neutral",risk=annualVol>100?"High":annualVol>50?"Medium":"Lower";
+ set(els.rsi,rsi14==null?"--":rsi14.toFixed(1),rsi14>=70?"#ff5c5c":rsi14<=30?"var(--green)":"#f5f5f5");set(els.rsiState,rsi14>=70?"Overbought":rsi14<=30?"Oversold":"Neutral");
+ set(els.ma20,ma20==null?"--":money(ma20),last>=ma20?"var(--green)":"#ff5c5c");set(els.ma20State,last>=ma20?"Price above MA20":"Price below MA20");
+ set(els.ma50,ma50==null?"--":money(ma50),last>=ma50?"var(--green)":"#ff5c5c");set(els.ma50State,last>=ma50?"Price above MA50":"Price below MA50");
+ set(els.macd,macd==null?"--":money(macd),macd>=0?"var(--green)":"#ff5c5c");set(els.macdState,macd>=0?"Positive":"Negative");
+ set(els.atr,atr14==null?"--":money(atr14));set(els.boll,bollMid==null?"--":money(bollMid));set(els.bollState,last>bollUp?"Above upper band":last<bollLow?"Below lower band":"Inside bands");
+ set(els.volatility,annualVol.toFixed(2)+"%",annualVol>50?"#ff5c5c":"#f5f5f5");set(els.drawdown,dd.toFixed(2)+"%","#ff5c5c");set(els.periodHigh,money(hi));set(els.periodLow,money(lo));set(els.support,money(support));set(els.resistance,money(resistance));
+ const athDist=market?.ath?.usd?((last/market.ath.usd)-1)*100:null;set(els.athDistance,athDist==null?"--":pct(athDist),athDist>=0?"var(--green)":"#ff5c5c");
+ set(els.analysisVolume,money(market?.total_volume?.usd));set(els.avgVol7,compact(v7));set(els.avgVol30,compact(v30));set(els.volChange,pct(vchg),colorFor(vchg));set(els.volRatio,ratio.toFixed(2)+"%");set(els.volActivity,vchg>25?"Increasing":vchg<-25?"Decreasing":"Stable");
+ set(els.a3,pct(c3),colorFor(c3));set(els.a7,pct(c7),colorFor(c7));set(els.a30,pct(c30),colorFor(c30));set(els.trendText,trend);set(els.momentumText,momentum);
+ set(els.trend,trend);set(els.momentum,momentum);set(els.volumeSignal,vchg>25?"High":vchg<-25?"Low":"Normal");set(els.risk,risk);
+ els.summary.textContent="Current price is "+(last>=ma20?"above":"below")+" the 20-period average, the 7-day move is "+pct(c7)+", and recent volume is "+(vchg>=0?"higher":"lower")+" than the previous 7-day period. Volatility and drawdown describe historical movement, not future performance.";
 }
 
-async function loadExchanges(symbol) {
-  const s = symbol.toUpperCase();
-  const pairs = {BTC:["BTCUSDT","BTC-USD","XXBTZUSD","BTCUSDT"],ETH:["ETHUSDT","ETH-USD","XETHZUSD","ETHUSDT"],SOL:["SOLUSDT","SOL-USD","SOLUSD","SOLUSDT"],BNB:["BNBUSDT","BNB-USD","BNBUSD","BNBUSDT"]};
-  const p = pairs[s]; if (!p) return;
-  const calls = [
-    fetch("/api/exchanges?provider=binance&symbol="+p[0]).then(r=>r.json()),
-    fetch("/api/exchanges?provider=coinbase&symbol="+p[1]+"/spot").then(r=>r.json()),
-    fetch("/api/exchanges?provider=kraken&symbol="+p[2]).then(r=>r.json()),
-    fetch("/api/exchanges?provider=bybit&symbol="+p[3]).then(r=>r.json())
-  ];
-  const [b,c,k,y]=await Promise.allSettled(calls);
-  const prices=[];
-  if(b.status==="fulfilled" && b.value.price){const v=Number(b.value.price); els.binance.textContent=money(v); prices.push(v);}
-  if(c.status==="fulfilled" && c.value.data?.amount){const v=Number(c.value.data.amount); els.coinbase.textContent=money(v); prices.push(v);}
-  if(k.status==="fulfilled" && k.value.result){const key=Object.keys(k.value.result)[0]; const v=key?Number(k.value.result[key].c?.[0]):NaN; els.kraken.textContent=Number.isFinite(v)?money(v):"--"; if(Number.isFinite(v)) prices.push(v);}
-  if(y.status==="fulfilled" && y.value.result?.list?.[0]?.lastPrice){const v=Number(y.value.result.list[0].lastPrice); els.bybit.textContent=money(v); prices.push(v);}
-  if(els.spread && prices.length>1){const min=Math.min(...prices), max=Math.max(...prices); els.spread.textContent=((max/min-1)*100).toFixed(3)+"%";}
+async function loadChart(days){
+ els.chart.textContent="Loading historical data...";
+ try{const d=await history(days);latestHistory=d;drawChart(d.prices||[],d.total_volumes||[]);if(days==="30"){analyze(d);renderPeriods(d.prices||[]);}}catch(e){console.error(e);els.chart.textContent="Historical data unavailable.";}
 }
 
-async function loadCoin() {
-  try {
-    const url = "/api/coingecko/coins/" + encodeURIComponent(coinId) +
-      "?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false";
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Coin API request failed");
-    const coin = await response.json(), market = coin.market_data;
-    currentMarket = market;
-    els.name.textContent = coin.name || coinId;
-    els.symbol.textContent = (coin.symbol || "").toUpperCase();
-    const logo = coin.image?.large || coin.image?.small || coin.image?.thumb || "";
-    if (els.iconImage && logo) { els.iconImage.src = logo; els.iconImage.style.display = "block"; if (els.iconFallback) els.iconFallback.style.display = "none"; }
-    else if (els.iconFallback) { els.iconFallback.textContent = (coin.symbol || "C").toUpperCase().slice(0,3); els.iconFallback.style.display = "block"; }
-    els.price.textContent = money(market.current_price.usd);
-    const change = market.price_change_percentage_24h || 0;
-    els.change.textContent = (change >= 0 ? "+" : "") + change.toFixed(2) + "%";
-    els.change.style.color = change >= 0 ? "var(--green)" : "#ff5c5c";
-    els.marketCap.textContent = money(market.market_cap.usd);
-    els.volume.textContent = money(market.total_volume.usd);
-    els.high.textContent = money(market.high_24h.usd);
-    els.low.textContent = money(market.low_24h.usd);
-    els.supply.textContent = compact(market.circulating_supply);
-    els.ath.textContent = money(market.ath.usd);
-    els.athDate.textContent = market.ath_date.usd ? new Date(market.ath_date.usd).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"}) : "--";
-    els.updated.textContent = coin.last_updated ? formatTime(coin.last_updated) : "--";
-    const athDistance=(((market.current_price.usd / market.ath.usd)-1)*100).toFixed(2) + "%"; els.athDistance.textContent=athDistance; els.athDistance2.textContent=athDistance;
-    els.analysisChange.textContent = (change >= 0 ? "+" : "") + change.toFixed(2) + "%";
-    els.analysisChange.style.color = change >= 0 ? "var(--green)" : "#ff5c5c";
-    const volumeCapRatio=market.market_cap?.usd>0?(market.total_volume?.usd/market.market_cap.usd)*100:null;
-    if(els.volumeCapRatio){els.volumeCapRatio.textContent=volumeCapRatio==null?"--":volumeCapRatio.toFixed(2)+"%";els.volumeCapRatio.style.color=volumeCapRatio>5?"var(--green)":"#aaa";}
-    await Promise.all([loadChart(currentRange), loadExchanges((coin.symbol || "").toUpperCase())]);
-    try { const analysisData=await fetchHistory("30"); calculateAnalysis(analysisData); } catch(e) { console.error("Gugee analysis:",e); }
-  } catch (e) {
-    console.error(e);
-    els.name.textContent = "Crypto not found";
-    els.symbol.textContent = "Check the coin name or API availability.";
-  }
+async function loadCoin(){
+ try{
+  coin=await api("/api/coingecko/coins/"+encodeURIComponent(coinId)+"?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false");
+  market=coin.market_data||{};
+  els.name.textContent=coin.name||coinId;els.symbol.textContent=(coin.symbol||"").toUpperCase();
+  if(coin.image?.large){els.icon.src=coin.image.large;els.icon.style.display="block";els.fallback.style.display="none";}
+  else{els.fallback.textContent=(coin.symbol||"C").slice(0,3).toUpperCase();}
+  set(els.price,money(market.current_price?.usd));const ch=Number(market.price_change_percentage_24h||0);set(els.change,pct(ch),colorFor(ch));
+  set(els.marketCap,money(market.market_cap?.usd));set(els.volume,money(market.total_volume?.usd));set(els.high,money(market.high_24h?.usd));set(els.low,money(market.low_24h?.usd));set(els.supply,compact(market.circulating_supply));set(els.ath,money(market.ath?.usd));set(els.athDate,market.ath_date?.usd?new Date(market.ath_date.usd).toLocaleDateString():"--");set(els.updated,new Date().toLocaleTimeString());
+  await loadChart("30");await loadExchanges((coin.symbol||"").toUpperCase());
+ }catch(e){console.error(e);els.name.textContent="Data unavailable";els.chart.textContent="Could not load cryptocurrency data.";}
 }
 
-document.querySelectorAll(".range").forEach(button => {
-  button.addEventListener("click", async () => {
-    document.querySelectorAll(".range").forEach(b => b.classList.remove("active"));
-    button.classList.add("active");
-    currentRange = ranges[button.textContent.trim()];
-    await loadChart(currentRange);
-  });
-});
+const pairMap={BTC:["BTCUSDT","BTC-USD","XXBTZUSD"],ETH:["ETHUSDT","ETH-USD","XETHZUSD"],SOL:["SOLUSDT","SOL-USD","SOLUSD"],BNB:["BNBUSDT","BNB-USD","BNBUSD"],XRP:["XRPUSDT","XRP-USD","XXRPZUSD"],DOGE:["DOGEUSDT","DOGE-USD","DOGEUSD"]};
+const major=[["binance","Binance"],["coinbase","Coinbase"],["kraken","Kraken"],["bybit","Bybit"],["okx","OKX"],["kucoin","KuCoin"],["bitget","Bitget"],["gate","Gate.io"],["mexc","MEXC"],["cryptocom","Crypto.com"]];
 
+async function exchangeQuote(provider,symbol){
+ const r=await fetch("/api/exchanges?provider="+encodeURIComponent(provider)+"&symbol="+encodeURIComponent(symbol));if(!r.ok)throw new Error();return r.json();
+}
+async function loadExchanges(symbol){
+ const pair=pairMap[symbol]||[symbol+"USDT",symbol+"-USD",symbol+"USD"];
+ els.exchangeStatus.textContent="Loading exchange prices...";
+ els.exchangeTable.innerHTML=major.map(x=>'<div class="exchange-analysis-row"><b>'+x[1]+'</b><span class="exchange-loading">Loading...</span><span>--</span></div>').join("");
+ const rows=await Promise.all(major.map(async([provider,name],i)=>{try{const d=await exchangeQuote(provider,provider==="coinbase"?pair[1]:provider==="kraken"?pair[2]:pair[0]);let price=NaN,vol=NaN,ch=NaN;if(d?.source==="ccxt"){price=Number(d.lastPrice);vol=Number(d.quoteVolume);ch=Number(d.priceChangePercent)}else if(provider==="binance"||provider==="mexc"){price=Number(d.lastPrice);vol=Number(d.quoteVolume);ch=Number(d.priceChangePercent)}else if(provider==="bybit"){const x=d.result?.list?.[0];price=Number(x?.lastPrice);vol=Number(x?.turnover24h);ch=Number(x?.price24hPcnt)*100}else if(provider==="okx"){const x=d.data?.[0];price=Number(x?.last);vol=Number(x?.vol24h);ch=Number(x?.sodUtc8)?NaN:NaN}else if(provider==="kucoin"){price=Number(d.data?.last);vol=Number(d.data?.volValue);ch=Number(d.data?.changeRate)*100}else if(provider==="bitget"){const x=d.data?.[0];price=Number(x?.lastPr);vol=Number(x?.quoteVolume);ch=Number(x?.change24h)*100}else if(provider==="gate"){const x=Array.isArray(d)?d[0]:null;price=Number(x?.last);vol=Number(x?.quote_volume);ch=Number(x?.change_percentage)}else if(provider==="cryptocom"){const x=d.result?.data?.[0];price=Number(x?.kline?.c||x?.a);vol=Number(x?.v);ch=Number(x?.price_change_percent)}else if(provider==="coinbase"){price=Number(d.data?.price);vol=Number(d.data?.volume_24h);ch=NaN}else if(provider==="kraken"){const x=Object.values(d.result||{})[0];price=Number(x?.c?.[0]);vol=Number(x?.v?.[1]);ch=NaN}
+ return {name,price,vol,ch,ok:Number.isFinite(price)};}catch{return{name,price:NaN,vol:NaN,ch:NaN,ok:false}}}));
+ const good=rows.filter(x=>x.ok),prices=good.map(x=>x.price),min=prices.length?Math.min(...prices):NaN,max=prices.length?Math.max(...prices):NaN;
+ els.exchangeTable.innerHTML=rows.map(x=>'<div class="exchange-analysis-row"><b>'+x.name+'</b><span>'+money(x.price)+'</span><span class="'+(x.ch>=0?"positive":"negative")+'">'+pct(x.ch)+'</span><span>'+compact(x.vol)+'</span></div>').join("");
+ if(Number.isFinite(min)&&Number.isFinite(max))els.exchangeStatus.textContent=good.length+" exchanges • spread "+((max/min-1)*100).toFixed(3)+"%";
+ else els.exchangeStatus.textContent=good.length+" exchanges returned live data";
+}
+
+document.querySelectorAll(".range").forEach(btn=>btn.addEventListener("click",async()=>{document.querySelectorAll(".range").forEach(x=>x.classList.remove("active"));btn.classList.add("active");await loadChart(btn.dataset.range);}));
+if(els.favorite)els.favorite.addEventListener("click",async()=>{try{const current=JSON.parse(localStorage.getItem("gugeeFavorites")||"[]");const i=current.indexOf(coinId);if(i>=0){current.splice(i,1);els.favorite.textContent="☆ Add to Favorites";}else{current.push(coinId);els.favorite.textContent="★ In Favorites";}localStorage.setItem("gugeeFavorites",JSON.stringify(current));}catch{}});
 loadCoin();
-
-setInterval(async () => { try { await loadCoin(); } catch(e) { console.error(e); } }, 60000);
-
-const favoriteButton=document.getElementById("favoriteButton");
-const WATCHLIST_KEY=window.gugeeAuth?.getCurrentUser()? "gugee_watchlist_"+window.gugeeAuth.emailKey(window.gugeeAuth.getCurrentUser().email) : "gugee_watchlist_guest";
-function getFavorites(){return JSON.parse(localStorage.getItem(WATCHLIST_KEY)||"[]")}
-function updateFavoriteButton(){
-  if(!favoriteButton)return;
-  const favorites=getFavorites(), active=favorites.includes(coinId);
-  favoriteButton.textContent=active?"★ In Favorites":"☆ Add to Favorites";
-  favoriteButton.classList.toggle("active",active);
-}
-favoriteButton?.addEventListener("click",()=>{
-  const favorites=getFavorites(), index=favorites.indexOf(coinId);
-  if(index>=0) favorites.splice(index,1); else favorites.push(coinId);
-  localStorage.setItem(WATCHLIST_KEY,JSON.stringify(favorites));
-  updateFavoriteButton();
-});
-updateFavoriteButton();
-
-favoriteButton?.addEventListener("click",async()=>{
-  const favorites=getFavorites();
-  const index=favorites.indexOf(coinId);
-  if(index>=0)favorites.splice(index,1);else favorites.push(coinId);
-  localStorage.setItem(WATCHLIST_KEY,JSON.stringify(favorites));
-  updateFavoriteButton();
-  if(window.gugeeAuth?.getCurrentUser()){
-    try{await window.gugeeAuth.api("/api/watchlist",{method:"PUT",body:JSON.stringify({watchlist:favorites})});}catch{}
-  }
-});
-async function syncCryptoWatchlist(){
-  if(!window.gugeeAuth?.getCurrentUser())return;
-  try{
-    const data=await window.gugeeAuth.api("/api/watchlist");
-    localStorage.setItem(WATCHLIST_KEY,JSON.stringify(data.watchlist||[]));
-    updateFavoriteButton();
-  }catch{}
-}
-setTimeout(syncCryptoWatchlist,0);
-
-
-(function initCryptoDailyAnalysis(){
-  const periodGrid=document.getElementById("cryptoPeriodGrid");
-  const dailyMoves=document.getElementById("dailyMoves");
-  const updated=document.getElementById("dailyAnalysisUpdated");
-  if(!periodGrid||!dailyMoves)return;
-
-  const money2=v=>{
-    if(!Number.isFinite(v))return "--";
-    if(v>=1000)return "$"+Math.round(v).toLocaleString("en-US");
-    if(v>=1)return "$"+v.toLocaleString("en-US",{maximumFractionDigits:2});
-    return "$"+v.toLocaleString("en-US",{maximumSignificantDigits:6});
-  };
-  const pct2=v=>Number.isFinite(v)?(v>=0?"+":"")+v.toFixed(2)+"%":"--";
-  const cls=v=>v>=0?"positive":"negative";
-
-  function nearest(points,target){
-    return points.reduce((best,p)=>Math.abs(p[0]-target)<Math.abs(best[0]-target)?p:best,points[0]);
-  }
-
-  function dailySeries(prices){
-    const buckets=new Map();
-    prices.forEach(([ts,price])=>{
-      const d=new Date(ts);
-      const key=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
-      const prev=buckets.get(key);
-      if(!prev||ts>prev[0])buckets.set(key,[ts,price]);
-    });
-    return [...buckets.values()].sort((a,b)=>a[0]-b[0]);
-  }
-
-  async function load(){
-    try{
-      const r=await fetch("/api/coingecko/coins/"+encodeURIComponent(coinId)+"/market_chart?vs_currency=usd&days=30");
-      if(!r.ok)throw new Error("history");
-      const d=await r.json();
-      const prices=(d.prices||[]).filter(x=>Number.isFinite(x[0])&&Number.isFinite(x[1]));
-      if(prices.length<10)throw new Error("not enough data");
-      const now=prices[prices.length-1];
-      const current=now[1];
-      const dayMs=86400000;
-      const periods=[{label:"Current",days:0,price:current},{label:"3 days ago",days:3,price:nearest(prices,now[0]-3*dayMs)[1]},{label:"7 days ago",days:7,price:nearest(prices,now[0]-7*dayMs)[1]},{label:"30 days ago",days:30,price:prices[0][1]}];
-      periodGrid.innerHTML=periods.map((x,i)=>{
-        const change=i===0?null:(current/x.price-1)*100;
-        return '<div class="crypto-period-card"><span>'+x.label+'</span><strong>'+money2(x.price)+'</strong><small class="'+(change==null?"":cls(change))+'">'+(change==null?"Live price":pct2(change)+" vs current")+'</small></div>';
-      }).join("");
-
-      const days=dailySeries(prices).slice(-8);
-      const moves=[];
-      for(let i=1;i<days.length;i++){
-        const change=(days[i][1]/days[i-1][1]-1)*100;
-        moves.push({date:new Date(days[i][0]),price:days[i][1],change});
-      }
-      dailyMoves.innerHTML=moves.reverse().map(x=>'<div class="daily-move"><span>'+x.date.toLocaleDateString("en-US",{month:"short",day:"numeric"})+'</span><b>'+money2(x.price)+'</b><strong class="'+cls(x.change)+'">'+pct2(x.change)+'</strong></div>').join("");
-      updated.textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
-    }catch{
-      periodGrid.innerHTML='<div class="exchange-overview-empty">Historical performance unavailable.</div>';
-      dailyMoves.innerHTML="";
-      updated.textContent="Data unavailable";
-    }
-  }
-  load();
-  setInterval(load,60000);
-})();
+setInterval(()=>{loadCoin().catch(()=>{});},60000);
