@@ -195,3 +195,23 @@ favoriteButton?.addEventListener("click",()=>{
   updateFavoriteButton();
 });
 updateFavoriteButton();
+
+favoriteButton?.addEventListener("click",async()=>{
+  const favorites=getFavorites();
+  const index=favorites.indexOf(coinId);
+  if(index>=0)favorites.splice(index,1);else favorites.push(coinId);
+  localStorage.setItem(WATCHLIST_KEY,JSON.stringify(favorites));
+  updateFavoriteButton();
+  if(window.gugeeAuth?.getCurrentUser()){
+    try{await window.gugeeAuth.api("/api/watchlist",{method:"PUT",body:JSON.stringify({watchlist:favorites})});}catch{}
+  }
+});
+async function syncCryptoWatchlist(){
+  if(!window.gugeeAuth?.getCurrentUser())return;
+  try{
+    const data=await window.gugeeAuth.api("/api/watchlist");
+    localStorage.setItem(WATCHLIST_KEY,JSON.stringify(data.watchlist||[]));
+    updateFavoriteButton();
+  }catch{}
+}
+setTimeout(syncCryptoWatchlist,0);
