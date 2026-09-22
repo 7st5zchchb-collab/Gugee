@@ -27,7 +27,7 @@ const exchanges=[
 {name:"DigiFinex",provider:"digifinex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/digifinex"},
 {name:"Toobit",provider:"toobit",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/toobit"},
 {name:"WEEX",provider:"weex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/weex"},
-{name:"P2PB2B",provider:"p2pb2b",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/p2pb2b",
+{name:"P2PB2B",provider:"p2pb2b",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/p2pb2b"},
 {name:"Upbit",provider:"upbit",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/upbit"},
 {name:"Bitflyer",provider:"bitflyer",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/bitflyer"},
 {name:"Bithumb",provider:"bithumb",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/bithumb"},
