@@ -64,3 +64,21 @@
 
 
 .market-breadth-up{color:var(--green)}
+
+
+.exchange-overview{margin-bottom:14px;background:#0b0b0d;border:1px solid #242429;border-radius:12px;padding:16px}
+.exchange-overview-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:10px}
+.exchange-overview-heading h2{margin:3px 0 0;font-size:16px;color:#f3f3f3}
+.exchange-overview-heading small{font-size:9px;color:#66666d}
+.exchange-overview-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.exchange-live-card{border:1px solid #242429;background:#101012;border-radius:9px;padding:12px;text-align:left;color:#ddd;cursor:pointer;transition:.15s}
+.exchange-live-card:hover{border-color:#3b3b43;background:#141416}
+.exchange-live-top,.exchange-live-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.exchange-live-top b{font-size:11px;color:#f3f3f3}
+.exchange-live-top span,.exchange-live-bottom span{font-size:8px;color:#66666d}
+.exchange-live-card>strong{display:block;margin:12px 0 8px;font-size:17px;color:#fff}
+.exchange-live-bottom b{font-size:9px;color:#aaa}
+.exchange-spread{margin-top:9px;font-size:8px;color:#777}
+.exchange-overview-empty{border:1px solid #242429;border-radius:9px;padding:25px;text-align:center;color:#66666d;font-size:10px;grid-column:1/-1}
+@media(max-width:800px){.exchange-overview-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.exchange-overview-heading{align-items:flex-start;flex-direction:column;gap:5px}.exchange-overview-grid{grid-template-columns:1fr}}
