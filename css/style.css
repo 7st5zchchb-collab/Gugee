@@ -91,3 +91,17 @@
 .exchange-asset-row b{color:#eee;font-size:10px}
 .exchange-asset-row span{font-variant-numeric:tabular-nums}
 @media(max-width:650px){.exchange-assets{overflow-x:auto}.exchange-assets-heading,.exchange-asset-row{min-width:600px}}
+
+
+.exchange-spread-panel{margin-bottom:14px;background:#0b0b0d;border:1px solid #242429;border-radius:12px;padding:16px}
+.spread-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.spread-card{border:1px solid #242429;background:#101012;border-radius:9px;padding:11px}
+.spread-card-top,.spread-card-line{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.spread-card-top b{font-size:10px;color:#f3f3f3}
+.spread-card-top strong{font-size:12px;color:#f3f3f3}
+.spread-card-line{margin-top:9px;font-size:8px}
+.spread-card-line span{color:#66666d}
+.spread-card-line b{font-size:8px;color:#aaa;text-align:right}
+.spread-card>span{display:block;margin-top:10px;color:#66666d;font-size:8px}
+@media(max-width:800px){.spread-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.spread-grid{grid-template-columns:1fr}}
