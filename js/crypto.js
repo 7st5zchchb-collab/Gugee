@@ -68,13 +68,16 @@ function setMetric(el,v){if(el){el.textContent=pct(v);el.style.color=v>=0?"var(-
 function calculateAnalysis(data){
   const p=(data.prices||[]).map(x=>x[1]), vols=(data.total_volumes||[]).map(x=>x[1]);
   if(p.length<2)return;
-  const ret7=(p[p.length-1]/p[0]-1)*100;
+  const pointsPerDay=Math.max(1,Math.floor(p.length/30));
+  const priceAtDaysAgo=(days)=>p[Math.max(0,p.length-1-Math.round(pointsPerDay*days))];
+  const ret7=(p[p.length-1]/priceAtDaysAgo(7)-1)*100;
+  const ret30=(p[p.length-1]/priceAtDaysAgo(30)-1)*100;
   const changes=[]; for(let i=1;i<p.length;i++) changes.push((p[i]/p[i-1]-1)*100);
   const mean=changes.reduce((a,b)=>a+b,0)/changes.length;
   const variance=changes.reduce((a,b)=>a+(b-mean)**2,0)/changes.length;
   const vol=Math.sqrt(variance)*Math.sqrt(changes.length);
-  const volChange=vols.length>1?((vols[vols.length-1]/vols[0]-1)*100):0;
-  const last=p[p.length-1], n=p.length; const avg=(arr)=>arr.reduce((a,b)=>a+b,0)/arr.length; const short=avg(p.slice(Math.max(0,n-24))); const long=avg(p); const momentum=(p[n-1]/p[Math.max(0,n-8)]-1)*100; const recentVol=avg(vols.slice(Math.max(0,vols.length-12))); const oldVol=avg(vols.slice(0,Math.max(1,Math.floor(vols.length/2)))); const volumeRatio=oldVol?recentVol/oldVol:1; els.trend.textContent=short>long?"Uptrend":"Downtrend"; els.trend.style.color=short>long?"var(--green)":"#ff5c5c"; els.momentum.textContent=momentum>=0? "Positive":"Negative"; els.momentum.style.color=momentum>=0?"var(--green)":"#ff5c5c"; els.volumeSignal.textContent=volumeRatio>=1.2?"Strong":"Normal"; els.volumeSignal.style.color=volumeRatio>=1.2?"var(--green)":"#aaa"; els.summary.textContent=(short>long?"Price is trading above its longer average. ":"Price is trading below its longer average.")+(momentum>=0?"Recent momentum is positive. ":"Recent momentum is negative.")+(volumeRatio>=1.2?"Recent volume is elevated.":"Recent volume is within a normal range."); const risk=vol>6?"High":vol>3?"Medium":"Low"; els.signalTrend.textContent=short>long?"Up":"Down"; els.signalMomentum.textContent=momentum>=0?"Positive":"Negative"; els.signalVolume.textContent=volumeRatio>=1.2?"High":"Normal"; els.signalRisk.textContent=risk; [els.signalTrend,els.signalMomentum,els.signalVolume,els.signalRisk].forEach(e=>e.style.color="#f5f5f5"); setMetric(els.analysis30d,(p[p.length-1]/p[0]-1)*100); setMetric(els.volatility30d,vol); setMetric(els.volumeChange30d,volChange); setMetric(els.analysis7d,ret7);
+  const recentVolume=avg(vols.slice(Math.max(0,vols.length-7))); const previousVolume=avg(vols.slice(Math.max(0,vols.length-14),Math.max(0,vols.length-7))); const volChange=previousVolume?((recentVolume/previousVolume)-1)*100:0;
+  const last=p[p.length-1], n=p.length; const avg=(arr)=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0; const short=avg(p.slice(Math.max(0,n-24))); const long=avg(p); const momentum=(p[n-1]/p[Math.max(0,n-8)]-1)*100; const recentVol=avg(vols.slice(Math.max(0,vols.length-12))); const oldVol=avg(vols.slice(0,Math.max(1,Math.floor(vols.length/2)))); const volumeRatio=oldVol?recentVol/oldVol:1; els.trend.textContent=short>long?"Uptrend":"Downtrend"; els.trend.style.color=short>long?"var(--green)":"#ff5c5c"; els.momentum.textContent=momentum>=0? "Positive":"Negative"; els.momentum.style.color=momentum>=0?"var(--green)":"#ff5c5c"; els.volumeSignal.textContent=volumeRatio>=1.2?"Strong":"Normal"; els.volumeSignal.style.color=volumeRatio>=1.2?"var(--green)":"#aaa"; els.summary.textContent=(short>long?"Price is trading above its longer average. ":"Price is trading below its longer average.")+(momentum>=0?"Recent momentum is positive. ":"Recent momentum is negative.")+(volumeRatio>=1.2?"Recent volume is elevated.":"Recent volume is within a normal range."); const risk=vol>6?"High":vol>3?"Medium":"Low"; els.signalTrend.textContent=short>long?"Up":"Down"; els.signalMomentum.textContent=momentum>=0?"Positive":"Negative"; els.signalVolume.textContent=volumeRatio>=1.2?"High":"Normal"; els.signalRisk.textContent=risk; [els.signalTrend,els.signalMomentum,els.signalVolume,els.signalRisk].forEach(e=>e.style.color="#f5f5f5"); setMetric(els.analysis30d,ret30); setMetric(els.volatility30d,vol); setMetric(els.volumeChange30d,volChange); setMetric(els.analysis7d,ret7);
 }
 
 async function loadChart(days) {
@@ -132,7 +135,7 @@ async function loadCoin() {
     els.ath.textContent = money(market.ath.usd);
     els.athDate.textContent = market.ath_date.usd ? new Date(market.ath_date.usd).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"}) : "--";
     els.updated.textContent = coin.last_updated ? formatTime(coin.last_updated) : "--";
-    els.athDistance.textContent = (((market.current_price.usd / market.ath.usd)-1)*100).toFixed(2) + "%";
+    const athDistance=(((market.current_price.usd / market.ath.usd)-1)*100).toFixed(2) + "%"; els.athDistance.textContent=athDistance; els.athDistance2.textContent=athDistance;
     els.analysisChange.textContent = (change >= 0 ? "+" : "") + change.toFixed(2) + "%";
     els.analysisChange.style.color = change >= 0 ? "var(--green)" : "#ff5c5c";
     await Promise.all([loadChart(currentRange), loadExchanges((coin.symbol || "").toUpperCase())]);
