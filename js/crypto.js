@@ -215,3 +215,68 @@ async function syncCryptoWatchlist(){
   }catch{}
 }
 setTimeout(syncCryptoWatchlist,0);
+
+
+(function initCryptoDailyAnalysis(){
+  const periodGrid=document.getElementById("cryptoPeriodGrid");
+  const dailyMoves=document.getElementById("dailyMoves");
+  const updated=document.getElementById("dailyAnalysisUpdated");
+  if(!periodGrid||!dailyMoves)return;
+
+  const money2=v=>{
+    if(!Number.isFinite(v))return "--";
+    if(v>=1000)return "$"+Math.round(v).toLocaleString("en-US");
+    if(v>=1)return "$"+v.toLocaleString("en-US",{maximumFractionDigits:2});
+    return "$"+v.toLocaleString("en-US",{maximumSignificantDigits:6});
+  };
+  const pct2=v=>Number.isFinite(v)?(v>=0?"+":"")+v.toFixed(2)+"%":"--";
+  const cls=v=>v>=0?"positive":"negative";
+
+  function nearest(points,target){
+    return points.reduce((best,p)=>Math.abs(p[0]-target)<Math.abs(best[0]-target)?p:best,points[0]);
+  }
+
+  function dailySeries(prices){
+    const buckets=new Map();
+    prices.forEach(([ts,price])=>{
+      const d=new Date(ts);
+      const key=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
+      const prev=buckets.get(key);
+      if(!prev||ts>prev[0])buckets.set(key,[ts,price]);
+    });
+    return [...buckets.values()].sort((a,b)=>a[0]-b[0]);
+  }
+
+  async function load(){
+    try{
+      const r=await fetch("/api/coingecko/coins/"+encodeURIComponent(coinId)+"/market_chart?vs_currency=usd&days=30");
+      if(!r.ok)throw new Error("history");
+      const d=await r.json();
+      const prices=(d.prices||[]).filter(x=>Number.isFinite(x[0])&&Number.isFinite(x[1]));
+      if(prices.length<10)throw new Error("not enough data");
+      const now=prices[prices.length-1];
+      const current=now[1];
+      const dayMs=86400000;
+      const periods=[{label:"Current",days:0,price:current},{label:"3 days ago",days:3,price:nearest(prices,now[0]-3*dayMs)[1]},{label:"7 days ago",days:7,price:nearest(prices,now[0]-7*dayMs)[1]},{label:"30 days ago",days:30,price:prices[0][1]}];
+      periodGrid.innerHTML=periods.map((x,i)=>{
+        const change=i===0?null:(current/x.price-1)*100;
+        return '<div class="crypto-period-card"><span>'+x.label+'</span><strong>'+money2(x.price)+'</strong><small class="'+(change==null?"":cls(change))+'">'+(change==null?"Live price":pct2(change)+" vs current")+'</small></div>';
+      }).join("");
+
+      const days=dailySeries(prices).slice(-8);
+      const moves=[];
+      for(let i=1;i<days.length;i++){
+        const change=(days[i][1]/days[i-1][1]-1)*100;
+        moves.push({date:new Date(days[i][0]),price:days[i][1],change});
+      }
+      dailyMoves.innerHTML=moves.reverse().map(x=>'<div class="daily-move"><span>'+x.date.toLocaleDateString("en-US",{month:"short",day:"numeric"})+'</span><b>'+money2(x.price)+'</b><strong class="'+cls(x.change)+'">'+pct2(x.change)+'</strong></div>').join("");
+      updated.textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
+    }catch{
+      periodGrid.innerHTML='<div class="exchange-overview-empty">Historical performance unavailable.</div>';
+      dailyMoves.innerHTML="";
+      updated.textContent="Data unavailable";
+    }
+  }
+  load();
+  setInterval(load,60000);
+})();
