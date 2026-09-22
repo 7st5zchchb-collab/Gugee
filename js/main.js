@@ -44,3 +44,29 @@ async function loadMarketSnapshot() {
 }
 
 loadMarketSnapshot();
+
+const favoriteDefaults = {
+  bitcoin: {name:"Bitcoin", symbol:"BTC"},
+  ethereum: {name:"Ethereum", symbol:"ETH"},
+  solana: {name:"Solana", symbol:"SOL"}
+};
+const watchlistGrid=document.getElementById("watchlistGrid");
+const watchlistEmpty=document.getElementById("watchlistEmpty");
+const WATCHLIST_KEY="gugee_watchlist";
+function getWatchlist(){return JSON.parse(localStorage.getItem(WATCHLIST_KEY)||"[]")}
+function saveWatchlist(list){localStorage.setItem(WATCHLIST_KEY,JSON.stringify([...new Set(list)]));renderWatchlist()}
+function renderWatchlist(){
+  if(!watchlistGrid)return;
+  const list=getWatchlist();
+  watchlistGrid.innerHTML="";
+  watchlistEmpty.style.display=list.length?"none":"block";
+  list.forEach(id=>{
+    const coin=favoriteDefaults[id]||{name:id,symbol:id.slice(0,4).toUpperCase()};
+    const card=document.createElement("a");
+    card.className="watchlist-card"; card.href="crypto.html?coin="+encodeURIComponent(id);
+    card.innerHTML='<div><b>'+coin.name+'</b><span>'+coin.symbol+'</span></div><strong>Open →</strong>';
+    watchlistGrid.appendChild(card);
+  });
+}
+document.getElementById("clearWatchlist")?.addEventListener("click",()=>saveWatchlist([]));
+renderWatchlist();
