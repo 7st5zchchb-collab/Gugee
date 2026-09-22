@@ -171,3 +171,17 @@
 .correlation-table td{font-variant-numeric:tabular-nums;color:#aaa}
 .correlation-table td.corr-positive{color:var(--green)}
 .correlation-table td.corr-negative{color:#ff777d}
+
+
+.risk-dashboard-panel{margin-bottom:14px;background:#0b0b0d;border:1px solid #242429;border-radius:12px;padding:16px}
+.risk-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.risk-card{border:1px solid #242429;background:#101012;border-radius:9px;padding:12px}
+.risk-card-top,.risk-item{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.risk-card-top{padding-bottom:9px;border-bottom:1px solid #1d1d21}
+.risk-card-top b{font-size:11px;color:#f3f3f3}
+.risk-card-top span{font-size:8px;color:#888}
+.risk-item{margin-top:10px;font-size:8px}
+.risk-item span{color:#66666d}
+.risk-item b{font-size:9px;color:#aaa}
+@media(max-width:800px){.risk-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.risk-grid{grid-template-columns:1fr}}
