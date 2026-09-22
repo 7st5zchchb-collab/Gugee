@@ -82,3 +82,12 @@
 .exchange-overview-empty{border:1px solid #242429;border-radius:9px;padding:25px;text-align:center;color:#66666d;font-size:10px;grid-column:1/-1}
 @media(max-width:800px){.exchange-overview-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:500px){.exchange-overview-heading{align-items:flex-start;flex-direction:column;gap:5px}.exchange-overview-grid{grid-template-columns:1fr}}
+
+
+.exchange-assets{margin-top:14px;border:1px solid #242429;border-radius:9px;overflow:hidden;background:#0b0b0d}
+.exchange-assets-heading,.exchange-asset-row{display:grid;grid-template-columns:1.3fr repeat(4,1fr);gap:8px;align-items:center;padding:9px 12px}
+.exchange-assets-heading{font-size:8px;letter-spacing:.7px;color:#66666d;background:#101012}
+.exchange-asset-row{border-top:1px solid #1d1d21;font-size:9px;color:#aaa}
+.exchange-asset-row b{color:#eee;font-size:10px}
+.exchange-asset-row span{font-variant-numeric:tabular-nums}
+@media(max-width:650px){.exchange-assets{overflow-x:auto}.exchange-assets-heading,.exchange-asset-row{min-width:600px}}
