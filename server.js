@@ -14,6 +14,28 @@ if(!JWT_SECRET||!DATABASE_URL){
   process.exit(1);
 }
 
+const rateBuckets=new Map();
+
+function rateLimit(key,max,windowMs){
+  const now=Date.now();
+  const bucket=rateBuckets.get(key);
+  if(!bucket||now-bucket.start>=windowMs){
+    rateBuckets.set(key,{start:now,count:1});
+    return true;
+  }
+  bucket.count++;
+  return bucket.count<=max;
+}
+
+function clientKey(req){
+  return String(req.headers["x-forwarded-for"]||req.socket.remoteAddress||"unknown").split(",")[0].trim();
+}
+
+setInterval(()=>{
+  const now=Date.now();
+  for(const [key,bucket] of rateBuckets)if(now-bucket.start>15*60*1000)rateBuckets.delete(key);
+},5*60*1000);
+
 const pool=new Pool({
   connectionString:DATABASE_URL,
   ssl:process.env.NODE_ENV==="production"?{rejectUnauthorized:false}:undefined
@@ -106,9 +128,9 @@ app.get("/api/health",async(req,res)=>{
   catch(e){res.status(503).json({ok:false,error:"Database unavailable"});}
 });
 
-app.post("/api/auth/register",async(req,res)=>{
+app.post("/api/auth/register",async(req,res)=>{\n  if(!rateLimit("register:"+clientKey(req),5,15*60*1000))return res.status(429).json({error:"Too many registration attempts. Try again later."});
   try{
-    const name=String(req.body.name||"").trim();
+    const name=String(req.body.name||"").trim();\n    if(name.length>80)return res.status(400).json({error:"Name is too long."});
     const email=String(req.body.email||"").trim().toLowerCase();
     const password=String(req.body.password||"");
     if(name.length<2)return res.status(400).json({error:"Name must contain at least 2 characters."});
@@ -124,7 +146,7 @@ app.post("/api/auth/register",async(req,res)=>{
   }
 });
 
-app.post("/api/auth/login",async(req,res)=>{
+app.post("/api/auth/login",async(req,res)=>{\n  if(!rateLimit("login:"+clientKey(req),10,15*60*1000))return res.status(429).json({error:"Too many login attempts. Try again later."});
   try{
     const email=String(req.body.email||"").trim().toLowerCase();
     const password=String(req.body.password||"");
