@@ -8,7 +8,26 @@ const exchanges=[
 {name:"Bitget",provider:"bitget",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitget"},
 {name:"Gate.io",provider:"gate",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/gate"},
 {name:"MEXC",provider:"mexc",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/mexc"},
-{name:"Crypto.com",provider:"cryptocom",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/crypto-dot-com"}
+{name:"Crypto.com",provider:"cryptocom",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/crypto-dot-com"},{name:"Gemini",provider:"gemini",symbol:"BTCUSD",logo:"https://cdn.simpleicons.org/gemini"},
+{name:"Bitstamp",provider:"bitstamp",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitstamp"},
+{name:"Bitfinex",provider:"bitfinex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitfinex"},
+{name:"HTX",provider:"htx",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/htx"},
+{name:"Poloniex",provider:"poloniex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/poloniex"},
+{name:"BitMart",provider:"bitmart",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitmart"},
+{name:"LBank",provider:"lbank",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/lbank"},
+{name:"BingX",provider:"bingx",symbol:"BTC-USDT",logo:"https://cdn.simpleicons.org/bingx"},
+{name:"Phemex",provider:"phemex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/phemex"},
+{name:"WhiteBIT",provider:"whitebit",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/whitebit"},
+{name:"CoinEx",provider:"coinex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/coinex"},
+{name:"XT.COM",provider:"xt",symbol:"BTC_USDT",logo:"https://cdn.simpleicons.org/xt"},
+{name:"Deepcoin",provider:"deepcoin",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/deepcoin"},
+{name:"AscendEX",provider:"ascendex",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/ascendex"},
+{name:"Bitrue",provider:"bitrue",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitrue"},
+{name:"CoinW",provider:"coinw",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/coinw"},
+{name:"DigiFinex",provider:"digifinex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/digifinex"},
+{name:"Toobit",provider:"toobit",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/toobit"},
+{name:"WEEX",provider:"weex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/weex"},
+{name:"P2PB2B",provider:"p2pb2b",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/p2pb2b"}
 ];
 const $=id=>document.getElementById(id);
 const money=v=>Number.isFinite(v)?v.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:v<1?6:2}):"--";
@@ -16,6 +35,7 @@ const compact=v=>Number.isFinite(v)?v.toLocaleString("en-US",{notation:"compact"
 const pct=v=>Number.isFinite(v)?(v>=0?"+":"")+v.toFixed(2)+"%":"--";
 const state={current:exchanges[0],ticker:null,candles:[]};
 
+function rawTicker(d){return d.data?.[0]||d.data||d.result?.[0]||d.result||d} 
 function tickerValues(e,d){
  let price=null,volume=null,change=null;
  if(e.provider==="binance"){price=+d.lastPrice;volume=+d.quoteVolume;change=+d.priceChangePercent}
@@ -27,7 +47,27 @@ function tickerValues(e,d){
  if(e.provider==="bitget"){const x=d.data?.[0];price=+x?.lastPr;volume=+x?.quoteVolume;change=+x?.change24h*100}
  if(e.provider==="gate"){const x=Array.isArray(d)?d[0]:d;price=+x?.last;volume=+x?.quote_volume;change=+x?.change_percentage}
  if(e.provider==="mexc"){price=+d.lastPrice;volume=+d.quoteVolume;change=+d.priceChangePercent}
- if(e.provider==="cryptocom"){const x=d.result?.data?.[0];price=+x?.k;volume=+x?.v;change=+x?.c}
+ if(e.provider==="cryptocom"){const x=d.result?.data?.[0];price=+x?.k;volume=+x?.v;change=+x?.c}if(e.provider==="gemini"){price=+d.close;volume=+(d.volume?.USD||0)}
+ if(e.provider==="bitstamp"){price=+d.last;volume=+d.volume}
+ if(e.provider==="bitfinex"){price=+d[6];volume=+d[7];change=+d[5]*100}
+ if(e.provider==="htx"){const x=d.tick;price=+x?.close;volume=+x?.amount}
+ if(e.provider==="poloniex"){const x=Array.isArray(d)?d[0]:d;price=+x?.close;volume=+x?.amount;change=+x?.percentChange*100}
+ if(e.provider==="bitmart"){const x=d.data?.tickers?.[0]||d.data?.[0];price=+x?.last_price;volume=+x?.quote_volume;change=+x?.fluctuation}
+ if(e.provider==="lbank"){const x=rawTicker(d);price=+x?.latest;volume=+x?.turnover;change=+x?.change}
+ if(e.provider==="bingx"){const x=d.data?.[0];price=+x?.lastPrice;volume=+x?.quoteVolume;change=+x?.priceChangePercent}
+ if(e.provider==="phemex"){const x=d.result?.tick||d.result?.data?.[0];price=+x?.closeEp/1e8||+x?.close;volume=+x?.volumeEv/1e8||+x?.volume}
+ if(e.provider==="whitebit"){const x=Array.isArray(d)?d[0]:d;price=+x?.last_price;volume=+x?.base_volume;change=+x?.change}
+ if(e.provider==="coinex"){const x=d.data?.[0]||d.data;price=+x?.last;volume=+x?.value;change=x?.open?(price/+x.open-1)*100:null}
+ if(e.provider==="xt"){const x=d.result?.[0]||d.data?.[0]||d;price=+x?.p||+x?.price;volume=+x?.q||+x?.volume}
+ if(e.provider==="deepcoin"){const x=d.data?.[0]||d.data;price=+x?.last;volume=+x?.vol;change=+x?.changeRate}
+ if(e.provider==="ascendex"){const x=d.data;price=+x?.close;volume=+x?.volume;change=+x?.change
+ }
+ if(e.provider==="bitrue"){const x=d;price=+x?.lastPrice;volume=+x?.quoteVolume;change=+x?.priceChangePercent}
+ if(e.provider==="coinw"){const x=d.data||d;price=+x?.last;volume=+x?.vol;change=+x?.change}
+ if(e.provider==="digifinex"){const x=d.ticker?.[0]||d.data?.[0];price=+x?.last;volume=+x?.vol;change=+x?.change*100}
+ if(e.provider==="toobit"){const x=Array.isArray(d)?d[0]:d;price=+x?.lastPrice;volume=+x?.quoteVolume;change=+x?.priceChangePercent}
+ if(e.provider==="weex"){const x=d.data?.[0]||d.data;price=+x?.last;volume=+x?.quoteVolume;change=+x?.change24h}
+ if(e.provider==="p2pb2b"){const x=d.result||d.data||d;price=+x?.last;volume=+x?.volume;change=+x?.change}
  return {price,volume,change};
 }
 async function getTicker(e){
