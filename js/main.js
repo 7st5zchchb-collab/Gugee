@@ -77,7 +77,23 @@ const watchlistGrid=document.getElementById("watchlistGrid");
 const watchlistEmpty=document.getElementById("watchlistEmpty");
 const WATCHLIST_KEY=window.gugeeAuth?.getCurrentUser()? "gugee_watchlist_"+window.gugeeAuth.emailKey(window.gugeeAuth.getCurrentUser().email) : "gugee_watchlist_guest";
 function getWatchlist(){return JSON.parse(localStorage.getItem(WATCHLIST_KEY)||"[]")}
-function saveWatchlist(list){localStorage.setItem(WATCHLIST_KEY,JSON.stringify([...new Set(list)]));renderWatchlist()}
+function saveWatchlist(list){
+  const clean=[...new Set(list)];
+  localStorage.setItem(WATCHLIST_KEY,JSON.stringify(clean));
+  renderWatchlist();
+setTimeout(syncWatchlistFromServer,0);
+  if(window.gugeeAuth?.getCurrentUser()){
+    window.gugeeAuth.api("/api/watchlist",{method:"PUT",body:JSON.stringify({watchlist:clean})}).catch(()=>{});
+  }
+}
+async function syncWatchlistFromServer(){
+  if(!window.gugeeAuth?.getCurrentUser())return;
+  try{
+    const data=await window.gugeeAuth.api("/api/watchlist");
+    localStorage.setItem(WATCHLIST_KEY,JSON.stringify(data.watchlist||[]));
+    renderWatchlist();
+  }catch{}
+}
 let watchlistFilter="all";
 function applyWatchlistFilter(){document.querySelectorAll(".watchlist-card").forEach(card=>{const c=Number(card.dataset.change);card.style.display=watchlistFilter==="all"||Number.isNaN(c)||(watchlistFilter==="gainers"&&c>=0)||(watchlistFilter==="losers"&&c<0)?"":"none"})}
 function renderWatchlist(){
