@@ -70,7 +70,7 @@ function analyze(rows,t){
 async function loadComparison(){
  const rows=await Promise.all(exchanges.map(async e=>{try{return {...e,...await getTicker(e)}}catch{return {...e,price:null,volume:null,change:null}}}));
  const valid=rows.filter(x=>Number.isFinite(x.price)),low=Math.min(...valid.map(x=>x.price)),high=Math.max(...valid.map(x=>x.price));
- $("comparisonBody").innerHTML=rows.map(x=>{const sp=Number.isFinite(x.price)&&low?((x.price/low-1)*100):null;return '<tr><td><div class="comparison-exchange"><img src="'+x.logo+'"><b>'+x.name+'</b></div></td><td>'+money(x.price)+'</td><td class="'+(x.change>=0?"positive":"negative")+'">'+pct(x.change)+'</td><td>'+money(x.volume)+'</td><td>'+(sp==null?"--":sp.toFixed(3)+"%")+'</td><td><a href="exchange.html?exchange="+x.provider class="mini-analysis">Open analysis</a></td></tr>'}).join("");
+ $("comparisonBody").innerHTML=rows.map(x=>{const sp=Number.isFinite(x.price)&&low?((x.price/low-1)*100):null;return '<tr><td><div class="comparison-exchange"><img src="'+x.logo+'"><b>'+x.name+'</b></div></td><td>'+money(x.price)+'</td><td class="'+(x.change>=0?"positive":"negative")+'">'+pct(x.change)+'</td><td>'+money(x.volume)+'</td><td>'+(sp==null?"--":sp.toFixed(3)+"%")+'</td><td><a href="exchange.html?exchange='+x.provider+'" class="mini-analysis">Open analysis</a></td></tr>'}).join("");
  $("comparisonUpdated").textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
  if(state.ticker){$("spreadLow").textContent=money(low);$("spreadHigh").textContent=money(high);$("spreadPct").textContent=low?((high/low-1)*100).toFixed(3)+"%":"--"}
 }
