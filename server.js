@@ -102,6 +102,46 @@ app.use("/api/exchanges",async(req,res)=>{
   }
 });
 
+app.get("/api/exchanges/candles",async(req,res)=>{
+  try{
+    const provider=String(req.query.provider||"").toLowerCase();
+    const symbol=String(req.query.symbol||"BTCUSDT").toUpperCase();
+    const allowed=["binance","coinbase","kraken","bybit","okx","kucoin","bitget","gate","mexc","cryptocom"];
+    if(!allowed.includes(provider))return res.status(400).json({error:"Unsupported exchange"});
+    const configs={
+      binance:"https://api.binance.com/api/v3/klines?symbol="+encodeURIComponent(symbol)+"&interval=1d&limit=31",
+      coinbase:"https://api.exchange.coinbase.com/products/"+encodeURIComponent(symbol)+"/candles?granularity=86400",
+      kraken:"https://api.kraken.com/0/public/OHLC?pair="+encodeURIComponent(symbol)+"&interval=1440",
+      bybit:"https://api.bybit.com/v5/market/kline?category=spot&symbol="+encodeURIComponent(symbol)+"&interval=D&limit=31",
+      okx:"https://www.okx.com/api/v5/market/candles?instId="+encodeURIComponent(symbol.replace("USDT","-USDT"))+"&bar=1D&limit=31",
+      kucoin:"https://api.kucoin.com/api/v1/market/candles?type=1day&symbol="+encodeURIComponent(symbol.replace("USDT","-USDT")),
+      bitget:"https://api.bitget.com/api/v2/spot/market/candles?symbol="+encodeURIComponent(symbol)+"&granularity=1D&limit=31",
+      gate:"https://api.gateio.ws/api/v4/spot/candlesticks?currency_pair="+encodeURIComponent(symbol.replace("USDT","_USDT"))+"&interval=1d&limit=31",
+      mexc:"https://api.mexc.com/api/v3/klines?symbol="+encodeURIComponent(symbol)+"&interval=1d&limit=31",
+      cryptocom:"https://api.crypto.com/exchange/v1/public/get-candlestick?instrument_name="+encodeURIComponent(symbol.replace("USDT","_USDT"))+"&timeframe=1D&count=31"
+    };
+    const response=await fetch(configs[provider],{headers:{accept:"application/json","user-agent":"Gugee/1.0"}});
+    const body=await response.text();
+    if(!response.ok)return res.status(response.status).type("application/json").send(body);
+    let raw;try{raw=JSON.parse(body)}catch{return res.status(502).json({error:"Invalid exchange response"})}
+    let rows=[];
+    if(provider==="binance"||provider==="mexc")rows=raw.map(x=>({time:Number(x[0]),open:Number(x[1]),high:Number(x[2]),low:Number(x[3]),close:Number(x[4]),volume:Number(x[5])}));
+    if(provider==="coinbase")rows=raw.map(x=>({time:Number(x[0])*1000,open:Number(x[3]),high:Number(x[2]),low:Number(x[1]),close:Number(x[4]),volume:Number(x[5])}));
+    if(provider==="kraken"){const x=raw.result?.XXBTZUSD||Object.values(raw.result||{})[0];rows=(x||[]).map(v=>({time:Number(v[0])*1000,open:Number(v[1]),high:Number(v[2]),low:Number(v[3]),close:Number(v[4]),volume:Number(v[6])}))}
+    if(provider==="bybit"){rows=(raw.result?.list||[]).map(v=>({time:Number(v[0]),open:Number(v[1]),high:Number(v[2]),low:Number(v[3]),close:Number(v[4]),volume:Number(v[6])}))}
+    if(provider==="okx"){rows=(raw.data||[]).map(v=>({time:Number(v[0]),open:Number(v[1]),high:Number(v[2]),low:Number(v[3]),close:Number(v[4]),volume:Number(v[5])}))}
+    if(provider==="kucoin"){rows=(raw.data||[]).map(v=>({time:Number(v[0])*1000,open:Number(v[1]),high:Number(v[3]),low:Number(v[4]),close:Number(v[2]),volume:Number(v[5])}))}
+    if(provider==="bitget"){rows=(raw.data||[]).map(v=>({time:Number(v[0]),open:Number(v[1]),high:Number(v[2]),low:Number(v[3]),close:Number(v[4]),volume:Number(v[5])}))}
+    if(provider==="gate"){rows=(raw||[]).map(v=>({time:Number(v[0])*1000,open:Number(v[5]),high:Number(v[3]),low:Number(v[4]),close:Number(v[2]),volume:Number(v[1])}))}
+    if(provider==="cryptocom"){rows=(raw.result?.data||[]).map(v=>({time:Number(v.t),open:Number(v.o),high:Number(v.h),low:Number(v.l),close:Number(v.c),volume:Number(v.v)}))}
+    rows=rows.filter(x=>Number.isFinite(x.time)&&Number.isFinite(x.close)).sort((a,b)=>a.time-b.time).slice(-31);
+    res.json({provider,symbol,rows});
+  }catch(e){
+    console.error("Exchange candles error:",e.message);
+    res.status(502).json({error:"Exchange candle data temporarily unavailable"});
+  }
+});
+
 function hashToken(token){return crypto.createHash("sha256").update(token).digest("hex");}
 function createToken(){return crypto.randomBytes(32).toString("hex");}
 
