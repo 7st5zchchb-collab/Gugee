@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="Create a Gugee crypto analytics account.">
+<title>Gugee — Register</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="auth-page">
+<div class="background-glow"></div>
+<header class="site-header">
+<a class="brand" href="./"><span class="brand-mark">G</span><span>Gugee</span></a>
+<nav class="nav"><a href="markets.html">Markets</a><a href="./#analysis">Analysis</a><a href="./#exchanges">Exchanges</a></nav>
+<a class="login-button" href="login.html">Log in</a>
+</header>
+<main class="auth-shell">
+<section class="auth-card">
+<p class="section-label">GUGEE ACCOUNT</p>
+<h1>Create your account.</h1>
+<p class="auth-subtitle">Save your crypto favorites and build a personal research workspace.</p>
+<form id="registerForm" class="auth-form">
+<label>Name<input name="name" type="text" autocomplete="name" placeholder="Your name" minlength="2" required></label>
+<label>Email<input name="email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
+<label>Password<input name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required></label>
+<label>Confirm password<input name="confirmPassword" type="password" autocomplete="new-password" placeholder="Repeat password" minlength="8" required></label>
+<button type="submit" class="auth-submit">Create account</button>
+<div id="authMessage" class="auth-message" aria-live="polite"></div>
+</form>
+<p class="auth-switch">Already have an account? <a href="login.html">Log in</a></p>
+<p class="auth-note">Account mode is currently stored in this browser. A server/database can replace it when the backend is connected.</p>
+</section>
+</main>
+<footer><span>© 2026 Gugee</span><span>Crypto analytics platform</span></footer>
+<script src="js/auth.js"></script>
+</body>
+</html>
