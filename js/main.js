@@ -13,7 +13,27 @@ const exchangeDirectory = [
   { name: "Bitget", symbol: "Exchange", target: "bitget" },
   { name: "Gate.io", symbol: "Exchange", target: "gate" },
   { name: "MEXC", symbol: "Exchange", target: "mexc" },
-  { name: "Crypto.com", symbol: "Exchange", target: "cryptocom" }
+  { name: "Crypto.com", symbol: "Exchange", target: "cryptocom" },
+  { name: "Gemini", symbol: "Exchange", target: "gemini" },
+  { name: "Bitstamp", symbol: "Exchange", target: "bitstamp" },
+  { name: "Bitfinex", symbol: "Exchange", target: "bitfinex" },
+  { name: "HTX", symbol: "Exchange", target: "htx" },
+  { name: "Poloniex", symbol: "Exchange", target: "poloniex" },
+  { name: "BitMart", symbol: "Exchange", target: "bitmart" },
+  { name: "LBank", symbol: "Exchange", target: "lbank" },
+  { name: "BingX", symbol: "Exchange", target: "bingx" },
+  { name: "Phemex", symbol: "Exchange", target: "phemex" },
+  { name: "WhiteBIT", symbol: "Exchange", target: "whitebit" },
+  { name: "CoinEx", symbol: "Exchange", target: "coinex" },
+  { name: "XT.COM", symbol: "Exchange", target: "xt" },
+  { name: "Deepcoin", symbol: "Exchange", target: "deepcoin" },
+  { name: "AscendEX", symbol: "Exchange", target: "ascendex" },
+  { name: "Bitrue", symbol: "Exchange", target: "bitrue" },
+  { name: "CoinW", symbol: "Exchange", target: "coinw" },
+  { name: "DigiFinex", symbol: "Exchange", target: "digifinex" },
+  { name: "Toobit", symbol: "Exchange", target: "toobit" },
+  { name: "WEEX", symbol: "Exchange", target: "weex" },
+  { name: "P2PB2B", symbol: "Exchange", target: "p2pb2b" }
 ];
 
 function escapeSearchText(value) {
