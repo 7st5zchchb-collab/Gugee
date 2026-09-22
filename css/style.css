@@ -105,3 +105,20 @@
 .spread-card>span{display:block;margin-top:10px;color:#66666d;font-size:8px}
 @media(max-width:800px){.spread-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:500px){.spread-grid{grid-template-columns:1fr}}
+
+
+.market-signals-panel{margin-bottom:14px;background:#0b0b0d;border:1px solid #242429;border-radius:12px;padding:16px}
+.signals-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.signal-card{border:1px solid #242429;background:#101012;border-radius:9px;padding:12px}
+.signal-card-top,.signal-item{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.signal-card-top{padding-bottom:8px;border-bottom:1px solid #1d1d21}
+.signal-card-top b{font-size:11px;color:#f3f3f3}
+.signal-card-top span{font-size:10px}
+.signal-item{margin-top:9px;font-size:8px}
+.signal-item span{color:#66666d}
+.signal-item b{font-size:8px;color:#aaa;text-align:right}
+.signal-card-top .positive{color:var(--green)}
+.signal-card-top .negative{color:#ff5b63}
+.signal-card-top .neutral{color:#aaa}
+@media(max-width:800px){.signals-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.signals-grid{grid-template-columns:1fr}}
