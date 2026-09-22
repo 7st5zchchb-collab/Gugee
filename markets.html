@@ -13,11 +13,21 @@
 <a class="login-button" href="login.html">Log in</a>
 </header>
 <main class="markets-page">
+<section class="global-stats">
+<div class="global-stat"><span>GLOBAL MARKET CAP</span><strong id="globalCap">--</strong></div>
+<div class="global-stat"><span>24H VOLUME</span><strong id="globalVolume">--</strong></div>
+<div class="global-stat"><span>BTC DOMINANCE</span><strong id="btcDominance">--</strong></div>
+<div class="global-stat"><span>ACTIVE CRYPTO</span><strong id="activeCoins">--</strong></div>
+</section>
+<section class="market-highlights">
+<div class="highlight-card"><div class="highlight-title"><span>TOP GAINERS</span><small>24H</small></div><div id="topGainers"></div></div>
+<div class="highlight-card"><div class="highlight-title"><span>TOP LOSERS</span><small>24H</small></div><div id="topLosers"></div></div>
+</section>
 <section class="markets-header">
 <div><p class="section-label">CRYPTO MARKETS</p><h1>Market overview</h1><p>Live prices, market caps, volume and 24H performance.</p></div>
 <div class="markets-controls"><label class="market-favorites-toggle"><input type="checkbox" id="favoritesOnly"> Favorites only</label><input id="marketSearch" type="search" placeholder="Search crypto..." autocomplete="off"><select id="sortSelect"><option value="market_cap_desc">Market cap ↓</option><option value="price_desc">Price ↓</option><option value="change_desc">24H gainers ↓</option><option value="change_asc">24H losers ↓</option><option value="volume_desc">Volume ↓</option><option value="rank_asc">Rank ↑</option></select></div>
 </section>
-<div class="market-table-wrap"><table class="market-table"><thead><tr><th>#</th><th>Asset</th><th>★</th><th>7D Chart</th><th>Price</th><th>24H</th><th>Market Cap</th><th>24H Volume</th></tr></thead><tbody id="marketTableBody"><tr><td colspan="7" class="market-loading">Loading market data...</td></tr></tbody></table></div>
+<div class="market-table-wrap"><table class="market-table"><thead><tr><th>#</th><th>Asset</th><th>★</th><th>7D Chart</th><th>Price</th><th>24H</th><th>Market Cap</th><th>24H Volume</th></tr></thead><tbody id="marketTableBody"><tr><td colspan="8" class="market-loading">Loading market data...</td></tr></tbody></table></div>
 <div class="markets-footer"><button id="loadMore" class="watchlist-clear">Load more</button><span id="marketStatus">Updating...</span></div>
 </main>
 <footer><span>© 2026 Gugee</span><span>Crypto analytics platform</span></footer>
