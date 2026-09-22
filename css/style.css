@@ -27,3 +27,21 @@
 @media(max-width:700px){.global-stats{grid-template-columns:1fr 1fr}.market-highlights{grid-template-columns:1fr}}
 
 .market-favorites-toggle{display:flex;align-items:center;gap:6px;background:#0b0b0c;border:1px solid #29292f;color:#888;border-radius:8px;padding:10px 12px;font-size:10px;white-space:nowrap}.market-favorites-toggle input{accent-color:var(--green)}.markets-controls select{min-width:145px}@media(max-width:700px){.market-favorites-toggle{justify-content:center}}
+
+
+.market-heatmap-section{margin-bottom:14px}
+.heatmap-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:10px}
+.heatmap-heading h2{margin:3px 0 0;font-size:16px;color:#f3f3f3}
+.heatmap-heading small{font-size:9px;color:#66666d;letter-spacing:.4px}
+.market-heatmap{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-auto-rows:58px;gap:5px;min-height:121px}
+.heatmap-tile{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.05);border-radius:7px;background:hsla(var(--heat-hue),70%,35%,var(--heat-alpha));color:#fff;cursor:pointer;padding:7px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;transition:transform .15s,border-color .15s,filter .15s}
+.heatmap-tile:hover{transform:translateY(-1px);border-color:#555;filter:brightness(1.15)}
+.heatmap-tile img{width:17px;height:17px;border-radius:50%;margin-bottom:4px}
+.heatmap-tile strong{font-size:10px;line-height:1.1}
+.heatmap-tile span{font-size:9px;margin-top:2px}
+.heatmap-tile:nth-child(1){grid-column:span 2;grid-row:span 2}
+.heatmap-tile:nth-child(2){grid-column:span 2;grid-row:span 2}
+.heatmap-tile:nth-child(3),.heatmap-tile:nth-child(4),.heatmap-tile:nth-child(5){grid-column:span 2}
+.heatmap-empty{border:1px solid #242429;background:#0b0b0d;border-radius:12px;padding:30px;text-align:center;color:#66666d;font-size:10px}
+@media(max-width:900px){.market-heatmap{grid-template-columns:repeat(6,1fr)}}
+@media(max-width:600px){.heatmap-heading{align-items:flex-start;flex-direction:column;gap:5px}.market-heatmap{grid-template-columns:repeat(4,1fr);grid-auto-rows:55px}.heatmap-tile:nth-child(1),.heatmap-tile:nth-child(2){grid-column:span 2;grid-row:span 2}.heatmap-tile:nth-child(3),.heatmap-tile:nth-child(4),.heatmap-tile:nth-child(5){grid-column:span 1}}
