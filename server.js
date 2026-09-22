@@ -12,6 +12,7 @@ const JWT_SECRET=process.env.JWT_SECRET;
 const DATABASE_URL=process.env.DATABASE_URL;
 const RESEND_API_KEY=process.env.RESEND_API_KEY;
 const EMAIL_FROM=process.env.EMAIL_FROM||"Gugee <noreply@gugee.com>";
+const FRONTEND_URL=(process.env.FRONTEND_URL||"").replace(/\/$/,"");
 
 if(!JWT_SECRET||!DATABASE_URL){
   console.error("Missing JWT_SECRET or DATABASE_URL environment variables.");
@@ -57,8 +58,6 @@ app.use((req,res,next)=>{
 });
 
 const marketCache=new Map();
-const COINGECKO_BASE="https://api.coingecko.com/api/v3";
-const COINGECKO_CACHE_MS=30000;
 
 app.use("/api/exchanges",async(req,res)=>{
   try{
@@ -99,23 +98,40 @@ app.use("/api/exchanges",async(req,res)=>{
 
 function hashToken(token){return crypto.createHash("sha256").update(token).digest("hex");}
 function createToken(){return crypto.randomBytes(32).toString("hex");}
+
 async function sendAccountEmail(to,subject,html){
-  if(!RESEND_API_KEY){console.warn("RESEND_API_KEY is not configured; account email was not sent.");return false;}
-  const resend=new Resend(RESEND_API_KEY);
-  const {error}=await resend.emails.send({from:EMAIL_FROM,to,subject,html});
-  if(error){console.error("Email error:",error);return false;}
-  return true;
+  if(!RESEND_API_KEY){
+    console.warn("RESEND_API_KEY is not configured; account email was not sent.");
+    return false;
+  }
+  try{
+    const resend=new Resend(RESEND_API_KEY);
+    const {error}=await resend.emails.send({from:EMAIL_FROM,to,subject,html});
+    if(error){
+      console.error("Email error:",error);
+      return false;
+    }
+    return true;
+  }catch(error){
+    console.error("Email send exception:",error);
+    return false;
+  }
 }
+
 function parseCookies(header=""){
   return Object.fromEntries(header.split(";").map(v=>v.trim().split("=")).filter(v=>v.length===2).map(([k,...rest])=>[k,decodeURIComponent(rest.join("="))]));
 }
+
 function signUser(user){return jwt.sign({sub:String(user.id),email:user.email},JWT_SECRET,{expiresIn:"7d"});}
+
 function setAuthCookie(res,token){
-  res.setHeader("Set-Cookie",`gugee_token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${process.env.NODE_ENV==="production"?"; Secure":""}`);
+  res.setHeader("Set-Cookie",`gugee_token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${process.env.NODE_ENV==="production" ? "; Secure" : ""}`);
 }
+
 function clearAuthCookie(res){
-  res.setHeader("Set-Cookie",`gugee_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${process.env.NODE_ENV==="production"?"; Secure":""}`);
+  res.setHeader("Set-Cookie",`gugee_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${process.env.NODE_ENV==="production" ? "; Secure" : ""}`);
 }
+
 async function auth(req,res,next){
   try{
     const token=parseCookies(req.headers.cookie||"").gugee_token;
@@ -123,8 +139,11 @@ async function auth(req,res,next){
     const payload=jwt.verify(token,JWT_SECRET);
     const {rows}=await pool.query("SELECT id,name,email,created_at FROM users WHERE id=$1",[payload.sub]);
     if(!rows[0])return res.status(401).json({error:"User not found"});
-    req.user=rows[0]; next();
-  }catch(e){return res.status(401).json({error:"Invalid or expired session"});}
+    req.user=rows[0];
+    next();
+  }catch(e){
+    return res.status(401).json({error:"Invalid or expired session"});
+  }
 }
 
 async function initDb(){
@@ -148,9 +167,6 @@ async function initDb(){
       PRIMARY KEY(user_id,coin_id)
     );
   `);
-}
-
-async function addAccountSecurityColumns(){
   const statements=[
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_hash TEXT",
@@ -162,33 +178,51 @@ async function addAccountSecurityColumns(){
 }
 
 app.get("/api/health",async(req,res)=>{
-  try{await pool.query("SELECT 1");res.json({ok:true,service:"gugee-api"});}
-  catch(e){res.status(503).json({ok:false,error:"Database unavailable"});}
-});
-
-app.post("/api/auth/register",async(req,res)=>{\n  if(!rateLimit("register:"+clientKey(req),5,15*60*1000))return res.status(429).json({error:"Too many registration attempts. Try again later."});
   try{
-    const name=String(req.body.name||"").trim();\n    if(name.length>80)return res.status(400).json({error:"Name is too long."});
-    const email=String(req.body.email||"").trim().toLowerCase();
-    const password=String(req.body.password||"");
-    if(name.length<2)return res.status(400).json({error:"Name must contain at least 2 characters."});
-    if(!/^\S+@\S+\.\S+$/.test(email))return res.status(400).json({error:"Enter a valid email address."});
-    if(password.length<8)return res.status(400).json({error:"Password must be at least 8 characters."});
-    const passwordHash=await bcrypt.hash(password,12);
-    const verificationToken=createToken();
-    const verificationHash=hashToken(verificationToken);
-    const {rows}=await pool.query("INSERT INTO users(name,email,password_hash,verification_token_hash,verification_expires_at) VALUES($1,$2,$3,$4,NOW()+INTERVAL '24 hours') RETURNING id,name,email,email_verified,created_at",[name,email,passwordHash,verificationHash]);
-    const verifyUrl=(process.env.FRONTEND_URL||"")+"/verify-email.html?token="+verificationToken+"&email="+encodeURIComponent(email);
-    await sendAccountEmail(email,"Verify your Gugee account",'<h2>Welcome to Gugee</h2><p>Verify your email to activate your account.</p><p><a href="'+verifyUrl+'">Verify email</a></p>');
-    setAuthCookie(res,signUser(rows[0]));
-    res.status(201).json({user:rows[0],verificationSent:Boolean(RESEND_API_KEY)});
+    await pool.query("SELECT 1");
+    res.json({ok:true,service:"gugee-api",emailConfigured:Boolean(RESEND_API_KEY)});
   }catch(e){
-    if(e.code==="23505")return res.status(409).json({error:"An account with this email already exists."});
-    console.error(e);res.status(500).json({error:"Could not create account"});
+    res.status(503).json({ok:false,error:"Database unavailable"});
   }
 });
 
-app.post("/api/auth/login",async(req,res)=>{\n  if(!rateLimit("login:"+clientKey(req),10,15*60*1000))return res.status(429).json({error:"Too many login attempts. Try again later."});
+app.post("/api/auth/register",async(req,res)=>{
+  if(!rateLimit("register:"+clientKey(req),5,15*60*1000))return res.status(429).json({error:"Too many registration attempts. Try again later."});
+  try{
+    const name=String(req.body.name||"").trim();
+    const email=String(req.body.email||"").trim().toLowerCase();
+    const password=String(req.body.password||"");
+    if(name.length<2)return res.status(400).json({error:"Name must contain at least 2 characters."});
+    if(name.length>80)return res.status(400).json({error:"Name is too long."});
+    if(!/^\S+@\S+\.\S+$/.test(email)||email.length>254)return res.status(400).json({error:"Enter a valid email address."});
+    if(password.length<8)return res.status(400).json({error:"Password must be at least 8 characters."});
+
+    const passwordHash=await bcrypt.hash(password,12);
+    const verificationToken=createToken();
+    const verificationHash=hashToken(verificationToken);
+    const {rows}=await pool.query(
+      "INSERT INTO users(name,email,password_hash,verification_token_hash,verification_expires_at) VALUES($1,$2,$3,$4,NOW()+INTERVAL '24 hours') RETURNING id,name,email,email_verified,created_at",
+      [name,email,passwordHash,verificationHash]
+    );
+
+    const verifyUrl=FRONTEND_URL+"/verify-email.html?token="+verificationToken+"&email="+encodeURIComponent(email);
+    const verificationSent=await sendAccountEmail(
+      email,
+      "Verify your Gugee account",
+      '<h2>Welcome to Gugee</h2><p>Verify your email to activate your account.</p><p><a href="'+verifyUrl+'">Verify email</a></p>'
+    );
+
+    setAuthCookie(res,signUser(rows[0]));
+    res.status(201).json({user:rows[0],verificationSent});
+  }catch(e){
+    if(e.code==="23505")return res.status(409).json({error:"An account with this email already exists."});
+    console.error(e);
+    res.status(500).json({error:"Could not create account"});
+  }
+});
+
+app.post("/api/auth/login",async(req,res)=>{
+  if(!rateLimit("login:"+clientKey(req),10,15*60*1000))return res.status(429).json({error:"Too many login attempts. Try again later."});
   try{
     const email=String(req.body.email||"").trim().toLowerCase();
     const password=String(req.body.password||"");
@@ -199,7 +233,10 @@ app.post("/api/auth/login",async(req,res)=>{\n  if(!rateLimit("login:"+clientKey
     const user={id:rows[0].id,name:rows[0].name,email:rows[0].email,created_at:rows[0].created_at};
     setAuthCookie(res,signUser(user));
     res.json({user});
-  }catch(e){console.error(e);res.status(500).json({error:"Could not log in"});}
+  }catch(e){
+    console.error(e);
+    res.status(500).json({error:"Could not log in"});
+  }
 });
 
 app.get("/api/auth/verify-email",async(req,res)=>{
@@ -207,11 +244,20 @@ app.get("/api/auth/verify-email",async(req,res)=>{
     const token=String(req.query.token||"");
     const email=String(req.query.email||"").trim().toLowerCase();
     if(!token||!email)return res.status(400).json({error:"Verification link is invalid."});
-    const {rows}=await pool.query("SELECT id,email FROM users WHERE email=$1 AND verification_token_hash=$2 AND verification_expires_at>NOW()",[email,hashToken(token)]);
+    const {rows}=await pool.query(
+      "SELECT id,email FROM users WHERE email=$1 AND verification_token_hash=$2 AND verification_expires_at>NOW()",
+      [email,hashToken(token)]
+    );
     if(!rows[0])return res.status(400).json({error:"Verification link is invalid or expired."});
-    await pool.query("UPDATE users SET email_verified=TRUE,verification_token_hash=NULL,verification_expires_at=NULL WHERE id=$1",[rows[0].id]);
+    await pool.query(
+      "UPDATE users SET email_verified=TRUE,verification_token_hash=NULL,verification_expires_at=NULL WHERE id=$1",
+      [rows[0].id]
+    );
     res.json({ok:true});
-  }catch(e){console.error(e);res.status(500).json({error:"Could not verify email"});}
+  }catch(e){
+    console.error(e);
+    res.status(500).json({error:"Could not verify email"});
+  }
 });
 
 app.post("/api/auth/forgot-password",async(req,res)=>{
@@ -221,12 +267,22 @@ app.post("/api/auth/forgot-password",async(req,res)=>{
     const {rows}=await pool.query("SELECT id,email FROM users WHERE email=$1",[email]);
     if(rows[0]){
       const token=createToken();
-      await pool.query("UPDATE users SET reset_token_hash=$1,reset_expires_at=NOW()+INTERVAL '1 hour' WHERE id=$2",[hashToken(token),rows[0].id]);
-      const resetUrl=(process.env.FRONTEND_URL||"")+"/reset-password.html?token="+token+"&email="+encodeURIComponent(email);
-      await sendAccountEmail(email,"Reset your Gugee password",'<h2>Password reset</h2><p>This link expires in 1 hour.</p><p><a href="'+resetUrl+'">Reset password</a></p>');
+      await pool.query(
+        "UPDATE users SET reset_token_hash=$1,reset_expires_at=NOW()+INTERVAL '1 hour' WHERE id=$2",
+        [hashToken(token),rows[0].id]
+      );
+      const resetUrl=FRONTEND_URL+"/reset-password.html?token="+token+"&email="+encodeURIComponent(email);
+      await sendAccountEmail(
+        email,
+        "Reset your Gugee password",
+        '<h2>Password reset</h2><p>This link expires in 1 hour.</p><p><a href="'+resetUrl+'">Reset password</a></p>'
+      );
     }
     res.json({ok:true,message:"If an account exists for that email, a reset link has been sent."});
-  }catch(e){console.error(e);res.status(500).json({error:"Could not process request"});}
+  }catch(e){
+    console.error(e);
+    res.status(500).json({error:"Could not process request"});
+  }
 });
 
 app.post("/api/auth/reset-password",async(req,res)=>{
@@ -236,13 +292,22 @@ app.post("/api/auth/reset-password",async(req,res)=>{
     const token=String(req.body.token||"");
     const password=String(req.body.password||"");
     if(password.length<8)return res.status(400).json({error:"Password must be at least 8 characters."});
-    const {rows}=await pool.query("SELECT id FROM users WHERE email=$1 AND reset_token_hash=$2 AND reset_expires_at>NOW()",[email,hashToken(token)]);
+    const {rows}=await pool.query(
+      "SELECT id FROM users WHERE email=$1 AND reset_token_hash=$2 AND reset_expires_at>NOW()",
+      [email,hashToken(token)]
+    );
     if(!rows[0])return res.status(400).json({error:"Reset link is invalid or expired."});
     const passwordHash=await bcrypt.hash(password,12);
-    await pool.query("UPDATE users SET password_hash=$1,reset_token_hash=NULL,reset_expires_at=NULL WHERE id=$2",[passwordHash,rows[0].id]);
+    await pool.query(
+      "UPDATE users SET password_hash=$1,reset_token_hash=NULL,reset_expires_at=NULL WHERE id=$2",
+      [passwordHash,rows[0].id]
+    );
     clearAuthCookie(res);
     res.json({ok:true});
-  }catch(e){console.error(e);res.status(500).json({error:"Could not reset password"});}
+  }catch(e){
+    console.error(e);
+    res.status(500).json({error:"Could not reset password"});
+  }
 });
 
 app.get("/api/auth/me",auth,(req,res)=>res.json({user:req.user}));
@@ -267,8 +332,13 @@ app.put("/api/watchlist",auth,async(req,res)=>{
     for(const id of clean)await client.query("INSERT INTO watchlist(user_id,coin_id) VALUES($1,$2) ON CONFLICT DO NOTHING",[req.user.id,id]);
     await client.query("COMMIT");
     res.json({watchlist:clean});
-  }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not save watchlist"});}
-  finally{client.release();}
+  }catch(e){
+    await client.query("ROLLBACK");
+    console.error(e);
+    res.status(500).json({error:"Could not save watchlist"});
+  }finally{
+    client.release();
+  }
 });
 
 app.use(express.static(path.join(__dirname,".")));
