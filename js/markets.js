@@ -3,6 +3,35 @@ const GLOBAL_API="https://api.coingecko.com/api/v3/global";
 const globalCap=document.getElementById("globalCap"),globalVolume=document.getElementById("globalVolume"),btcDominance=document.getElementById("btcDominance"),activeCoins=document.getElementById("activeCoins"),marketBreadth=document.getElementById("marketBreadth"),topGainers=document.getElementById("topGainers"),topLosers=document.getElementById("topLosers"),marketHeatmap=document.getElementById("marketHeatmap"),globalMarketChart=document.getElementById("globalMarketChart"),globalChartTooltip=document.getElementById("globalChartTooltip");
 let globalChartData=[];
 const body=document.getElementById("marketTableBody"),liquidity=document.getElementById("liquiditySelect"),search=document.getElementById("marketSearch"),sort=document.getElementById("sortSelect"),category=document.getElementById("categorySelect"),changePeriod=document.getElementById("changePeriod"),changeDirection=document.getElementById("changeDirection"),more=document.getElementById("loadMore"),status=document.getElementById("marketStatus"),favoritesOnly=document.getElementById("favoritesOnly");
+const exchangeOverview=document.getElementById("exchangeOverview"),exchangeUpdated=document.getElementById("exchangeUpdated");
+const exchangeSources=[
+ {name:"Binance",url:"https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT"},
+ {name:"Coinbase",url:"https://api.exchange.coinbase.com/products/BTC-USD/ticker"},
+ {name:"Kraken",url:"https://api.kraken.com/0/public/Ticker?pair=XBTUSD"},
+ {name:"Bybit",url:"https://api.bybit.com/v5/market/tickers?category=spot&symbol=BTCUSDT"}
+];
+function exchangeMoney(v){return Number.isFinite(v)?v.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}):"--"}
+async function loadExchangeOverview(){
+ const results=await Promise.all(exchangeSources.map(async e=>{
+  try{const r=await fetch(e.url);if(!r.ok)throw new Error();const d=await r.json();
+   let price=null,volume=null;
+   if(e.name==="Binance"){price=Number(d.lastPrice);volume=Number(d.quoteVolume)}
+   if(e.name==="Coinbase"){price=Number(d.price);volume=Number(d.volume_24h)*Number(d.price)}
+   if(e.name==="Kraken"){const x=d.result?.XXBTZUSD||Object.values(d.result||{})[0];price=Number(x?.c?.[0]);volume=Number(x?.v?.[1])*price}
+   if(e.name==="Bybit"){const x=d.result?.list?.[0];price=Number(x?.lastPrice);volume=Number(x?.turnover24h)}
+   return {...e,price,volume};
+  }catch{return {...e,price:null,volume:null}}
+ }));
+ const valid=results.filter(x=>Number.isFinite(x.price));
+ if(!exchangeOverview)return;
+ if(!valid.length){exchangeOverview.innerHTML='<div class="exchange-overview-empty">Exchange data unavailable.</div>';return}
+ const min=Math.min(...valid.map(x=>x.price)),max=Math.max(...valid.map(x=>x.price));
+ exchangeOverview.innerHTML=results.map(x=>{
+  const spread=Number.isFinite(x.price)&&min>0?((x.price/min-1)*100):null;
+  return '<button class="exchange-live-card" type="button"><div class="exchange-live-top"><b>'+x.name+'</b><span>BTC / USD</span></div><strong>'+exchangeMoney(x.price)+'</strong><div class="exchange-live-bottom"><span>24H volume</span><b>'+exchangeMoney(x.volume)+'</b></div><div class="exchange-spread">'+(spread==null?"Unavailable":"+"+spread.toFixed(3)+"% vs lowest")+'</div></button>'
+ }).join("");
+ exchangeUpdated.textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
+}
 const WATCHLIST_KEY="gugee_watchlist"; let coins=[],visible=50,currentPage=1,loadingMore=false,hasMore=true;
 const getFavorites=()=>JSON.parse(localStorage.getItem(WATCHLIST_KEY)||"[]");
 const saveFavorites=v=>localStorage.setItem(WATCHLIST_KEY,JSON.stringify(v));
@@ -87,4 +116,4 @@ search.addEventListener("input",()=>{visible=50;render()});favoritesOnly.addEven
  btn.classList.add("active");loadGlobalChart(Number(btn.dataset.days));
 }));
 window.addEventListener("resize",drawGlobalChart);
-load();loadGlobal();loadGlobalChart(1);setInterval(load,60000);setInterval(loadGlobal,60000);
+load();loadGlobal();loadGlobalChart(1);loadExchangeOverview();setInterval(load,60000);setInterval(loadGlobal,60000);setInterval(loadExchangeOverview,60000);
