@@ -43,6 +43,15 @@ const pool=new Pool({
 
 app.use(express.json({limit:"20kb"}));
 
+app.disable("x-powered-by");
+app.use((req,res,next)=>{
+  res.setHeader("X-Content-Type-Options","nosniff");
+  res.setHeader("X-Frame-Options","DENY");
+  res.setHeader("Referrer-Policy","strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy","camera=(),microphone=(),geolocation=()");
+  next();
+});
+
 const marketCache=new Map();
 const COINGECKO_BASE="https://api.coingecko.com/api/v3";
 const COINGECKO_CACHE_MS=30000;
