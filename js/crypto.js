@@ -10,7 +10,7 @@ const els = {
   volume: document.getElementById("volume"), high: document.getElementById("high"), low: document.getElementById("low"),
   supply: document.getElementById("supply"), ath: document.getElementById("ath"), athDate: document.getElementById("athDate"),
   updated: document.getElementById("updated"), athDistance: document.getElementById("athDistance"),
-  analysisChange: document.getElementById("analysisChange"), binance: document.getElementById("binancePrice"), coinbase: document.getElementById("coinbasePrice"), kraken: document.getElementById("krakenPrice"), bybit: document.getElementById("bybitPrice"), chart: document.getElementById("chartPlaceholder")
+  analysisChange: document.getElementById("analysisChange"), analysis7d: document.getElementById("analysis7d"), analysis30d: document.getElementById("analysis30d"), volatility30d: document.getElementById("volatility30d"), volumeChange30d: document.getElementById("volumeChange30d"), athDistance2: document.getElementById("athDistance2"), binance: document.getElementById("binancePrice"), coinbase: document.getElementById("coinbasePrice"), kraken: document.getElementById("krakenPrice"), bybit: document.getElementById("bybitPrice"), chart: document.getElementById("chartPlaceholder")
 };
 
 const ranges = { "24H": "1", "7D": "7", "30D": "30", "1Y": "365", "5Y": "1825", "MAX": "max" };
@@ -59,6 +59,24 @@ function drawChart(points, volumes) {
   wrap.addEventListener("mouseleave",()=>{tip.style.display="none";lineEl.style.display="none";dot.style.display="none";});
 }
 
+async function fetchHistory(days) {
+  const url="https://api.coingecko.com/api/v3/coins/"+encodeURIComponent(coinId)+"/market_chart?vs_currency=usd&days="+days;
+  const response=await fetch(url); if(!response.ok) throw new Error("History request failed"); return response.json();
+}
+function pct(v){return (v>=0?"+":"")+v.toFixed(2)+"%"}
+function setMetric(el,v){if(el){el.textContent=pct(v);el.style.color=v>=0?"var(--green)":"#ff5c5c"}}
+function calculateAnalysis(data){
+  const p=(data.prices||[]).map(x=>x[1]), vols=(data.total_volumes||[]).map(x=>x[1]);
+  if(p.length<2)return;
+  const ret7=(p[p.length-1]/p[0]-1)*100;
+  const changes=[]; for(let i=1;i<p.length;i++) changes.push((p[i]/p[i-1]-1)*100);
+  const mean=changes.reduce((a,b)=>a+b,0)/changes.length;
+  const variance=changes.reduce((a,b)=>a+(b-mean)**2,0)/changes.length;
+  const vol=Math.sqrt(variance)*Math.sqrt(changes.length);
+  const volChange=vols.length>1?((vols[vols.length-1]/vols[0]-1)*100):0;
+  setMetric(els.analysis30d,(p[p.length-1]/p[0]-1)*100); setMetric(els.volatility30d,vol); setMetric(els.volumeChange30d,volChange); setMetric(els.analysis7d,ret7);
+}
+
 async function loadChart(days) {
   els.chart.textContent = "Loading " + (days === "max" ? "all-time" : days + "-day") + " history...";
   try {
@@ -67,6 +85,7 @@ async function loadChart(days) {
     if (!response.ok) throw new Error("Chart API request failed");
     const data = await response.json();
     drawChart(data.prices || [], data.total_volumes || []);
+    if(days==="30") calculateAnalysis(data);
   } catch (e) {
     console.error(e);
     els.chart.textContent = "Historical chart could not be loaded. Try again.";
