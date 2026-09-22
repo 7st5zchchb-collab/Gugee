@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="Gugee exchange analysis — live crypto prices, volume, spreads, liquidity and risk metrics.">
+<title>Gugee — Exchange Analysis</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body><div class="background-glow"></div>
+<header class="site-header">
+<a class="brand" href="./"><span class="brand-mark">G</span><span>Gugee</span></a>
+<nav class="nav"><a href="markets.html">Markets</a><a class="active" href="exchange.html">Exchange Analysis</a><a href="markets.html#exchanges">Exchanges</a></nav>
+<a class="login-button" href="login.html">Log in</a>
+</header>
+<main class="exchange-analysis-page">
+<section class="exchange-analysis-hero">
+<div><p class="section-label">EXCHANGE ANALYSIS</p><h1 id="exchangeTitle">Binance</h1><p id="exchangeSubtitle">BTC market analysis</p></div>
+<div class="exchange-selector-wrap"><label>Exchange<select id="exchangeSelector"></select></label><label>Pair<select id="pairSelector"><option value="BTCUSDT">BTC / USDT</option></select></label></div>
+</section>
+<section class="exchange-live-summary" id="exchangeSummary"><div class="analysis-loading">Loading live exchange data...</div></section>
+<section class="exchange-chart-panel">
+<div class="exchange-panel-heading"><div><p class="section-label">30 DAY MARKET DATA</p><h2>Price history</h2></div><small id="chartUpdated">Loading...</small></div>
+<div class="exchange-chart-wrap"><svg id="exchangeChart" viewBox="0 0 1000 340" preserveAspectRatio="none"></svg></div>
+<div class="chart-axis" id="chartAxis"></div>
+</section>
+<section class="exchange-analysis-grid">
+<div class="exchange-analysis-card"><p class="section-label">PERFORMANCE</p><h2>Price & percentage analysis</h2><div class="metric-grid" id="performanceMetrics"></div></div>
+<div class="exchange-analysis-card"><p class="section-label">LIQUIDITY</p><h2>Volume & market activity</h2><div class="metric-grid" id="liquidityMetrics"></div></div>
+<div class="exchange-analysis-card"><p class="section-label">RISK</p><h2>Volatility & drawdown</h2><div class="metric-grid" id="riskMetrics"></div></div>
+<div class="exchange-analysis-card"><p class="section-label">SPREAD</p><h2>Cross-exchange price</h2><div id="spreadMetrics" class="spread-list"></div></div>
+</section>
+<section class="exchange-comparison">
+<div class="exchange-panel-heading"><div><p class="section-label">EXCHANGE COMPARISON</p><h2>BTC prices across major exchanges</h2></div><small id="comparisonUpdated">Updating...</small></div>
+<div class="comparison-table-wrap"><table><thead><tr><th>Exchange</th><th>Price</th><th>24H</th><th>Volume</th><th>Spread</th><th>Analysis</th></tr></thead><tbody id="comparisonBody"></tbody></table></div>
+</section>
+<section class="exchange-note"><strong>How to read this</strong><span>Green values indicate positive 24H movement. Volatility is estimated from daily closes; liquidity is represented by reported 24H quote volume. Exchange-specific 7D/30D values use the exchange's public daily candle data when available.</span></section>
+</main>
+<script src="js/auth.js"></script>
+<script src="js/exchange.js"></script>
+</body>
+</html>
