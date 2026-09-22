@@ -155,3 +155,20 @@ document.querySelectorAll(".range").forEach(button => {
 loadCoin();
 
 setInterval(async () => { try { await loadCoin(); } catch(e) { console.error(e); } }, 60000);
+
+const favoriteButton=document.getElementById("favoriteButton");
+const WATCHLIST_KEY="gugee_watchlist";
+function getFavorites(){return JSON.parse(localStorage.getItem(WATCHLIST_KEY)||"[]")}
+function updateFavoriteButton(){
+  if(!favoriteButton)return;
+  const favorites=getFavorites(), active=favorites.includes(coinId);
+  favoriteButton.textContent=active?"★ In Favorites":"☆ Add to Favorites";
+  favoriteButton.classList.toggle("active",active);
+}
+favoriteButton?.addEventListener("click",()=>{
+  const favorites=getFavorites(), index=favorites.indexOf(coinId);
+  if(index>=0) favorites.splice(index,1); else favorites.push(coinId);
+  localStorage.setItem(WATCHLIST_KEY,JSON.stringify(favorites));
+  updateFavoriteButton();
+});
+updateFavoriteButton();
