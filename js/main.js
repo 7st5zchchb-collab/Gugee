@@ -142,7 +142,27 @@ const homeExchanges = [
   {name:"Bitget",provider:"bitget",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitget"},
   {name:"Gate.io",provider:"gate",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/gate"},
   {name:"MEXC",provider:"mexc",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/mexc"},
-  {name:"Crypto.com",provider:"cryptocom",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/crypto-dot-com"}
+  {name:"Crypto.com",provider:"cryptocom",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/crypto-dot-com"},
+  {name:"Gemini",provider:"gemini",symbol:"BTCUSD",logo:"https://cdn.simpleicons.org/gemini"},
+  {name:"Bitstamp",provider:"bitstamp",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitstamp"},
+  {name:"Bitfinex",provider:"bitfinex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitfinex"},
+  {name:"HTX",provider:"htx",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/htx"},
+  {name:"Poloniex",provider:"poloniex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/poloniex"},
+  {name:"BitMart",provider:"bitmart",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitmart"},
+  {name:"LBank",provider:"lbank",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/lbank"},
+  {name:"BingX",provider:"bingx",symbol:"BTC-USDT",logo:"https://cdn.simpleicons.org/bingx"},
+  {name:"Phemex",provider:"phemex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/phemex"},
+  {name:"WhiteBIT",provider:"whitebit",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/whitebit"},
+  {name:"CoinEx",provider:"coinex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/coinex"},
+  {name:"XT.COM",provider:"xt",symbol:"BTC_USDT",logo:"https://cdn.simpleicons.org/xt"},
+  {name:"Deepcoin",provider:"deepcoin",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/deepcoin"},
+  {name:"AscendEX",provider:"ascendex",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/ascendex"},
+  {name:"Bitrue",provider:"bitrue",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/bitrue"},
+  {name:"CoinW",provider:"coinw",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/coinw"},
+  {name:"DigiFinex",provider:"digifinex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/digifinex"},
+  {name:"Toobit",provider:"toobit",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/toobit"},
+  {name:"WEEX",provider:"weex",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/weex"},
+  {name:"P2PB2B",provider:"p2pb2b",symbol:"BTCUSDT",logo:"https://cdn.simpleicons.org/p2pb2b"}
 ];
 function homeExchangeMoney(v){return Number.isFinite(v)?v.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}):"--"}
 async function loadHomeExchanges(){
@@ -162,6 +182,26 @@ async function loadHomeExchanges(){
       if(e.provider==="gate"){const x=Array.isArray(d)?d[0]:d;price=Number(x?.last);change=Number(x?.change_percentage)}
       if(e.provider==="mexc"){price=Number(d.lastPrice);change=Number(d.priceChangePercent)}
       if(e.provider==="cryptocom"){const x=d.result?.data?.[0];price=Number(x?.k);change=Number(x?.c)}
+      if(e.provider==="gemini"){price=Number(d.close);change=d.open?(price/Number(d.open)-1)*100:null}
+      if(e.provider==="bitstamp"){price=Number(d.last)}
+      if(e.provider==="bitfinex"){price=Number(d[6]);change=Number(d[5])*100}
+      if(e.provider==="htx"){price=Number(d.tick?.close)}
+      if(e.provider==="poloniex"){const x=Array.isArray(d)?d[0]:d;price=Number(x?.close);change=Number(x?.percentChange)*100}
+      if(e.provider==="bitmart"){const x=d.data?.tickers?.[0]||d.data?.[0];price=Number(x?.last_price)}
+      if(e.provider==="lbank"){const x=d.data?.[0]?.data?.[0]||d.data?.[0]||d.data;price=Number(x?.latest)}
+      if(e.provider==="bingx"){const x=d.data?.[0];price=Number(x?.lastPrice);change=Number(x?.priceChangePercent)}
+      if(e.provider==="phemex"){const x=d.result?.tick||d.result?.data?.[0];price=Number(x?.closeEp)/1e8||Number(x?.close)}
+      if(e.provider==="whitebit"){const x=Array.isArray(d)?d[0]:d;price=Number(x?.last_price);change=Number(x?.change)}
+      if(e.provider==="coinex"){const x=d.data?.[0]||d.data;price=Number(x?.last);change=x?.open?(price/Number(x.open)-1)*100:null}
+      if(e.provider==="xt"){const x=d.result?.[0]||d.data?.[0]||d;price=Number(x?.p||x?.price)}
+      if(e.provider==="deepcoin"){const x=d.data?.[0]||d.data;price=Number(x?.last)}
+      if(e.provider==="ascendex"){price=Number(d.data?.close)}
+      if(e.provider==="bitrue"){price=Number(d.lastPrice);change=Number(d.priceChangePercent)}
+      if(e.provider==="coinw"){price=Number(d.data?.last||d.last)}
+      if(e.provider==="digifinex"){const x=d.ticker?.[0]||d.data?.[0];price=Number(x?.last)}
+      if(e.provider==="toobit"){const x=Array.isArray(d)?d[0]:d;price=Number(x?.lastPrice);change=Number(x?.priceChangePercent)}
+      if(e.provider==="weex"){const x=d.data?.[0]||d.data;price=Number(x?.last);change=Number(x?.change24h)}
+      if(e.provider==="p2pb2b"){const x=d.result||d.data||d;price=Number(x?.last)}
       return {...e,price,change};
     }catch{return {...e,price:null,change:null}}
   }));
