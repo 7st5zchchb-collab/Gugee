@@ -4,7 +4,7 @@ const grid=document.getElementById("exchangeDirectoryGrid");
 const count=document.getElementById("exchangeDirectoryCount");
 function render(list){
  count.textContent=list.length+" exchanges";
- grid.innerHTML=list.length?list.map(e=>'<a class="exchange-directory-card" href="exchange.html?exchange='+encodeURIComponent(e.provider)+'"><img class="exchange-directory-logo" src="https://cdn.simpleicons.org/'+encodeURIComponent(e.provider)+'" alt="" onerror="this.style.visibility=\'hidden\'"><span class="exchange-directory-info"><b>'+e.name+'</b><span>Live analysis • BTC market</span></span><span class="exchange-directory-arrow">↗</span></a>').join(""):'<div class="exchange-directory-empty">No exchange found. Try another name.</div>';
+ grid.innerHTML=list.length?list.map(e=>'<div class="exchange-directory-card"><img class="exchange-directory-logo" src="'+e.logo+'" alt="'+e.name+' logo" loading="lazy" onerror="this.style.visibility=\\'hidden\\'"><span class="exchange-directory-info"><b>'+e.name+'</b><span>Exchange</span></span></div>').join(""):'<div class="exchange-directory-empty">No exchange found. Try another name.</div>';
 }
 render(exchangeDirectory);
 input.addEventListener("input",()=>{const q=input.value.trim().toLowerCase();render(exchangeDirectory.filter(e=>e.name.toLowerCase().includes(q)||e.provider.toLowerCase().includes(q)))});
