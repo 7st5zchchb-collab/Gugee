@@ -1,3 +1,21 @@
+async function loadRiskDashboard(){
+ const box=document.getElementById("riskDashboard");if(!box)return;
+ const ids=["bitcoin","ethereum","solana","binancecoin"],labels=["BTC","ETH","SOL","BNB"];
+ try{
+  const rows=await Promise.all(ids.map(async(id,i)=>{
+   const r=await fetch("https://api.coingecko.com/api/v3/coins/"+id+"/market_chart?vs_currency=usd&days=30");
+   if(!r.ok)throw new Error();const d=await r.json(),prices=(d.prices||[]).map(x=>x[1]).filter(Number.isFinite);
+   if(prices.length<10)throw new Error();
+   const ret=prices.slice(1).map((v,k)=>v/prices[k]-1),mean=ret.reduce((a,b)=>a+b,0)/ret.length;
+   const variance=ret.reduce((a,b)=>a+(b-mean)**2,0)/ret.length;
+   const vol=Math.sqrt(variance)*Math.sqrt(365)*100;
+   let peak=prices[0],maxDd=0;prices.forEach(v=>{if(v>peak)peak=v;const dd=(v/peak-1)*100;if(dd<maxDd)maxDd=dd});
+   const low=Math.min(...prices),high=Math.max(...prices),range=(high/low-1)*100;
+   return {label:labels[i],vol,maxDd,range};
+  }));
+  box.innerHTML=rows.map(x=>'<div class="risk-card"><div class="risk-card-top"><b>'+x.label+'</b><span>'+ (x.vol>100?"High":x.vol>50?"Medium":"Lower") +' volatility</span></div><div class="risk-item"><span>30D volatility</span><b>'+x.vol.toFixed(2)+'%</b></div><div class="risk-item"><span>Max drawdown</span><b>'+x.maxDd.toFixed(2)+'%</b></div><div class="risk-item"><span>High / Low range</span><b>'+x.range.toFixed(2)+'%</b></div></div>').join('');
+ }catch{box.innerHTML='<div class="exchange-overview-empty">Risk data unavailable.</div>'}
+}
 async function loadCorrelation(){
  const box=document.getElementById("correlationTable");if(!box)return;
  const ids=["bitcoin","ethereum","solana","binancecoin"],labels=["BTC","ETH","SOL","BNB"];
@@ -243,4 +261,4 @@ search.addEventListener("input",()=>{visible=50;render()});favoritesOnly.addEven
  btn.classList.add("active");loadGlobalChart(Number(btn.dataset.days));
 }));
 window.addEventListener("resize",drawGlobalChart);
-load();loadGlobal();loadGlobalChart(1);loadExchangeOverview();loadExchangeAssets();loadSpreadMonitor();loadBtcHistory(30,"bitcoin","BTC");loadCorrelation();setInterval(load,60000);setInterval(loadGlobal,60000);setInterval(loadExchangeOverview,60000);setInterval(loadExchangeAssets,60000);setInterval(loadSpreadMonitor,60000);
+load();loadGlobal();loadGlobalChart(1);loadExchangeOverview();loadExchangeAssets();loadSpreadMonitor();loadBtcHistory(30,"bitcoin","BTC");loadCorrelation();loadRiskDashboard();setInterval(load,60000);setInterval(loadGlobal,60000);setInterval(loadExchangeOverview,60000);setInterval(loadExchangeAssets,60000);setInterval(loadSpreadMonitor,60000);
