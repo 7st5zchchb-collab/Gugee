@@ -91,21 +91,44 @@ async function fetchCoinGeckoPage(page){
   throw lastError||new Error("CoinGecko request failed");
 }
 
+async function fetchCoinCapTop1000(){
+  const url="https://api.coincap.io/v2/assets?limit=1000";
+  const r=await fetch(url,{headers:{accept:"application/json","user-agent":"Gugee/1.0"}});
+  const body=await r.text();
+  if(!r.ok) throw new Error(body||("CoinCap HTTP "+r.status));
+  const payload=JSON.parse(body);
+  if(!payload||!Array.isArray(payload.data)||payload.data.length<900) throw new Error("CoinCap returned too few cryptocurrencies");
+  return payload.data.map(coin=>({
+    id:coin.id,
+    name:coin.name,
+    symbol:coin.symbol,
+    image:"https://assets.coincap.io/assets/icons/"+encodeURIComponent(String(coin.symbol||"").toLowerCase())+"@2x.png",
+    current_price:Number(coin.priceUsd),
+    price_change_percentage_24h:Number(coin.changePercent24Hr),
+    market_cap_rank:Number(coin.rank)||null
+  }));
+}
+
 async function top1000Coins(req,res){
   if(top1000Cache.data&&Date.now()<top1000Cache.expires){
     return res.json({count:top1000Cache.data.length,coins:top1000Cache.data,cached:true});
   }
   try{
-    const pages=[];
-    for(const page of [1,2,3,4]) pages.push(await fetchCoinGeckoPage(page));
-    const map=new Map();
-    pages.flat().forEach(coin=>map.set(coin.id,coin));
-    const coins=Array.from(map.values()).slice(0,1000);
-    if(coins.length<900) throw new Error("CoinGecko returned too few cryptocurrencies");
+    let coins=null;
+    try{
+      const pages=await Promise.all([1,2,3,4].map(page=>fetchCoinGeckoPage(page)));
+      const map=new Map();
+      pages.flat().forEach(coin=>map.set(coin.id,coin));
+      coins=Array.from(map.values()).slice(0,1000);
+      if(coins.length<900) throw new Error("CoinGecko returned too few cryptocurrencies");
+    }catch(coinGeckoError){
+      console.warn("CoinGecko top 1000 failed, using CoinCap fallback:",coinGeckoError.message);
+      coins=await fetchCoinCapTop1000();
+    }
     top1000Cache={data:coins,expires:Date.now()+5*60*1000};
     res.json({count:coins.length,coins,cached:false});
   }catch(error){
-    console.error("Top 1000 CoinGecko error:",error);
+    console.error("Top 1000 crypto error:",error);
     if(top1000Cache.data) return res.json({count:top1000Cache.data.length,coins:top1000Cache.data,cached:true,stale:true});
     res.status(502).json({error:"Unable to load the 1000 cryptocurrencies right now"});
   }
