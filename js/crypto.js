@@ -10,11 +10,12 @@ const els = {
   volume: document.getElementById("volume"), high: document.getElementById("high"), low: document.getElementById("low"),
   supply: document.getElementById("supply"), ath: document.getElementById("ath"), athDate: document.getElementById("athDate"),
   updated: document.getElementById("updated"), athDistance: document.getElementById("athDistance"),
-  analysisChange: document.getElementById("analysisChange"), chart: document.getElementById("chartPlaceholder")
+  analysisChange: document.getElementById("analysisChange"), binance: document.getElementById("binancePrice"), coinbase: document.getElementById("coinbasePrice"), kraken: document.getElementById("krakenPrice"), bybit: document.getElementById("bybitPrice"), chart: document.getElementById("chartPlaceholder")
 };
 
 const ranges = { "24H": "1", "7D": "7", "30D": "30", "1Y": "365", "5Y": "1825", "MAX": "max" };
 let currentRange = "1";
+let currentMarket = null;
 
 function money(v) {
   if (v == null) return "$--";
@@ -72,6 +73,23 @@ async function loadChart(days) {
   }
 }
 
+async function loadExchanges(symbol) {
+  const s = symbol.toUpperCase();
+  const pairs = {BTC:["BTCUSDT","BTC-USD","XXBTZUSD","BTCUSDT"],ETH:["ETHUSDT","ETH-USD","XETHZUSD","ETHUSDT"],SOL:["SOLUSDT","SOL-USD","SOLUSD","SOLUSDT"],BNB:["BNBUSDT","BNB-USD","BNBUSD","BNBUSDT"]};
+  const p = pairs[s]; if (!p) return;
+  const calls = [
+    fetch("https://api.binance.com/api/v3/ticker/price?symbol="+p[0]).then(r=>r.json()),
+    fetch("https://api.coinbase.com/v2/prices/"+p[1]+"/spot").then(r=>r.json()),
+    fetch("https://api.kraken.com/0/public/Ticker?pair="+p[2]).then(r=>r.json()),
+    fetch("https://api.bybit.com/v5/market/tickers?category=spot&symbol="+p[3]).then(r=>r.json())
+  ];
+  const [b,c,k,y]=await Promise.allSettled(calls);
+  if(b.status==="fulfilled" && b.value.price) els.binance.textContent=money(Number(b.value.price));
+  if(c.status==="fulfilled" && c.value.data?.amount) els.coinbase.textContent=money(Number(c.value.data.amount));
+  if(k.status==="fulfilled" && k.value.result){const key=Object.keys(k.value.result)[0]; els.kraken.textContent=key?money(Number(k.value.result[key].c?.[0])):"--";}
+  if(y.status==="fulfilled" && y.value.result?.list?.[0]?.lastPrice) els.bybit.textContent=money(Number(y.value.result.list[0].lastPrice));
+}
+
 async function loadCoin() {
   try {
     const url = "https://api.coingecko.com/api/v3/coins/" + encodeURIComponent(coinId) +
@@ -79,6 +97,7 @@ async function loadCoin() {
     const response = await fetch(url);
     if (!response.ok) throw new Error("Coin API request failed");
     const coin = await response.json(), market = coin.market_data;
+    currentMarket = market;
     els.name.textContent = coin.name || coinId;
     els.symbol.textContent = (coin.symbol || "").toUpperCase();
     els.icon.textContent = (coin.symbol || "C").toUpperCase().slice(0,3);
@@ -97,7 +116,7 @@ async function loadCoin() {
     els.athDistance.textContent = (((market.current_price.usd / market.ath.usd)-1)*100).toFixed(2) + "%";
     els.analysisChange.textContent = (change >= 0 ? "+" : "") + change.toFixed(2) + "%";
     els.analysisChange.style.color = change >= 0 ? "var(--green)" : "#ff5c5c";
-    await loadChart(currentRange);
+    await Promise.all([loadChart(currentRange), loadExchanges((coin.symbol || "").toUpperCase())]);
   } catch (e) {
     console.error(e);
     els.name.textContent = "Crypto not found";
@@ -115,3 +134,5 @@ document.querySelectorAll(".range").forEach(button => {
 });
 
 loadCoin();
+
+setInterval(async () => { try { await loadCoin(); } catch(e) { console.error(e); } }, 60000);
