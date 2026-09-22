@@ -113,10 +113,10 @@ async function loadExchanges(symbol) {
   const pairs = {BTC:["BTCUSDT","BTC-USD","XXBTZUSD","BTCUSDT"],ETH:["ETHUSDT","ETH-USD","XETHZUSD","ETHUSDT"],SOL:["SOLUSDT","SOL-USD","SOLUSD","SOLUSDT"],BNB:["BNBUSDT","BNB-USD","BNBUSD","BNBUSDT"]};
   const p = pairs[s]; if (!p) return;
   const calls = [
-    fetch("https://api.binance.com/api/v3/ticker/price?symbol="+p[0]).then(r=>r.json()),
-    fetch("https://api.coinbase.com/v2/prices/"+p[1]+"/spot").then(r=>r.json()),
-    fetch("https://api.kraken.com/0/public/Ticker?pair="+p[2]).then(r=>r.json()),
-    fetch("https://api.bybit.com/v5/market/tickers?category=spot&symbol="+p[3]).then(r=>r.json())
+    fetch("/api/exchanges?provider=binance&symbol="+p[0]).then(r=>r.json()),
+    fetch("/api/exchanges?provider=coinbase&symbol="+p[1]+"/spot").then(r=>r.json()),
+    fetch("/api/exchanges?provider=kraken&symbol="+p[2]).then(r=>r.json()),
+    fetch("/api/exchanges?provider=bybit&symbol="+p[3]).then(r=>r.json())
   ];
   const [b,c,k,y]=await Promise.allSettled(calls);
   const prices=[];
