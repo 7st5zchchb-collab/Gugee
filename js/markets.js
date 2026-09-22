@@ -3,7 +3,7 @@ const GLOBAL_API="https://api.coingecko.com/api/v3/global";
 const globalCap=document.getElementById("globalCap"),globalVolume=document.getElementById("globalVolume"),btcDominance=document.getElementById("btcDominance"),activeCoins=document.getElementById("activeCoins"),marketBreadth=document.getElementById("marketBreadth"),topGainers=document.getElementById("topGainers"),topLosers=document.getElementById("topLosers"),marketHeatmap=document.getElementById("marketHeatmap"),globalMarketChart=document.getElementById("globalMarketChart"),globalChartTooltip=document.getElementById("globalChartTooltip");
 let globalChartData=[];
 const body=document.getElementById("marketTableBody"),liquidity=document.getElementById("liquiditySelect"),search=document.getElementById("marketSearch"),sort=document.getElementById("sortSelect"),category=document.getElementById("categorySelect"),changePeriod=document.getElementById("changePeriod"),changeDirection=document.getElementById("changeDirection"),more=document.getElementById("loadMore"),status=document.getElementById("marketStatus"),favoritesOnly=document.getElementById("favoritesOnly");
-const exchangeOverview=document.getElementById("exchangeOverview"),exchangeUpdated=document.getElementById("exchangeUpdated"),exchangeAssetRows=document.getElementById("exchangeAssetRows");
+const exchangeOverview=document.getElementById("exchangeOverview"),exchangeUpdated=document.getElementById("exchangeUpdated"),exchangeAssetRows=document.getElementById("exchangeAssetRows"),spreadGrid=document.getElementById("spreadGrid");
 const exchangeAssets=[
  {id:"BTC",label:"BTC / USD",binance:"BTCUSDT",coinbase:"BTC-USD",kraken:"XBTUSD",bybit:"BTCUSDT"},
  {id:"ETH",label:"ETH / USD",binance:"ETHUSDT",coinbase:"ETH-USD",kraken:"ETHUSD",bybit:"ETHUSDT"},
@@ -49,6 +49,26 @@ const exchangeSources=[
  {name:"Bybit",url:"https://api.bybit.com/v5/market/tickers?category=spot&symbol=BTCUSDT"}
 ];
 function exchangeMoney(v){return Number.isFinite(v)?v.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}):"--"}
+async function loadSpreadMonitor(){
+ if(!spreadGrid)return;
+ const rows=await Promise.all(exchangeAssets.map(async a=>{
+  const values=await Promise.all([
+   fetchExchangePrice("Binance",a.binance),
+   fetchExchangePrice("Coinbase",a.coinbase),
+   fetchExchangePrice("Kraken",a.kraken),
+   fetchExchangePrice("Bybit",a.bybit)
+  ]);
+  const valid=values.map((v,i)=>Number.isFinite(v)?{name:["Binance","Coinbase","Kraken","Bybit"][i],price:v}:null).filter(Boolean);
+  if(valid.length<2)return {label:a.label,low:null,high:null,spread:null};
+  const low=valid.reduce((x,y)=>y.price<x.price?y:x);
+  const high=valid.reduce((x,y)=>y.price>x.price?y:x);
+  return {label:a.label,low,high,spread:(high.price/low.price-1)*100};
+ }));
+ spreadGrid.innerHTML=rows.map(x=>x.spread==null
+  ? '<div class="spread-card"><b>'+x.label+'</b><span>Not enough exchange data</span></div>'
+  : '<div class="spread-card"><div class="spread-card-top"><b>'+x.label+'</b><strong>+'+x.spread.toFixed(3)+'%</strong></div><div class="spread-card-line"><span>Lowest</span><b>'+x.low.name+' · '+exchangeMoney(x.low.price)+'</b></div><div class="spread-card-line"><span>Highest</span><b>'+x.high.name+' · '+exchangeMoney(x.high.price)+'</b></div></div>'
+ ).join('');
+}
 async function loadExchangeOverview(){
  const results=await Promise.all(exchangeSources.map(async e=>{
   try{const r=await fetch(e.url);if(!r.ok)throw new Error();const d=await r.json();
@@ -154,4 +174,4 @@ search.addEventListener("input",()=>{visible=50;render()});favoritesOnly.addEven
  btn.classList.add("active");loadGlobalChart(Number(btn.dataset.days));
 }));
 window.addEventListener("resize",drawGlobalChart);
-load();loadGlobal();loadGlobalChart(1);loadExchangeOverview();loadExchangeAssets();setInterval(load,60000);setInterval(loadGlobal,60000);setInterval(loadExchangeOverview,60000);setInterval(loadExchangeAssets,60000);
+load();loadGlobal();loadGlobalChart(1);loadExchangeOverview();loadExchangeAssets();loadSpreadMonitor();setInterval(load,60000);setInterval(loadGlobal,60000);setInterval(loadExchangeOverview,60000);setInterval(loadExchangeAssets,60000);setInterval(loadSpreadMonitor,60000);
