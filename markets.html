@@ -22,7 +22,14 @@
 <section class="global-chart-section"><div class="global-chart-heading"><div><p class="section-label">GLOBAL MARKET CAP</p><h2>Market cap history</h2></div><div class="global-chart-ranges"><button class="global-range active" data-days="1">24H</button><button class="global-range" data-days="7">7D</button><button class="global-range" data-days="30">30D</button><button class="global-range" data-days="365">1Y</button></div></div><div class="global-chart-wrap"><canvas id="globalMarketChart"></canvas><div id="globalChartTooltip" class="global-chart-tooltip"></div></div></section>
 <section class="exchange-overview">
 <div class="exchange-overview-heading"><div><p class="section-label">EXCHANGE OVERVIEW</p><h2>Live exchange prices</h2></div><small id="exchangeUpdated">Updating...</small></div>
-<div class="exchange-overview-grid" id="exchangeOverview"><div class="exchange-overview-empty">Loading exchange data...</div></div><section class="correlation-panel">
+<div class="exchange-overview-grid" id="exchangeOverview"><div class="exchange-overview-empty">Loading exchange data...</div></div><section class="risk-dashboard-panel">
+  <div class="exchange-overview-heading">
+    <div><p class="section-label">VOLATILITY & RISK</p><h2>Historical risk dashboard</h2></div>
+    <small>30D descriptive statistics</small>
+  </div>
+  <div class="risk-grid" id="riskDashboard"><div class="exchange-overview-empty">Loading risk metrics...</div></div>
+</section>
+<section class="correlation-panel">
   <div class="exchange-overview-heading">
     <div><p class="section-label">MARKET RELATIONSHIP</p><h2>30D asset correlation</h2></div>
     <small>Return correlation · descriptive</small>
