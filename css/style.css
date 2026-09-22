@@ -1405,3 +1405,5 @@ footer {
  .analysis-metric:last-child{border-bottom:0}
  .exchange-note{flex-direction:column;gap:7px}
 }
+
+.exchange-analysis-link{display:block;color:inherit;text-decoration:none}.exchange-analysis-link:hover{color:inherit;text-decoration:none}
