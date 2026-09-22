@@ -10,7 +10,7 @@ const els = {
   volume: document.getElementById("volume"), high: document.getElementById("high"), low: document.getElementById("low"),
   supply: document.getElementById("supply"), ath: document.getElementById("ath"), athDate: document.getElementById("athDate"),
   updated: document.getElementById("updated"), athDistance: document.getElementById("athDistance"),
-  analysisChange: document.getElementById("analysisChange"), analysis7d: document.getElementById("analysis7d"), analysis30d: document.getElementById("analysis30d"), volatility30d: document.getElementById("volatility30d"), volumeChange30d: document.getElementById("volumeChange30d"), athDistance2: document.getElementById("athDistance2"), trend: document.getElementById("trendSignal"), momentum: document.getElementById("momentumSignal"), volumeSignal: document.getElementById("volumeSignal"), rsi14: document.getElementById("rsi14"), ma20: document.getElementById("ma20"), ma50: document.getElementById("ma50"), macdSignal: document.getElementById("macdSignal"), summary: document.getElementById("analysisSummary"), signalTrend: document.getElementById("signalTrend"), signalMomentum: document.getElementById("signalMomentum"), signalVolume: document.getElementById("signalVolume"), signalRisk: document.getElementById("signalRisk"), binance: document.getElementById("binancePrice"), coinbase: document.getElementById("coinbasePrice"), kraken: document.getElementById("krakenPrice"), bybit: document.getElementById("bybitPrice"), spread: document.getElementById("priceSpread"), chart: document.getElementById("chartPlaceholder")
+  analysisChange: document.getElementById("analysisChange"), analysis7d: document.getElementById("analysis7d"), analysis30d: document.getElementById("analysis30d"), volatility30d: document.getElementById("volatility30d"), volumeChange30d: document.getElementById("volumeChange30d"), volumeCapRatio: document.getElementById("volumeCapRatio"), athDistance2: document.getElementById("athDistance2"), trend: document.getElementById("trendSignal"), momentum: document.getElementById("momentumSignal"), volumeSignal: document.getElementById("volumeSignal"), rsi14: document.getElementById("rsi14"), ma20: document.getElementById("ma20"), ma50: document.getElementById("ma50"), macdSignal: document.getElementById("macdSignal"), summary: document.getElementById("analysisSummary"), signalTrend: document.getElementById("signalTrend"), signalMomentum: document.getElementById("signalMomentum"), signalVolume: document.getElementById("signalVolume"), signalRisk: document.getElementById("signalRisk"), binance: document.getElementById("binancePrice"), coinbase: document.getElementById("coinbasePrice"), kraken: document.getElementById("krakenPrice"), bybit: document.getElementById("bybitPrice"), spread: document.getElementById("priceSpread"), chart: document.getElementById("chartPlaceholder")
 };
 
 const ranges = { "24H": "1", "7D": "7", "30D": "30", "1Y": "365", "5Y": "1825", "MAX": "max" };
@@ -75,7 +75,7 @@ function calculateAnalysis(data){
   const changes=[]; for(let i=1;i<p.length;i++) changes.push((p[i]/p[i-1]-1)*100);
   const mean=changes.reduce((a,b)=>a+b,0)/changes.length;
   const variance=changes.reduce((a,b)=>a+(b-mean)**2,0)/changes.length;
-  const vol=Math.sqrt(variance)*Math.sqrt(changes.length);
+  const vol=Math.sqrt(variance)*Math.sqrt(24*365);
   const recentVolume=avg(vols.slice(Math.max(0,vols.length-7))); const previousVolume=avg(vols.slice(Math.max(0,vols.length-14),Math.max(0,vols.length-7))); const volChange=previousVolume?((recentVolume/previousVolume)-1)*100:0;
   const last=p[p.length-1], n=p.length;
   const sma=(arr,period)=>arr.length<period?null:avg(arr.slice(-period));
@@ -90,7 +90,7 @@ function calculateAnalysis(data){
   if(els.rsi14){els.rsi14.textContent=rsi.toFixed(1);els.rsi14.style.color=rsi>=70?"#ff5c5c":rsi<=30?"var(--green)":"#f5f5f5";}
   if(els.ma20){els.ma20.textContent=ma20==null?"--":money(ma20);els.ma20.style.color=ma20!=null&&last>=ma20?"var(--green)":"#ff5c5c";}
   if(els.ma50){els.ma50.textContent=ma50==null?"--":money(ma50);els.ma50.style.color=ma50!=null&&last>=ma50?"var(--green)":"#ff5c5c";}
-  if(els.macdSignal){els.macdSignal.textContent=macd==null?"--":(macd>=0?"Positive":"Negative");els.macdSignal.style.color=macd==null?"#f5f5f5":macd>=0?"var(--green)":"#ff5c5c";} const short=avg(p.slice(Math.max(0,n-24))); const long=avg(p); const momentum=(p[n-1]/p[Math.max(0,n-8)]-1)*100; const recentVol=avg(vols.slice(Math.max(0,vols.length-12))); const oldVol=avg(vols.slice(0,Math.max(1,Math.floor(vols.length/2)))); const volumeRatio=oldVol?recentVol/oldVol:1; els.trend.textContent=short>long?"Uptrend":"Downtrend"; els.trend.style.color=short>long?"var(--green)":"#ff5c5c"; els.momentum.textContent=momentum>=0? "Positive":"Negative"; els.momentum.style.color=momentum>=0?"var(--green)":"#ff5c5c"; els.volumeSignal.textContent=volumeRatio>=1.2?"Strong":"Normal"; els.volumeSignal.style.color=volumeRatio>=1.2?"var(--green)":"#aaa"; els.summary.textContent=(short>long?"Price is trading above its longer average. ":"Price is trading below its longer average.")+(momentum>=0?"Recent momentum is positive. ":"Recent momentum is negative.")+(volumeRatio>=1.2?"Recent volume is elevated.":"Recent volume is within a normal range."); const risk=vol>6?"High":vol>3?"Medium":"Low"; els.signalTrend.textContent=short>long?"Up":"Down"; els.signalMomentum.textContent=momentum>=0?"Positive":"Negative"; els.signalVolume.textContent=volumeRatio>=1.2?"High":"Normal"; els.signalRisk.textContent=risk; [els.signalTrend,els.signalMomentum,els.signalVolume,els.signalRisk].forEach(e=>e.style.color="#f5f5f5"); setMetric(els.analysis30d,ret30); setMetric(els.volatility30d,vol); setMetric(els.volumeChange30d,volChange); setMetric(els.analysis7d,ret7);
+  if(els.macdSignal){els.macdSignal.textContent=macd==null?"--":(macd>=0?"Positive":"Negative");els.macdSignal.style.color=macd==null?"#f5f5f5":macd>=0?"var(--green)":"#ff5c5c";} const short=avg(p.slice(Math.max(0,n-24))); const long=avg(p); const momentum=(p[n-1]/p[Math.max(0,n-8)]-1)*100; const recentVol=avg(vols.slice(Math.max(0,vols.length-12))); const oldVol=avg(vols.slice(0,Math.max(1,Math.floor(vols.length/2)))); const volumeRatio=oldVol?recentVol/oldVol:1; els.trend.textContent=short>long?"Uptrend":"Downtrend"; els.trend.style.color=short>long?"var(--green)":"#ff5c5c"; els.momentum.textContent=momentum>=0? "Positive":"Negative"; els.momentum.style.color=momentum>=0?"var(--green)":"#ff5c5c"; els.volumeSignal.textContent=volumeRatio>=1.2?"Strong":"Normal"; els.volumeSignal.style.color=volumeRatio>=1.2?"var(--green)":"#aaa"; els.summary.textContent=(short>long?"Price is trading above its longer average. ":"Price is trading below its longer average.")+(momentum>=0?"Recent momentum is positive. ":"Recent momentum is negative.")+(volumeRatio>=1.2?"Recent volume is elevated.":"Recent volume is within a normal range."); const risk=vol>100?"High":vol>50?"Medium":"Low"; els.signalTrend.textContent=short>long?"Up":"Down"; els.signalMomentum.textContent=momentum>=0?"Positive":"Negative"; els.signalVolume.textContent=volumeRatio>=1.2?"High":"Normal"; els.signalRisk.textContent=risk; [els.signalTrend,els.signalMomentum,els.signalVolume,els.signalRisk].forEach(e=>e.style.color="#f5f5f5"); setMetric(els.analysis30d,ret30); setMetric(els.volatility30d,vol); setMetric(els.volumeChange30d,volChange); setMetric(els.analysis7d,ret7);
 }
 
 async function loadChart(days) {
@@ -118,11 +118,13 @@ async function loadExchanges(symbol) {
     fetch("https://api.kraken.com/0/public/Ticker?pair="+p[2]).then(r=>r.json()),
     fetch("https://api.bybit.com/v5/market/tickers?category=spot&symbol="+p[3]).then(r=>r.json())
   ];
-  const [b,c,k,y]=await Promise.allSettled(calls);\n  const prices=[];
+  const [b,c,k,y]=await Promise.allSettled(calls);
+  const prices=[];
   if(b.status==="fulfilled" && b.value.price){const v=Number(b.value.price); els.binance.textContent=money(v); prices.push(v);}
   if(c.status==="fulfilled" && c.value.data?.amount){const v=Number(c.value.data.amount); els.coinbase.textContent=money(v); prices.push(v);}
   if(k.status==="fulfilled" && k.value.result){const key=Object.keys(k.value.result)[0]; const v=key?Number(k.value.result[key].c?.[0]):NaN; els.kraken.textContent=Number.isFinite(v)?money(v):"--"; if(Number.isFinite(v)) prices.push(v);}
-  if(y.status==="fulfilled" && y.value.result?.list?.[0]?.lastPrice){const v=Number(y.value.result.list[0].lastPrice); els.bybit.textContent=money(v); prices.push(v);}\n  if(els.spread && prices.length>1){const min=Math.min(...prices), max=Math.max(...prices); els.spread.textContent=((max/min-1)*100).toFixed(3)+"%";}
+  if(y.status==="fulfilled" && y.value.result?.list?.[0]?.lastPrice){const v=Number(y.value.result.list[0].lastPrice); els.bybit.textContent=money(v); prices.push(v);}
+  if(els.spread && prices.length>1){const min=Math.min(...prices), max=Math.max(...prices); els.spread.textContent=((max/min-1)*100).toFixed(3)+"%";}
 }
 
 async function loadCoin() {
@@ -135,7 +137,9 @@ async function loadCoin() {
     currentMarket = market;
     els.name.textContent = coin.name || coinId;
     els.symbol.textContent = (coin.symbol || "").toUpperCase();
-    const logo = coin.image?.large || coin.image?.small || coin.image?.thumb || "";\n    if (els.iconImage && logo) { els.iconImage.src = logo; els.iconImage.style.display = "block"; if (els.iconFallback) els.iconFallback.style.display = "none"; }\n    else if (els.iconFallback) { els.iconFallback.textContent = (coin.symbol || "C").toUpperCase().slice(0,3); els.iconFallback.style.display = "block"; }
+    const logo = coin.image?.large || coin.image?.small || coin.image?.thumb || "";
+    if (els.iconImage && logo) { els.iconImage.src = logo; els.iconImage.style.display = "block"; if (els.iconFallback) els.iconFallback.style.display = "none"; }
+    else if (els.iconFallback) { els.iconFallback.textContent = (coin.symbol || "C").toUpperCase().slice(0,3); els.iconFallback.style.display = "block"; }
     els.price.textContent = money(market.current_price.usd);
     const change = market.price_change_percentage_24h || 0;
     els.change.textContent = (change >= 0 ? "+" : "") + change.toFixed(2) + "%";
@@ -151,7 +155,10 @@ async function loadCoin() {
     const athDistance=(((market.current_price.usd / market.ath.usd)-1)*100).toFixed(2) + "%"; els.athDistance.textContent=athDistance; els.athDistance2.textContent=athDistance;
     els.analysisChange.textContent = (change >= 0 ? "+" : "") + change.toFixed(2) + "%";
     els.analysisChange.style.color = change >= 0 ? "var(--green)" : "#ff5c5c";
+    const volumeCapRatio=market.market_cap?.usd>0?(market.total_volume?.usd/market.market_cap.usd)*100:null;
+    if(els.volumeCapRatio){els.volumeCapRatio.textContent=volumeCapRatio==null?"--":volumeCapRatio.toFixed(2)+"%";els.volumeCapRatio.style.color=volumeCapRatio>5?"var(--green)":"#aaa";}
     await Promise.all([loadChart(currentRange), loadExchanges((coin.symbol || "").toUpperCase())]);
+    try { const analysisData=await fetchHistory("30"); calculateAnalysis(analysisData); } catch(e) { console.error("Gugee analysis:",e); }
   } catch (e) {
     console.error(e);
     els.name.textContent = "Crypto not found";
