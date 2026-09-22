@@ -60,6 +60,58 @@ app.use((req,res,next)=>{
 const marketCache=new Map();
 
 const COINGECKO_BASE="https://api.coingecko.com/api/v3";
+let top1000Cache={data:null,expires:0};
+
+async function fetchCoinGeckoPage(page){
+  const url=COINGECKO_BASE+"/coins/markets?"+new URLSearchParams({
+    vs_currency:"usd",
+    order:"market_cap_desc",
+    per_page:"250",
+    page:String(page),
+    sparkline:"false",
+    price_change_percentage:"24h,7d,30d"
+  }).toString();
+  let lastError=null;
+  for(let attempt=0;attempt<3;attempt++){
+    try{
+      const r=await fetch(url,{headers:{accept:"application/json","user-agent":"Gugee/1.0"}});
+      const body=await r.text();
+      if(r.ok){
+        const rows=JSON.parse(body);
+        if(Array.isArray(rows))return rows;
+      }
+      lastError=new Error(body||("HTTP "+r.status));
+      if(r.status===429||r.status>=500) await new Promise(resolve=>setTimeout(resolve,800*(attempt+1)));
+      else break;
+    }catch(error){
+      lastError=error;
+      await new Promise(resolve=>setTimeout(resolve,500*(attempt+1)));
+    }
+  }
+  throw lastError||new Error("CoinGecko request failed");
+}
+
+async function top1000Coins(req,res){
+  if(top1000Cache.data&&Date.now()<top1000Cache.expires){
+    return res.json({count:top1000Cache.data.length,coins:top1000Cache.data,cached:true});
+  }
+  try{
+    const pages=[];
+    for(const page of [1,2,3,4]) pages.push(await fetchCoinGeckoPage(page));
+    const map=new Map();
+    pages.flat().forEach(coin=>map.set(coin.id,coin));
+    const coins=Array.from(map.values()).slice(0,1000);
+    if(coins.length<900) throw new Error("CoinGecko returned too few cryptocurrencies");
+    top1000Cache={data:coins,expires:Date.now()+5*60*1000};
+    res.json({count:coins.length,coins,cached:false});
+  }catch(error){
+    console.error("Top 1000 CoinGecko error:",error);
+    if(top1000Cache.data) return res.json({count:top1000Cache.data.length,coins:top1000Cache.data,cached:true,stale:true});
+    res.status(502).json({error:"Unable to load the 1000 cryptocurrencies right now"});
+  }
+}
+
+
 async function coingeckoProxy(req,res,next){
   const p=req.path;
   let target=null;
@@ -82,6 +134,7 @@ async function coingeckoProxy(req,res,next){
     res.status(502).json({error:"CoinGecko request failed"});
   }
 }
+app.get("/api/coingecko/top1000",top1000Coins);
 app.use("/api/coingecko",coingeckoProxy);
 
 app.use("/api/exchanges",async(req,res)=>{
