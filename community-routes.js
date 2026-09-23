@@ -54,6 +54,14 @@ function initCommunity(app,pool,auth){
       status TEXT NOT NULL DEFAULT 'upcoming' CHECK(status IN ('upcoming','live','finished','cancelled')),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS tournament_snapshots(
+      id BIGSERIAL PRIMARY KEY,
+      tournament_id BIGINT NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      equity_usdt NUMERIC(30,10) NOT NULL DEFAULT 0,
+      captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_tournament_snapshots_lookup ON tournament_snapshots(tournament_id,user_id,captured_at DESC);
     CREATE TABLE IF NOT EXISTS tournament_entries(
       id BIGSERIAL PRIMARY KEY,
       tournament_id BIGINT NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
@@ -137,6 +145,37 @@ function initCommunity(app,pool,auth){
         LIMIT 100`,[req.params.id]);
       res.json({leaderboard:rows.map((r,i)=>({...r,rank:r.rank||i+1,score:Number(r.score)}))});
     }catch(e){console.error(e);res.status(500).json({error:"Could not load leaderboard"});}
+  });
+
+  app.post("/api/tournaments/:id/sync-score",auth,async(req,res)=>{
+    const client=await pool.connect();
+    try{
+      await client.query("BEGIN");
+      const t=(await client.query("SELECT * FROM tournaments WHERE id=$1 FOR UPDATE",[req.params.id])).rows[0];
+      if(!t||!["live","upcoming"].includes(t.status))return rollback(client,res,400,"Tournament is not active.");
+      const entry=(await client.query("SELECT * FROM tournament_entries WHERE tournament_id=$1 AND user_id=$2",[t.id,req.user.id])).rows[0];
+      if(!entry)return rollback(client,res,403,"Join the tournament first.");
+      await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[req.user.id]);
+      const wallet=(await client.query("SELECT usdt FROM wallets WHERE user_id=$1",[req.user.id])).rows[0];
+      const equity=Number(wallet.usdt||0);
+      const first=(await client.query("SELECT equity_usdt FROM tournament_snapshots WHERE tournament_id=$1 AND user_id=$2 ORDER BY captured_at ASC LIMIT 1",[t.id,req.user.id])).rows[0];
+      const baseline=first?Number(first.equity_usdt):equity;
+      const score=baseline>0?((equity-baseline)/baseline)*100:0;
+      await client.query("INSERT INTO tournament_snapshots(tournament_id,user_id,equity_usdt) VALUES($1,$2,$3)",[t.id,req.user.id,equity]);
+      await client.query("UPDATE tournament_entries SET score=$1 WHERE id=$2",[score,entry.id]);
+      await client.query("COMMIT");
+      res.json({ok:true,equity_usdt:equity,score:Number(score.toFixed(6))});
+    }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not sync tournament score"});}
+    finally{client.release();}
+  });
+
+  app.get("/api/tournaments/:id/live-leaderboard",async(req,res)=>{
+    try{
+      const {rows}=await pool.query(`SELECT e.user_id,u.name,e.score,e.joined_at
+        FROM tournament_entries e JOIN users u ON u.id=e.user_id
+        WHERE e.tournament_id=$1 ORDER BY e.score DESC,e.joined_at ASC LIMIT 100`,[req.params.id]);
+      res.json({leaderboard:rows.map((r,i)=>({...r,rank:i+1,score:Number(r.score)}))});
+    }catch(e){res.status(500).json({error:"Could not load live leaderboard"});}
   });
 
   app.get("/api/tournaments/my",auth,async(req,res)=>{
