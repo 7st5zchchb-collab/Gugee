@@ -879,44 +879,6 @@ function escapeHtml(value){
   return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 }
 
-function renderOtherCryptoCards(coins){
-  return coins.map(c=>{
-    const id=escapeHtml(c.id);
-    const name=escapeHtml(c.name||"Unknown");
-    const symbol=escapeHtml(String(c.symbol||"").toUpperCase());
-    const image=escapeHtml(c.image||("https://assets.coincap.io/assets/icons/"+String(c.symbol||"").toLowerCase()+"@2x.png"));
-    const price=Number(c.current_price);
-    const change=Number(c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h);
-    const priceText=Number.isFinite(price)&&price>0?"$"+price.toLocaleString("en-US",{maximumFractionDigits:price>=1?2:8}):"--";
-    const changeText=Number.isFinite(change)?(change>=0?"+":"")+change.toFixed(2)+"%":"Live";
-    const cls=change>=0?"positive":"negative";
-    return '<div class="crypto-directory-card">'+
-      '<button class="crypto-favorite-button" data-favorite="'+id+'" title="Add to favorites">☆</button>'+
-      '<a class="crypto-directory-main" href="crypto.html?coin='+encodeURIComponent(c.id)+'">'+
-      '<img src="'+image+'" alt="'+name+' logo" loading="lazy">'+
-      '<span class="crypto-directory-info"><b>'+name+'</b><small>'+symbol+'</small></span>'+
-      '<strong>'+priceText+'</strong>'+
-      '<span class="'+cls+'">'+changeText+'</span>'+
-      '</a></div>';
-  }).join("");
-}
-
-app.get("/others.html",async(req,res)=>{
-  try{
-    const file=fs.readFileSync(path.join(__dirname,"others.html"),"utf8");
-    const coins=await getTop1000Coins();
-    const cards=renderOtherCryptoCards(coins.slice(0,1000));
-    const html=file.replace(
-      '<div id="othersGrid" class="crypto-directory-grid"></div>',
-      '<div id="othersGrid" class="crypto-directory-grid">'+cards+'</div>'
-    );
-    res.type("html").send(html);
-  }catch(error){
-    console.error("Server-rendered others page failed:",error);
-    res.sendFile(path.join(__dirname,"others.html"));
-  }
-});
-
 app.use(express.static(path.join(__dirname,".")));
 app.use((req,res)=>{
   if(req.path.startsWith("/api/"))return res.status(404).json({error:"API route not found"});
