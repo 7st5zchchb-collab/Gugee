@@ -375,6 +375,18 @@ async function initDb(){
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY(user_id,coin_id)
     );
+    CREATE TABLE IF NOT EXISTS exchange_connections(
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      exchange_id TEXT NOT NULL,
+      label TEXT NOT NULL DEFAULT '',
+      api_key_encrypted TEXT NOT NULL,
+      api_secret_encrypted TEXT NOT NULL,
+      passphrase_encrypted TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id,exchange_id)
+    );
     CREATE TABLE IF NOT EXISTS wallet_transactions(
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -660,6 +672,106 @@ app.get("/api/wallet/assets",auth,async(req,res)=>{
   }
 });
 
+app.get("/api/exchanges/supported",auth,(req,res)=>{
+  res.json({exchanges:SUPPORTED_TRADING_EXCHANGES});
+});
+
+app.get("/api/exchange/connections",auth,async(req,res)=>{
+  const {rows}=await pool.query("SELECT id,exchange_id,label,created_at,updated_at FROM exchange_connections WHERE user_id=$1 ORDER BY created_at DESC",[req.user.id]);
+  res.json({connections:rows});
+});
+
+app.post("/api/exchange/connect",auth,async(req,res)=>{
+  if(!rateLimit("exchange-connect:"+req.user.id,10,15*60*1000))return res.status(429).json({error:"Too many connection attempts. Try again later."});
+  const exchangeId=String(req.body.exchangeId||"").toLowerCase().trim();
+  const apiKey=String(req.body.apiKey||"").trim();
+  const apiSecret=String(req.body.apiSecret||"").trim();
+  const passphrase=String(req.body.passphrase||"").trim();
+  const label=String(req.body.label||"").trim().slice(0,80);
+  if(!SUPPORTED_TRADING_EXCHANGES.includes(exchangeId))return res.status(400).json({error:"Unsupported exchange."});
+  if(!apiKey||!apiSecret)return res.status(400).json({error:"API key and secret are required."});
+  let exchange;
+  try{
+    exchange=createExchange(exchangeId,apiKey,apiSecret,passphrase);
+    await exchange.checkRequiredCredentials();
+    const balance=await exchange.fetchBalance();
+    const quote=balance?.USDT||balance?.USD||{};
+    const available=Number(quote.free??0);
+    const total=Number(quote.total??0);
+    await pool.query(
+      "INSERT INTO exchange_connections(user_id,exchange_id,label,api_key_encrypted,api_secret_encrypted,passphrase_encrypted,updated_at) VALUES($1,$2,$3,$4,$5,$6,NOW()) ON CONFLICT(user_id,exchange_id) DO UPDATE SET label=EXCLUDED.label,api_key_encrypted=EXCLUDED.api_key_encrypted,api_secret_encrypted=EXCLUDED.api_secret_encrypted,passphrase_encrypted=EXCLUDED.passphrase_encrypted,updated_at=NOW()",
+      [req.user.id,exchangeId,label,encryptSecret(apiKey),encryptSecret(apiSecret),passphrase?encryptSecret(passphrase):null]
+    );
+    res.json({ok:true,connection:{exchangeId,label},balance:{usdtFree:Number.isFinite(available)?available:0,usdtTotal:Number.isFinite(total)?total:0}});
+  }catch(e){
+    console.error("Exchange connection failed:",e.message);
+    res.status(400).json({error:"Could not verify exchange credentials. Check the API key, secret, permissions, and exchange settings."});
+  }
+});
+
+app.delete("/api/exchange/connections/:exchangeId",auth,async(req,res)=>{
+  const exchangeId=String(req.params.exchangeId||"").toLowerCase();
+  await pool.query("DELETE FROM exchange_connections WHERE user_id=$1 AND exchange_id=$2",[req.user.id,exchangeId]);
+  res.json({ok:true});
+});
+
+app.get("/api/exchange/balance/:exchangeId",auth,async(req,res)=>{
+  try{
+    const row=await getExchangeConnection(req.user.id,req.params.exchangeId);
+    if(!row)return res.status(404).json({error:"Exchange is not connected."});
+    const exchange=createExchange(row.exchange_id,decryptSecret(row.api_key_encrypted),decryptSecret(row.api_secret_encrypted),row.passphrase_encrypted?decryptSecret(row.passphrase_encrypted):"");
+    const balance=await exchange.fetchBalance();
+    const result=Object.entries(balance.total||{}).filter(([,v])=>Number(v)>0).map(([asset,total])=>({asset,total:Number(total),free:Number(balance.free?.[asset]||0),used:Number(balance.used?.[asset]||0)}));
+    res.json({exchange:row.exchange_id,balances:result});
+  }catch(e){
+    console.error("Exchange balance failed:",e.message);
+    res.status(400).json({error:"Could not load exchange balance."});
+  }
+});
+
+app.post("/api/exchange/order",auth,async(req,res)=>{
+  const exchangeId=String(req.body.exchangeId||"").toLowerCase().trim();
+  const symbol=String(req.body.symbol||"").toUpperCase().trim();
+  const side=String(req.body.side||"").toLowerCase().trim();
+  const type=String(req.body.type||"").toLowerCase().trim();
+  const amount=Number(req.body.amount);
+  const price=req.body.price==null||req.body.price===""?undefined:Number(req.body.price);
+  if(!["buy","sell"].includes(side))return res.status(400).json({error:"Side must be buy or sell."});
+  if(!["market","limit"].includes(type))return res.status(400).json({error:"Order type must be market or limit."});
+  if(!/^[A-Z0-9]{2,20}\/[A-Z0-9]{2,20}$/.test(symbol))return res.status(400).json({error:"Use a symbol such as BTC/USDT."});
+  if(!Number.isFinite(amount)||amount<=0)return res.status(400).json({error:"Amount must be greater than 0."});
+  if(type==="limit"&&(!Number.isFinite(price)||price<=0))return res.status(400).json({error:"Limit price must be greater than 0."});
+  try{
+    const row=await getExchangeConnection(req.user.id,exchangeId);
+    if(!row)return res.status(404).json({error:"Exchange is not connected."});
+    const exchange=createExchange(row.exchange_id,decryptSecret(row.api_key_encrypted),decryptSecret(row.api_secret_encrypted),row.passphrase_encrypted?decryptSecret(row.passphrase_encrypted):"");
+    const order=await exchange.createOrder(symbol,type,side,amount,price);
+    res.json({ok:true,order:{
+      id:order.id,status:order.status,type:order.type,side:order.side,symbol:order.symbol,
+      amount:Number(order.amount||amount),filled:Number(order.filled||0),remaining:Number(order.remaining||0),
+      price:order.price==null?null:Number(order.price),average:order.average==null?null:Number(order.average),
+      cost:Number(order.cost||0),timestamp:order.timestamp||Date.now()
+    }});
+  }catch(e){
+    console.error("Real exchange order failed:",e.message);
+    res.status(400).json({error:"Exchange rejected the order: "+String(e.message||"unknown error").slice(0,300)});
+  }
+});
+
+app.get("/api/exchange/orders/:exchangeId",auth,async(req,res)=>{
+  try{
+    const row=await getExchangeConnection(req.user.id,req.params.exchangeId);
+    if(!row)return res.status(404).json({error:"Exchange is not connected."});
+    const exchange=createExchange(row.exchange_id,decryptSecret(row.api_key_encrypted),decryptSecret(row.api_secret_encrypted),row.passphrase_encrypted?decryptSecret(row.passphrase_encrypted):"");
+    const symbol=req.query.symbol?String(req.query.symbol).toUpperCase():undefined;
+    const orders=await exchange.fetchOpenOrders(symbol);
+    res.json({orders:orders.map(o=>({id:o.id,status:o.status,type:o.type,side:o.side,symbol:o.symbol,amount:Number(o.amount||0),filled:Number(o.filled||0),remaining:Number(o.remaining||0),price:o.price==null?null:Number(o.price),average:o.average==null?null:Number(o.average),timestamp:o.timestamp}))});
+  }catch(e){
+    console.error("Exchange orders failed:",e.message);
+    res.status(400).json({error:"Could not load exchange orders."});
+  }
+});
+
 app.get("/api/watchlist",auth,async(req,res)=>{
   const {rows}=await pool.query("SELECT coin_id FROM watchlist WHERE user_id=$1 ORDER BY created_at DESC",[req.user.id]);
   res.json({watchlist:rows.map(r=>r.coin_id)});
@@ -683,6 +795,38 @@ app.put("/api/watchlist",auth,async(req,res)=>{
     client.release();
   }
 });
+
+function encryptionKey(){
+  return crypto.createHash("sha256").update(JWT_SECRET+"|gugee-exchange-keys").digest();
+}
+function encryptSecret(value){
+  const iv=crypto.randomBytes(12);
+  const cipher=crypto.createCipheriv("aes-256-gcm",encryptionKey(),iv);
+  const encrypted=Buffer.concat([cipher.update(String(value),"utf8"),cipher.final()]);
+  return iv.toString("base64")+"."+cipher.getAuthTag().toString("base64")+"."+encrypted.toString("base64");
+}
+function decryptSecret(value){
+  const [iv64,tag64,data64]=String(value||"").split(".");
+  if(!iv64||!tag64||!data64)throw new Error("Invalid encrypted credential");
+  const decipher=crypto.createDecipheriv("aes-256-gcm",encryptionKey(),Buffer.from(iv64,"base64"));
+  decipher.setAuthTag(Buffer.from(tag64,"base64"));
+  return Buffer.concat([decipher.update(Buffer.from(data64,"base64")),decipher.final()]).toString("utf8");
+}
+const SUPPORTED_TRADING_EXCHANGES=["binance","bybit","okx","kraken","kucoin","coinbase","bitget","gateio","mexc"];
+function createExchange(id,apiKey,secret,passphrase){
+  const normalized=String(id||"").toLowerCase();
+  if(!SUPPORTED_TRADING_EXCHANGES.includes(normalized))throw new Error("Unsupported exchange");
+  const Exchange=require("ccxt")[normalized];
+  if(!Exchange)throw new Error("Exchange adapter unavailable");
+  const config={apiKey,secret,enableRateLimit:true};
+  if(passphrase)config.password=passphrase;
+  return new Exchange(config);
+}
+async function getExchangeConnection(userId,id){
+  const {rows}=await pool.query("SELECT * FROM exchange_connections WHERE user_id=$1 AND exchange_id=$2",[userId,String(id).toLowerCase()]);
+  if(!rows[0])return null;
+  return rows[0];
+}
 
 function escapeHtml(value){
   return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
