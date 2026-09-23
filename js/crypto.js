@@ -18,7 +18,7 @@ const els={
 const ranges=["1","3","7","30","365","1825","max"];
 let coin=null,market=null,latestHistory=null;
 
-function money(v){if(!Number.isFinite(Number(v)))return"$--";v=Number(v);if(Math.abs(v)>=1000)return"$"+Math.round(v).toLocaleString("en-US");if(Math.abs(v)>=1)return"$"+v.toLocaleString("en-US",{maximumFractionDigits:2});return"$"+v.toLocaleString("en-US",{maximumSignificantDigits:6});}
+function money(v){if(!Number.isFinite(Number(v)))return"$--";const n=Number(v);if(n>=1000)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:2});if(n>=1)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:4});return"$"+n.toLocaleString("en-US",{maximumFractionDigits:8});});return"$"+v.toLocaleString("en-US",{maximumSignificantDigits:6});}
 function compact(v){return Number.isFinite(Number(v))?new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(Number(v)):"--";}
 function pct(v){return Number.isFinite(Number(v))?(Number(v)>=0?"+":"")+Number(v).toFixed(2)+"%":"--";}
 function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}
