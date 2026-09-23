@@ -115,7 +115,7 @@ function initCommunity(app,pool,auth){
       if(n>=t.max_players)return rollback(client,res,400,"Tournament is full.");
       const exists=await client.query("SELECT 1 FROM tournament_entries WHERE tournament_id=$1 AND user_id=$2",[t.id,req.user.id]);
       if(exists.rowCount)return rollback(client,res,409,"You already joined this tournament.");
-      const fee=Number(t.entry_fee_usdt);
+      const fee=Number(t.entry_fee_usdt);\n      if(!Number.isFinite(fee)||fee<0)return rollback(client,res,400,"Invalid tournament entry fee.");
       await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[req.user.id]);
       const wallet=await client.query("UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",[fee,req.user.id]);
       if(!wallet.rowCount)return rollback(client,res,400,"Insufficient USDT balance for the entry fee.");
@@ -145,9 +145,9 @@ function initCommunity(app,pool,auth){
     }catch(e){console.error(e);res.status(500).json({error:"Could not load tournament entries"});}
   });
 
-  app.get("/api/giveaways",async(req,res)=>{
+  app.get("/api/giveaways",optionalAuth,async(req,res)=>{
     try{
-      const uid=null;
+      const uid=req.user?req.user.id:null;
       const {rows}=await pool.query(`SELECT g.*,COUNT(e.id)::int AS entry_count,CASE WHEN $1::bigint IS NULL THEN false ELSE EXISTS(SELECT 1 FROM giveaway_entries x WHERE x.giveaway_id=g.id AND x.user_id=$1) END AS joined FROM giveaways g LEFT JOIN giveaway_entries e ON e.giveaway_id=g.id WHERE g.status IN ('upcoming','live') GROUP BY g.id ORDER BY g.starts_at`,[uid]);
       res.json({giveaways:rows});
     }catch(e){console.error(e);res.status(500).json({error:"Could not load giveaways"});}
