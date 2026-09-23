@@ -13,7 +13,7 @@
 .asset-list{display:grid;gap:12px;margin-top:18px}.asset{display:flex;justify-content:space-between;padding:18px;border:1px solid rgba(255,255,255,.08);border-radius:14px}
 .muted{opacity:.65}.error{color:#ff6b6b}
 @media(max-width:650px){.account-head{align-items:flex-start;flex-direction:column}.balance{font-size:32px}}
-</style>
+.subscription-ui{margin-top:20px}.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.plan-card{background:#0b0b0d;border:1px solid #242429;border-radius:15px;padding:18px}.plan-card.active{border-color:#35e08b;box-shadow:0 0 0 1px rgba(53,224,139,.12)}.plan-card h3{margin:0 0 7px}.plan-price{font-size:24px;font-weight:800;margin:10px 0}.plan-card ul{padding-left:18px;color:#888;font-size:11px;line-height:1.8;min-height:72px}.plan-btn{width:100%;border:1px solid #2d2d33;background:#111114;color:#eee;border-radius:9px;padding:11px;cursor:pointer;font-weight:700}.plan-card.active .plan-btn{background:#35e08b;color:#06120b;border-color:#35e08b}.notification-ui{margin-top:20px}.notification-list{display:grid;gap:8px;margin-top:14px}.notice{padding:13px;border:1px solid #242429;border-radius:11px;background:#0b0b0d}.notice.unread{border-color:#294a38}.notice-title{font-weight:800;font-size:12px}.notice-message{color:#888;font-size:11px;margin-top:5px;line-height:1.5}.notice-time{color:#555;font-size:9px;margin-top:7px}@media(max-width:700px){.plan-grid{grid-template-columns:1fr}.plan-card ul{min-height:0}}</style>
 </head>
 <body class="auth-page">
 <header class="site-header">
@@ -88,10 +88,30 @@ document.addEventListener("DOMContentLoaded",async()=>{
       const result=await window.gugeeAuth.api("/api/wallet/buy",{method:"POST",body:JSON.stringify({coinId:buyCoin.value.trim(),usdtAmount:amount})});
       buyMessage.textContent="Bought "+Number(result.purchase.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+" "+result.purchase.symbol+" for "+Number(result.purchase.usdtAmount).toFixed(2)+" USDT.";
       buyAmount.value="";
-      await loadWallet();
+      await loadWallet();\n  await loadSubscription();\n  await loadNotifications();
     }catch(e){buyMessage.textContent=e.message;}
   });
 
+  async function loadSubscription(){
+    try{
+      const data=await window.gugeeAuth.api("/api/subscriptions");
+      const plan=data.subscription.plan||"free";
+      document.querySelectorAll(".plan-card").forEach(card=>{
+        const active=card.dataset.plan===plan; card.classList.toggle("active",active);
+        const btn=card.querySelector("button"); btn.textContent=active?"Active":(card.dataset.plan==="free"?"Select":"Upgrade");
+        btn.onclick=async()=>{if(active)return;try{const r=await window.gugeeAuth.api("/api/subscriptions/subscribe",{method:"POST",body:JSON.stringify({plan:card.dataset.plan})});document.getElementById("subscriptionMessage").textContent=r.plan.toUpperCase()+" activated.";await loadSubscription();}catch(e){document.getElementById("subscriptionMessage").textContent=e.message;}};
+      });
+    }catch(e){document.getElementById("subscriptionMessage").textContent=e.message}
+  }
+  async function loadNotifications(){
+    try{
+      const data=await window.gugeeAuth.api("/api/notifications");
+      const box=document.getElementById("notifications");
+      if(!data.notifications.length){box.innerHTML='<p class="muted">No notifications yet.</p>';return;}
+      box.innerHTML=data.notifications.map(n=>'<div class="notice '+(n.read_at?'':'unread')+'"><div class="notice-title">'+String(n.title)+'</div><div class="notice-message">'+String(n.message)+'</div><div class="notice-time">'+new Date(n.created_at).toLocaleString()+'</div></div>').join("");
+      data.notifications.filter(n=>!n.read_at).slice(0,10).forEach(n=>window.gugeeAuth.api("/api/notifications/"+n.id+"/read",{method:"POST"}).catch(()=>{}));
+    }catch(e){document.getElementById("notifications").innerHTML='<p class="error">Could not load notifications.</p>'}
+  }
   async function loadWallet(){
   try{
     const data=await window.gugeeAuth.api("/api/wallet");
