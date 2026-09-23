@@ -291,9 +291,8 @@ async function load(){
   loading=true;
   loadStatus.textContent="Loading cryptocurrencies...";
   if(!allCoins.length){
-    allCoins=fallbackCoins.slice();
-    render();
-    renderFavorites();
+    othersPreview.innerHTML='<div class="exchange-directory-empty">Loading live cryptocurrency data...</div>';
+    favoritesGrid.innerHTML='<div class="crypto-favorites-empty">Loading live favorites...</div>';
   }
   try{
     let payload=null;
