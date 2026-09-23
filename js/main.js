@@ -299,14 +299,42 @@ async function loadMarketSnapshot() {
     coins.forEach((coin) => {
       const index = marketCoins.indexOf(coin.id);
       const card = index >= 0 ? marketCards[index] : null;
-      if (!card) return;
       const price = coin.current_price;
       const change = coin.price_change_percentage_24h;
-      card.querySelector("strong").textContent = price == null ? "$--" : "$" + price.toLocaleString(undefined, {maximumSignificantDigits: 7});
-      const changeEl = card.querySelector(".change");
-      changeEl.textContent = change == null ? "--" : (change >= 0 ? "+" : "") + change.toFixed(2) + "%";
-      changeEl.style.color = change >= 0 ? "var(--green)" : "#ff5c5c";
+      const priceText = price == null ? "$--" : "$" + price.toLocaleString(undefined, {maximumSignificantDigits: 7});
+      const changeText = change == null ? "--" : (change >= 0 ? "+" : "") + change.toFixed(2) + "%";
+
+      if(card){
+        card.querySelector("strong").textContent = priceText;
+        const changeEl = card.querySelector(".change");
+        changeEl.textContent = changeText;
+        changeEl.style.color = change >= 0 ? "var(--green)" : "#ff5c5c";
+      }
+
+      const tickerKey = coin.id === "bitcoin" ? "btc" : coin.id === "ethereum" ? "eth" : coin.id === "solana" ? "sol" : null;
+      if(tickerKey){
+        const priceEl=document.getElementById("ticker-"+tickerKey);
+        const changeEl=document.getElementById("ticker-"+tickerKey+"-change");
+        if(priceEl)priceEl.textContent=priceText;
+        if(changeEl){
+          changeEl.textContent=changeText;
+          changeEl.style.color=change>=0?"var(--green)":"#ff5c5c";
+        }
+      }
     });
+
+    try{
+      const globalResponse=await fetch("/api/coingecko/global");
+      if(globalResponse.ok){
+        const globalData=await globalResponse.json();
+        const marketCap=globalData.data?.total_market_cap?.usd;
+        const volume=globalData.data?.total_volume?.usd;
+        const capEl=document.getElementById("ticker-cap");
+        const volumeEl=document.getElementById("ticker-volume");
+        if(capEl)capEl.textContent=marketCap==null?"--":"$"+Number(marketCap).toLocaleString(undefined,{notation:"compact",maximumFractionDigits:2});
+        if(volumeEl)volumeEl.textContent=volume==null?"--":"$"+Number(volume).toLocaleString(undefined,{notation:"compact",maximumFractionDigits:2});
+      }
+    }catch{}
   } catch (error) {
     console.error("Gugee market snapshot:", error);
   }
