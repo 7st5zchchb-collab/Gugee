@@ -52,7 +52,7 @@ function toggleFavorite(id){
 
 function coinCard(c){
   const ch=Number(c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h);
-  const price=Number(c.current_price);
+  const price=Number(c.current_price); const cap=Number(c.market_cap); const vol=Number(c.total_volume);
   const fav=isFavorite(c.id);
   return '<div class="crypto-directory-card" role="link" tabindex="0" data-coin-link="'+encodeURIComponent(c.id)+'">'+
     '<button class="crypto-favorite-button '+(fav?"active":"")+'" data-favorite="'+String(c.id).replace(/"/g,"&quot;")+'" aria-label="'+(fav?"Remove from favorites":"Add to favorites")+'" title="'+(fav?"Remove from favorites":"Add to favorites")+'">'+(fav?"★":"☆")+'</button>'+
@@ -60,7 +60,7 @@ function coinCard(c){
     '<img src="'+logoFor(c)+'" alt="'+String(c.name||"Crypto")+' logo" loading="lazy">'+
     '<span class="crypto-directory-info"><b>'+String(c.name||"Unknown")+'</b><small>'+String(c.symbol||"").toUpperCase()+'</small></span>'+
     '<strong>'+(Number.isFinite(price)&&price>0?"$"+price.toLocaleString("en-US",{maximumFractionDigits:price>=1?2:8}):"--")+'</strong>'+
-    '<span class="'+(ch>=0?"positive":"negative")+'">'+(Number.isFinite(ch)&&price>0?(ch>=0?"+":"")+ch.toFixed(2)+"%":"Live")+'</span>'+
+    '<span class="'+(ch>0?"positive":ch<0?"negative":"neutral")+'">'+(Number.isFinite(ch)?(ch>=0?"+":"")+ch.toFixed(2)+"%":"--")+'</span><small class="crypto-directory-extra">'+(Number.isFinite(cap)&&cap>0?"MC $"+new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(cap):"MC --")+' · '+(Number.isFinite(vol)&&vol>0?"Vol $"+new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(vol):"Vol --")+'</small>'+
     '</a></div>';
 }
 
@@ -134,7 +134,7 @@ function renderFavorites(){
   }
   favoritesGrid.innerHTML=favorites.map(c=>{
     const live=allCoins.find(x=>x.id===c.id)||c;
-    const price=Number(live.current_price);
+    const price=Number(live.current_price); const ch=Number(live.price_change_percentage_24h_in_currency??live.price_change_percentage_24h);
     return '<div class="crypto-favorite-card">'+
       '<a href="crypto.html?coin='+encodeURIComponent(live.id)+'" class="crypto-favorite-link">'+
       '<img src="'+logoFor(live)+'" alt="'+String(live.name||"Crypto")+' logo" loading="lazy">'+
