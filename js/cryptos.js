@@ -5,7 +5,7 @@ const favoritesCount=document.getElementById("cryptoFavoritesCount");
 const loadStatus=document.getElementById("cryptoLoadStatus");
 const othersPreview=document.getElementById("cryptoOthersPreview");
 
-const API="/api/coingecko/top1000";
+const API=(window.GUGEE_API_BASE||"https://gugee.onrender.com").replace(/\/$/,"")+"/api/coingecko/top1000";
 const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
 const PAGE_SIZE=50;
