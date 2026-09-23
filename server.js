@@ -729,16 +729,6 @@ app.post("/api/wallet/buy",auth,async(req,res)=>{
   }finally{client.release();}
 });
 
-app.get("/api/wallet/transactions",auth,async(req,res)=>{
-  try{
-    const {rows}=await pool.query("SELECT id,type,coin_id,symbol,quantity,price_usdt,usdt_amount,created_at FROM wallet_transactions WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100",[req.user.id]);
-    res.json({transactions:rows.map(t=>({...t,quantity:t.quantity===null?null:Number(t.quantity),price_usdt:t.price_usdt===null?null:Number(t.price_usdt),usdt_amount:Number(t.usdt_amount)}))});
-  }catch(e){
-    console.error(e);
-    res.status(500).json({error:"Could not load wallet transactions"});
-  }
-});
-
 app.get("/api/wallet/assets",auth,async(req,res)=>{
   try{
     const {rows}=await pool.query("SELECT coin_id,symbol,quantity,updated_at FROM wallet_assets WHERE user_id=$1 AND quantity<>0 ORDER BY updated_at DESC",[req.user.id]);
