@@ -9,6 +9,7 @@
 <body><div class="background-glow"></div>
 <header class="site-header">
 <a class="brand" href="./"><span class="brand-mark">G</span><span>Gugee</span></a>
+<button class="mobile-nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
 <nav class="nav"><a href="markets.html">Markets</a><a class="active" href="exchange.html">Exchange Analysis</a><a href="markets.html#exchanges">Exchanges</a></nav>
 <a class="login-button" href="login.html">Log in</a>
 </header>
@@ -37,5 +38,5 @@
 </main>
 <script src="js/auth.js"></script>
 <script src="js/exchange.js"></script>
-</body>
+<script>(function(){const b=document.querySelector(".mobile-nav-toggle"),n=document.querySelector(".site-header .nav");if(!b||!n)return;b.addEventListener("click",()=>{const o=n.classList.toggle("mobile-open");b.classList.toggle("active",o);b.setAttribute("aria-expanded",o);b.setAttribute("aria-label",o?"Close navigation":"Open navigation")});n.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{n.classList.remove("mobile-open");b.classList.remove("active");b.setAttribute("aria-expanded","false")}));})();</script></body>
 </html>
