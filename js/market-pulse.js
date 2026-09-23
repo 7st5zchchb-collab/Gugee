@@ -81,7 +81,7 @@ async function get(path){for(const base of apiBases){try{const r=await fetch(bas
 function money(v){const n=Number(v);return Number.isFinite(n)?"$"+n.toLocaleString("en-US",{maximumFractionDigits:2}):"--"}
 function compact(v){const n=Number(v);return Number.isFinite(n)?"$"+new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(n):"--"}
 async function sentiment(){
- let d=null;try{const r=await fetch("https://api.alternative.me/fng/?limit=1",{cache:"no-store"});if(r.ok)d=await r.json()}catch{}
+ let d=null;for(const base of apiBases){try{const r=await fetch(base+"/api/market/fear-greed",{cache:"no-store",headers:{accept:"application/json"}});if(r.ok){d=await r.json();break}}catch{} }
  const x=d?.data?.[0]; if(!x)return;
  const value=Number(x.value); document.getElementById("sentimentValue").textContent=Number.isFinite(value)?value:"--";
  document.getElementById("sentimentLabel").textContent=x.value_classification||"Unknown";
