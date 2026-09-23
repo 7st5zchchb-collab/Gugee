@@ -114,15 +114,17 @@ async function initRegister(){
   form.addEventListener("submit",async e=>{
     e.preventDefault();
     const name=form.name.value.trim();
+    const username=form.username.value.trim().toLowerCase();
     const email=form.email.value.trim().toLowerCase();
     const password=form.password.value;
     const confirm=form.confirmPassword.value;
     if(name.length<2)return setAuthMessage("Name must contain at least 2 characters.");
+    if(!/^[a-z0-9_][a-z0-9_.-]{2,19}$/.test(username))return setAuthMessage("Username must be 3-20 characters.");
     if(!email)return setAuthMessage("Enter a valid email address.");
     if(password.length<8)return setAuthMessage("Password must be at least 8 characters.");
     if(password!==confirm)return setAuthMessage("Passwords do not match.");
     try{
-      const data=await api("/api/auth/register",{method:"POST",body:JSON.stringify({name,email,password})});
+      const data=await api("/api/auth/register",{method:"POST",body:JSON.stringify({name,username,email,password})});
       setCurrentUser(data.user);
       const referralCode=new URLSearchParams(window.location.search).get("ref");
       if(referralCode){try{await api("/api/referrals/claim",{method:"POST",body:JSON.stringify({code:referralCode})});}catch{}}
