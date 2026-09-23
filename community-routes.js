@@ -127,6 +127,17 @@ function initCommunity(app,pool,auth){
     finally{client.release();}
   });
 
+  app.get("/api/tournaments/:id/leaderboard",async(req,res)=>{
+    try{
+      const {rows}=await pool.query(`SELECT e.user_id,u.name,e.score,e.rank,e.joined_at
+        FROM tournament_entries e JOIN users u ON u.id=e.user_id
+        WHERE e.tournament_id=$1
+        ORDER BY e.score DESC,e.joined_at ASC
+        LIMIT 100`,[req.params.id]);
+      res.json({leaderboard:rows.map((r,i)=>({...r,rank:r.rank||i+1,score:Number(r.score)}))});
+    }catch(e){console.error(e);res.status(500).json({error:"Could not load leaderboard"});}
+  });
+
   app.get("/api/tournaments/my",auth,async(req,res)=>{
     try{
       const {rows}=await pool.query("SELECT t.name,t.entry_fee_usdt,t.starts_at,t.ends_at,t.status,e.score,e.rank,e.joined_at FROM tournament_entries e JOIN tournaments t ON t.id=e.tournament_id WHERE e.user_id=$1 ORDER BY e.joined_at DESC",[req.user.id]);
@@ -175,6 +186,40 @@ function initCommunity(app,pool,auth){
       await pool.query("INSERT INTO referrals(referrer_id,referred_id,code) VALUES($1,$2,$3)",[owner.user_id,req.user.id,code]);
       res.json({ok:true,message:"Referral linked to your account."});
     }catch(e){if(e.code==="23505")return res.status(409).json({error:"This account already has a referral."});console.error(e);res.status(500).json({error:"Could not claim referral"});}
+  });
+
+  app.post("/api/admin/tournaments/:id/finish",adminAuth(pool),async(req,res)=>{
+    const client=await pool.connect();
+    try{
+      await client.query("BEGIN");
+      const t=(await client.query("SELECT * FROM tournaments WHERE id=$1 FOR UPDATE",[req.params.id])).rows[0];
+      if(!t)return rollback(client,res,404,"Tournament not found.");
+      if(t.status==="finished")return rollback(client,res,400,"Tournament is already finished.");
+      const entries=(await client.query("SELECT id FROM tournament_entries WHERE tournament_id=$1 ORDER BY score DESC,joined_at ASC",[t.id])).rows;
+      for(let i=0;i<entries.length;i++)await client.query("UPDATE tournament_entries SET rank=$1 WHERE id=$2",[i+1,entries[i].id]);
+      await client.query("UPDATE tournaments SET status='finished' WHERE id=$1",[t.id]);
+      await client.query("COMMIT");
+      res.json({ok:true,ranked:entries.length});
+    }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not finish tournament"});}
+    finally{client.release();}
+  });
+
+  app.post("/api/admin/giveaways/:id/draw",adminAuth(pool),async(req,res)=>{
+    const client=await pool.connect();
+    try{
+      await client.query("BEGIN");
+      const g=(await client.query("SELECT * FROM giveaways WHERE id=$1 FOR UPDATE",[req.params.id])).rows[0];
+      if(!g)return rollback(client,res,404,"Giveaway not found.");
+      if(g.winner_user_id)return rollback(client,res,400,"A winner has already been selected.");
+      const entries=(await client.query("SELECT user_id FROM giveaway_entries WHERE giveaway_id=$1 ORDER BY id",[g.id])).rows;
+      if(!entries.length)return rollback(client,res,400,"No giveaway entries yet.");
+      const winner=entries[crypto.randomInt(entries.length)].user_id;
+      await client.query("UPDATE giveaways SET winner_user_id=$1,status='finished' WHERE id=$2",[winner,g.id]);
+      await client.query("COMMIT");
+      const user=(await pool.query("SELECT name,email FROM users WHERE id=$1",[winner])).rows[0];
+      res.json({ok:true,winner:user});
+    }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not draw giveaway winner"});}
+    finally{client.release();}
   });
 
   app.get("/api/admin/community/overview",adminAuth(pool),async(req,res)=>{
