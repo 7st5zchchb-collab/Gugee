@@ -1,6 +1,20 @@
 const crypto=require("crypto");
 
 function initCommunity(app,pool,auth){
+  const optionalAuth=async(req,res,next)=>{
+    try{
+      const header=String(req.headers.cookie||"");
+      const raw=header.split(";").map(x=>x.trim()).find(x=>x.startsWith("gugee_token="));
+      if(raw){
+        const jwt=require("jsonwebtoken");
+        const token=decodeURIComponent(raw.slice("gugee_token=".length));
+        const payload=jwt.verify(token,process.env.JWT_SECRET);
+        const row=(await pool.query("SELECT id,name,email,created_at,is_admin FROM users WHERE id=$1",[payload.sub])).rows[0];
+        if(row)req.user=row;
+      }
+    }catch(e){}
+    next();
+  };
   const codeFor=userId=>"GUG-"+crypto.createHash("sha256").update("gugee-referral:"+userId).digest("hex").slice(0,8).toUpperCase();
 
   return pool.query(`
@@ -163,7 +177,7 @@ function initCommunity(app,pool,auth){
     }catch(e){if(e.code==="23505")return res.status(409).json({error:"This account already has a referral."});console.error(e);res.status(500).json({error:"Could not claim referral"});}
   });
 
-  app.get("/api/admin/community/overview",adminAuth,async(req,res)=>{
+  app.get("/api/admin/community/overview",adminAuth(pool),async(req,res)=>{
     try{
       const tournaments=(await pool.query("SELECT t.*,COUNT(e.id)::int AS entry_count FROM tournaments t LEFT JOIN tournament_entries e ON e.tournament_id=t.id GROUP BY t.id ORDER BY t.created_at DESC")).rows;
       const giveaways=(await pool.query("SELECT g.*,COUNT(e.id)::int AS entry_count,u.name AS winner_name FROM giveaways g LEFT JOIN giveaway_entries e ON e.giveaway_id=g.id LEFT JOIN users u ON u.id=g.winner_user_id GROUP BY g.id,u.name ORDER BY g.created_at DESC")).rows;
@@ -172,7 +186,7 @@ function initCommunity(app,pool,auth){
     }catch(e){console.error(e);res.status(500).json({error:"Could not load admin data"});}
   });
 
-  app.post("/api/admin/tournaments",adminAuth,async(req,res)=>{
+  app.post("/api/admin/tournaments",adminAuth(pool),async(req,res)=>{
     try{
       const name=String(req.body.name||"").trim(),description=String(req.body.description||"").trim();
       const entry=Math.max(0,Number(req.body.entryFeeUsdt||0)),prize=Math.max(0,Number(req.body.prizePoolUsdt||0)),max=Math.max(1,parseInt(req.body.maxPlayers||1000,10));
@@ -183,7 +197,7 @@ function initCommunity(app,pool,auth){
     }catch(e){console.error(e);res.status(500).json({error:"Could not create tournament"});}
   });
 
-  app.patch("/api/admin/tournaments/:id",adminAuth,async(req,res)=>{
+  app.patch("/api/admin/tournaments/:id",adminAuth(pool),async(req,res)=>{
     try{
       const fields=[],values=[]; let i=1;
       for(const [key,col] of [["name","name"],["description","description"],["entryFeeUsdt","entry_fee_usdt"],["prizePoolUsdt","prize_pool_usdt"],["maxPlayers","max_players"],["startsAt","starts_at"],["endsAt","ends_at"],["status","status"]]){
@@ -197,7 +211,7 @@ function initCommunity(app,pool,auth){
     }catch(e){console.error(e);res.status(400).json({error:"Could not update tournament"});}
   });
 
-  app.post("/api/admin/giveaways",adminAuth,async(req,res)=>{
+  app.post("/api/admin/giveaways",adminAuth(pool),async(req,res)=>{
     try{
       const name=String(req.body.name||"").trim(),description=String(req.body.description||"").trim();
       const prize=Math.max(0,Number(req.body.prizeUsdt||0)),max=Math.max(1,parseInt(req.body.maxEntries||1000,10));
@@ -208,7 +222,7 @@ function initCommunity(app,pool,auth){
     }catch(e){console.error(e);res.status(500).json({error:"Could not create giveaway"});}
   });
 
-  app.patch("/api/admin/giveaways/:id",adminAuth,async(req,res)=>{
+  app.patch("/api/admin/giveaways/:id",adminAuth(pool),async(req,res)=>{
     try{
       const fields=[],values=[]; let i=1;
       for(const [key,col] of [["name","name"],["description","description"],["prizeUsdt","prize_usdt"],["maxEntries","max_entries"],["startsAt","starts_at"],["endsAt","ends_at"],["status","status"]]){
@@ -225,10 +239,15 @@ function initCommunity(app,pool,auth){
 
 }
 
-function adminAuth(req,res,next){
-  if(!req.user)return res.status(401).json({error:"Authentication required."});
-  if(!req.user.is_admin)return res.status(403).json({error:"Admin access required."});
-  next();
+function adminAuth(pool){
+  return async(req,res,next)=>{
+    if(!req.user)return res.status(401).json({error:"Authentication required."});
+    try{
+      const row=(await pool.query("SELECT is_admin FROM users WHERE id=$1",[req.user.id])).rows[0];
+      if(!row?.is_admin)return res.status(403).json({error:"Admin access required."});
+      next();
+    }catch(e){console.error(e);res.status(500).json({error:"Could not verify admin access."});}
+  };
 }
 
 module.exports={initCommunity};
