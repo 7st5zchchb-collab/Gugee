@@ -422,7 +422,6 @@ async function initDb(){
   `);
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT");
   await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_unique ON users(LOWER(username)) WHERE username IS NOT NULL");
-  await pool.query("UPDATE users SET username=LOWER(REGEXP_REPLACE(name,'[^a-zA-Z0-9_.-]','','g')) WHERE username IS NULL AND REGEXP_REPLACE(name,'[^a-zA-Z0-9_.-]','','g')<>''");
   await pool.query("ALTER TABLE wallet_transactions DROP CONSTRAINT IF EXISTS wallet_transactions_type_check");
   await pool.query("ALTER TABLE wallet_transactions ADD CONSTRAINT wallet_transactions_type_check CHECK(type IN ('buy','usdt_adjustment','tournament_entry','tournament_prize','giveaway_prize','referral_reward','subscription'))");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE");
