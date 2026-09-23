@@ -88,6 +88,18 @@
   <div class="market-heatmap-card"><div class="market-pulse-head"><div><p class="section-label">HEATMAP</p><h2>Market heatmap</h2></div><small>Top 30</small></div><div id="marketHeatmap" class="market-heatmap"><div class="market-pulse-empty">Loading...</div></div></div>
 </section>
 
+<section class="market-sentiment">
+  <div class="sentiment-main"><div class="sentiment-head"><div><p class="section-label">MARKET SENTIMENT</p><h2>Fear & Greed</h2><p>External sentiment index. This is a market signal, not a trading recommendation.</p></div><span id="sentimentUpdated">Updating...</span></div><div class="sentiment-score"><strong id="sentimentValue">--</strong><div><b id="sentimentLabel">Loading...</b><small id="sentimentTime">--</small></div></div><div class="sentiment-bar"><i id="sentimentMarker"></i></div><div class="sentiment-scale"><span>Fear</span><span>Neutral</span><span>Greed</span></div></div>
+  <div class="btc-dominance-card"><div class="sentiment-head"><div><p class="section-label">BTC DOMINANCE</p><h2>Bitcoin share</h2></div><span>Live</span></div><strong id="pulseBtcDominance">--</strong><p id="pulseBtcDominanceText">Share of total crypto market capitalization represented by Bitcoin.</p><div class="dominance-track"><i id="dominanceFill"></i></div></div>
+</section>
+
+<section class="market-stats-grid">
+  <article><span>ACTIVE CRYPTO</span><strong id="pulseActiveCrypto">--</strong><small>Tracked by the global market endpoint</small></article>
+  <article><span>MARKET CAP CHANGE</span><strong id="pulseMarketCapChange">--</strong><small>24H global market-cap movement</small></article>
+  <article><span>24H MARKET VOLUME</span><strong id="pulseGlobalVolume">--</strong><small>Total reported spot/market volume</small></article>
+  <article><span>BTC 24H VOLUME</span><strong id="pulseBtcVolume">--</strong><small>Bitcoin reported trading volume</small></article>
+</section>
+
 <section class="market-pulse">\n  <article class="market-pulse-card"><div class="market-pulse-head"><div><p class="section-label">24H MOVERS</p><h2>Top Gainers</h2></div><small>Live</small></div><div id="pulseGainers" class="market-pulse-list"><div class="market-pulse-empty">Loading...</div></div></article>\n  <article class="market-pulse-card"><div class="market-pulse-head"><div><p class="section-label">24H MOVERS</p><h2>Top Losers</h2></div><small>Live</small></div><div id="pulseLosers" class="market-pulse-list"><div class="market-pulse-empty">Loading...</div></div></article>\n  <article class="market-pulse-card"><div class="market-pulse-head"><div><p class="section-label">LIQUIDITY</p><h2>Volume Leaders</h2></div><small>USD</small></div><div id="pulseVolume" class="market-pulse-list"><div class="market-pulse-empty">Loading...</div></div></article>\n</section>\n\n<section class="global-chart-section">
 <div class="global-chart-heading">
   <div><p class="section-label">GLOBAL MARKET CAP</p><h2>Market cap history</h2></div>
