@@ -88,9 +88,24 @@ async function loadChart(days){
  try{const d=await history(days);latestHistory=d;drawChart(d.prices||[],d.total_volumes||[]);if(days==="30"){analyze(d);renderPeriods(d.prices||[]);}}catch(e){console.error(e);els.chart.textContent="Historical data unavailable.";}
 }
 
+async function resolveCoinId(id){
+ try{
+  const data=await api("/api/coingecko/search?query="+encodeURIComponent(id));
+  const items=Array.isArray(data?.coins)?data.coins:[];
+  const exact=items.find(x=>String(x.id||"").toLowerCase()===String(id).toLowerCase());
+  return exact?.id||items[0]?.id||id;
+ }catch{return id}
+}
+async function fetchCoinData(id){
+ return api("/api/coingecko/coins/"+encodeURIComponent(id)+"?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false");
+}
 async function loadCoin(){
  try{
-  coin=await api("/api/coingecko/coins/"+encodeURIComponent(coinId)+"?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false");
+  try{coin=await fetchCoinData(coinId);}
+  catch(firstError){
+   const resolved=await resolveCoinId(coinId);
+   coin=await fetchCoinData(resolved);
+  }
   market=coin.market_data||{};
   els.name.textContent=coin.name||coinId;els.symbol.textContent=(coin.symbol||"").toUpperCase();
   if(coin.image?.large){els.icon.src=coin.image.large;els.icon.style.display="block";els.fallback.style.display="none";}
