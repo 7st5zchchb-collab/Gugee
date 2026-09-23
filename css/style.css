@@ -711,14 +711,14 @@ body:has(.hero) {
 .brand-mark {
   width:31px;
   height:31px;
-  display:grid;
-  place-items:center;
-  border:1px solid rgba(53,224,139,.42);
-  border-radius:9px;
-  color:#06100b;
-  background:linear-gradient(145deg,#43ed9a,#25c978);
-  box-shadow:0 0 22px rgba(53,224,139,.10);
-  font-size:14px;
+  display:block;
+  flex:0 0 31px;
+  border:0;
+  border-radius:0;
+  color:transparent;
+  background:url("../images/gugee-logo-3c.webp") center / contain no-repeat;
+  box-shadow:none;
+  font-size:0;
   font-weight:900;
 }
 
