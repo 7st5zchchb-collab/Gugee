@@ -25,6 +25,26 @@ async function logout(){
 }
 window.gugeeAuth={getCurrentUser,setCurrentUser,refreshCurrentUser,logout,api};
 
+function initGlobalNavigation(){
+  const header=document.querySelector(".site-header");
+  if(!header)return;
+  let nav=header.querySelector(".nav");
+  if(!nav){
+    nav=document.createElement("nav"); nav.className="nav"; nav.id="siteNav";
+    nav.innerHTML='<a href="markets.html">Markets</a><a href="trading.html">Trading</a><a href="tournaments.html">Tournaments</a><a href="giveaways.html">Giveaways</a><a href="referrals.html">Referrals</a><a href="./#analysis">Analysis</a><a href="./#exchanges">Exchanges</a>';
+    const login=header.querySelector(".login-button"); header.insertBefore(nav,login||null);
+  }
+  let toggle=header.querySelector(".mobile-nav-toggle");
+  if(!toggle){
+    toggle=document.createElement("button"); toggle.className="mobile-nav-toggle"; toggle.id="mobileNavToggle"; toggle.type="button"; toggle.setAttribute("aria-label","Open navigation"); toggle.setAttribute("aria-expanded","false"); toggle.innerHTML="<span></span><span></span><span></span>";
+    header.insertBefore(toggle,nav);
+  }
+  if(!toggle.dataset.bound){
+    toggle.dataset.bound="1";
+    toggle.onclick=()=>{const open=nav.classList.toggle("mobile-open");toggle.classList.toggle("active",open);toggle.setAttribute("aria-expanded",String(open));};
+    nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>{nav.classList.remove("mobile-open");toggle.classList.remove("active");toggle.setAttribute("aria-expanded","false")}));
+  }
+}
 function renderAuthNav(){
   const button=document.querySelector(".login-button");
   if(!button)return;
@@ -35,9 +55,9 @@ function renderAuthNav(){
     return;
   }
   button.textContent=user.name||user.email.split("@")[0];
-  button.href="javascript:void(0)";
+  button.href="account.html";
   button.classList.add("user-button");
-  button.addEventListener("click",logout);
+  button.onclick=null;
 }
 function setAuthMessage(message,type="error"){
   const el=document.getElementById("authMessage");
@@ -103,5 +123,5 @@ async function loadNotificationsBell(){
   try{const data=await api("/api/notifications"),notes=data.notifications||[],unread=notes.filter(n=>!n.read_at);count.textContent=unread.length>99?"99+":String(unread.length);count.hidden=!unread.length;box.innerHTML=notes.slice(0,8).map(n=>'<button class="notification-item '+(n.read_at?'':'unread')+'" data-notification-id="'+n.id+'" type="button"><b>'+String(n.title)+'</b><span>'+String(n.message)+'</span><small>'+new Date(n.created_at).toLocaleString()+'</small></button>').join("")||'<span class="notification-empty">No notifications yet.</span>';box.querySelectorAll(".notification-item").forEach(item=>item.onclick=async()=>{await api("/api/notifications/"+item.dataset.notificationId+"/read",{method:"POST"}).catch(()=>{});await loadNotificationsBell()})}catch(e){box.innerHTML='<span class="notification-empty">Notifications unavailable.</span>'}
 }
 document.addEventListener("DOMContentLoaded",async()=>{
-  await refreshCurrentUser();renderAuthNav();initLogin();initRegister();if(getCurrentUser())initNotificationsBell();
+  await refreshCurrentUser();initGlobalNavigation();renderAuthNav();initLogin();initRegister();if(getCurrentUser())initNotificationsBell();
 });
