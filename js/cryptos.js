@@ -6,7 +6,6 @@ const loadStatus=document.getElementById("cryptoLoadStatus");
 const othersPreview=document.getElementById("cryptoOthersPreview");
 
 const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,""),"https://gugee.onrender.com"])].filter(Boolean);
-const DIRECT_COIN_GECKO="https://api.coingecko.com/api/v3/coins/markets";
 const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
 const PAGE_SIZE=10;
@@ -169,17 +168,7 @@ async function load(){
         break;
       }catch(error){lastError=error;}
     }
-    if(!payload){
-      const pages=await Promise.all([1,2,3,4].map(async page=>{
-        const r=await fetch(DIRECT_COIN_GECKO+"?vs_currency=usd&order=market_cap_desc&per_page=250&page="+page+"&sparkline=false&price_change_percentage=24h",{cache:"no-store",headers:{accept:"application/json"}});
-        const body=await r.text();
-        if(!r.ok)throw new Error(body||("CoinGecko HTTP "+r.status));
-        return JSON.parse(body);
-      }));
-      const map=new Map();
-      pages.flat().forEach(coin=>map.set(coin.id,coin));
-      payload={coins:Array.from(map.values()).slice(0,1000)};
-    }
+    if(!payload)throw lastError||new Error("Gugee API unavailable");
     if(!payload||!Array.isArray(payload.coins)||payload.coins.length<1)throw lastError||new Error("No cryptocurrency data");
     allCoins=payload.coins.slice(0,1000);
     currentPage=1;
