@@ -5,7 +5,7 @@ const favoritesCount=document.getElementById("cryptoFavoritesCount");
 const loadStatus=document.getElementById("cryptoLoadStatus");
 const othersPreview=document.getElementById("cryptoOthersPreview");
 
-const API="/api/coingecko/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=";
+const API="/api/coingecko/top1000";
 const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
 const PAGE_SIZE=50;
@@ -155,33 +155,21 @@ async function load(){
     renderFavorites();
   }
   try{
-    const pages=[1,2,3,4];
-    const loaded=[];
-    for(const page of pages){
-      loadStatus.textContent="Loading "+Math.min(page*250,1000)+"/1000...";
-      const r=await fetch(API+page+"&sparkline=false&price_change_percentage=24h,7d,30d",{cache:"no-store"});
-      const body=await r.text();
-      if(!r.ok)throw new Error(body||("HTTP "+r.status));
-      const rows=JSON.parse(body);
-      if(!Array.isArray(rows)||!rows.length)throw new Error("Invalid cryptocurrency response on page "+page);
-      loaded.push(...rows);
-    }
-    const map=new Map();
-    [...fallbackCoins,...loaded].forEach(c=>map.set(c.id,c));
-    allCoins=Array.from(map.values()).slice(0,1000);
+    const r=await fetch(API,{cache:"no-store",headers:{accept:"application/json"}});
+    const body=await r.text();
+    if(!r.ok)throw new Error(body||("HTTP "+r.status));
+    const payload=JSON.parse(body);
+    if(!payload||!Array.isArray(payload.coins)||payload.coins.length<1)throw new Error("No cryptocurrency data");
+    allCoins=payload.coins.slice(0,1000);
     currentPage=1;
     loadStatus.textContent=allCoins.length+" loaded";
     render();
     renderFavorites();
   }catch(error){
     console.error("Crypto directory error:",error);
-    loadStatus.textContent="Live list unavailable — showing saved fallback";
+    loadStatus.textContent="Live list unavailable";
     render();
     renderFavorites();
   }finally{loading=false;}
 }
 
-input.addEventListener("input",()=>{currentPage=1;render();});
-renderFavorites();
-render();
-load();
