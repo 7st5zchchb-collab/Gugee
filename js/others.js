@@ -3,7 +3,9 @@ const input=document.getElementById("othersSearch");
 const count=document.getElementById("othersCount");
 const status=document.getElementById("othersStatus");
 
-const API=(window.GUGEE_API_BASE||"https://gugee.onrender.com").replace(/\/$/,"")+"/api/coingecko/top1000";
+const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,""),"https://gugee.onrender.com"])].filter(Boolean);
+const DIRECT_COIN_GECKO="https://api.coingecko.com/api/v3/coins/markets";
+const API=API_BASES[0]+"/api/coingecko/top1000";
 const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
 let allCoins=[],loading=false;
@@ -62,6 +64,20 @@ function render(){
 }
 
 async function fetchServerList(){
+  let lastError=null;
+  for(const base of API_BASES){
+    try{
+      const r=await fetch(base+"/api/coingecko/top1000",{cache:"no-store",headers:{accept:"application/json"}});
+      const body=await r.text();
+      if(!r.ok)throw new Error(body||("HTTP "+r.status));
+      const payload=JSON.parse(body);
+      if(!payload||!Array.isArray(payload.coins)||payload.coins.length<900)throw new Error("Invalid server crypto list");
+      return payload.coins.slice(0,1000);
+    }catch(error){lastError=error;}
+  }
+  throw lastError||new Error("Gugee API unavailable");
+}
+async function fetchServerListOriginal(){
   const r=await fetch(API,{cache:"no-store"});
   const body=await r.text();
   if(!r.ok)throw new Error(body||("HTTP "+r.status));
@@ -71,6 +87,19 @@ async function fetchServerList(){
 }
 
 async function fetchLegacyServerList(){
+  const pages=[1,2,3,4];
+  const loaded=[];
+  for(const page of pages){
+    const r=await fetch(DIRECT_COIN_GECKO+"?vs_currency=usd&order=market_cap_desc&per_page=250&page="+page+"&sparkline=false&price_change_percentage=24h",{cache:"no-store",headers:{accept:"application/json"}});
+    const body=await r.text();
+    if(!r.ok)throw new Error(body||("CoinGecko HTTP "+r.status));
+    const rows=JSON.parse(body);
+    if(!Array.isArray(rows)||!rows.length)throw new Error("Invalid CoinGecko page "+page);
+    loaded.push(...rows);
+  }
+  return loaded.slice(0,1000);
+}
+async function fetchLegacyServerListOriginal(){
   const pages=[1,2,3,4];
   const loaded=[];
   for(const page of pages){
@@ -95,7 +124,7 @@ async function load(){
     try{
       coins=await fetchServerList();
     }catch(serverError){
-      console.warn("Gugee API failed, using direct CoinCap fallback:",serverError);
+      console.warn("Gugee API failed, using CoinGecko fallback:",serverError);
       coins=await fetchLegacyServerList();
     }
     const map=new Map();
