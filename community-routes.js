@@ -15,8 +15,9 @@ function initCommunity(app,pool,auth){
     }catch(e){}
     next();
   };
+  const notify=async(client,userId,title,message,type="community")=>{await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,$2,$3,$4)",[userId,title,message,type]);};
   const codeFor=userId=>"GUG-"+crypto.createHash("sha256").update("gugee-referral:"+userId).digest("hex").slice(0,8).toUpperCase();
-  const rewardReferralIfQualified=async(client,userId)=>{const r=(await client.query("SELECT * FROM referrals WHERE referred_id=$1 AND status='registered' FOR UPDATE",[userId])).rows[0];if(!r)return;const reward=1;await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[reward,r.referrer_id]);await client.query("INSERT INTO referral_rewards(referral_id,user_id,amount_usdt,reason) VALUES($1,$2,$3,$4)",[r.id,r.referrer_id,reward,"Qualified referral: paid tournament entry"]);await client.query("UPDATE referrals SET status='rewarded',reward_usdt=$1,qualified_at=NOW() WHERE id=$2",[reward,r.id]);};
+  const rewardReferralIfQualified=async(client,userId)=>{const r=(await client.query("SELECT * FROM referrals WHERE referred_id=$1 AND status='registered' FOR UPDATE",[userId])).rows[0];if(!r)return;const reward=1;await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[reward,r.referrer_id]);await client.query("INSERT INTO referral_rewards(referral_id,user_id,amount_usdt,reason) VALUES($1,$2,$3,$4)",[r.id,r.referrer_id,reward,"Qualified referral: paid tournament entry"]);await client.query("UPDATE referrals SET status='rewarded',reward_usdt=$1,qualified_at=NOW() WHERE id=$2",[reward,r.id]);await notify(client,r.referrer_id,"Referral reward received","Your referral qualified through a paid tournament entry. +1 USDT was added to your wallet.","referral");};
 
   return pool.query(`
     CREATE TABLE IF NOT EXISTS referral_codes(
@@ -129,7 +130,7 @@ function initCommunity(app,pool,auth){
       const wallet=await client.query("UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",[fee,req.user.id]);
       if(!wallet.rowCount)return rollback(client,res,400,"Insufficient USDT balance for the entry fee.");
       await client.query("INSERT INTO tournament_entries(tournament_id,user_id,entry_fee_usdt) VALUES($1,$2,$3)",[t.id,req.user.id,fee]);
-      if(fee>0)await client.query("UPDATE tournaments SET prize_pool_usdt=prize_pool_usdt+$1 WHERE id=$2",[fee,t.id]);if(fee>=5)await rewardReferralIfQualified(client,req.user.id);
+      if(fee>0)await client.query("UPDATE tournaments SET prize_pool_usdt=prize_pool_usdt+$1 WHERE id=$2",[fee,t.id]);if(fee>=5)await rewardReferralIfQualified(client,req.user.id);await notify(client,req.user.id,"Tournament joined","You joined \""+t.name+"\". Your entry is confirmed.","tournament");
       await client.query("COMMIT");
       res.json({ok:true,message:"Tournament entry confirmed.",usdt:Number(wallet.rows[0].usdt)});
     }catch(e){await client.query("ROLLBACK");if(e.code==="23505")return res.status(409).json({error:"You already joined this tournament."});console.error(e);res.status(500).json({error:"Could not join tournament"});}
@@ -200,7 +201,7 @@ function initCommunity(app,pool,auth){
       if(new Date(g.ends_at)<=new Date())return res.status(400).json({error:"Giveaway has ended."});
       const n=Number((await pool.query("SELECT COUNT(*)::int AS n FROM giveaway_entries WHERE giveaway_id=$1",[g.id])).rows[0].n);
       if(n>=g.max_entries)return res.status(400).json({error:"Giveaway is full."});
-      await pool.query("INSERT INTO giveaway_entries(giveaway_id,user_id) VALUES($1,$2)",[g.id,req.user.id]);
+      await pool.query("INSERT INTO giveaway_entries(giveaway_id,user_id) VALUES($1,$2)",[g.id,req.user.id]);await pool.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,$2,$3,$4)",[req.user.id,"Giveaway entry confirmed","You entered \""+g.name+"\". Good luck!","giveaway"]);
       res.json({ok:true,message:"Giveaway entry confirmed."});
     }catch(e){if(e.code==="23505")return res.status(409).json({error:"You already entered this giveaway."});console.error(e);res.status(500).json({error:"Could not enter giveaway"});}
   });
@@ -237,7 +238,7 @@ function initCommunity(app,pool,auth){
       if(t.status==="finished")return rollback(client,res,400,"Tournament is already finished.");
       const entries=(await client.query("SELECT id FROM tournament_entries WHERE tournament_id=$1 ORDER BY score DESC,joined_at ASC",[t.id])).rows;
       for(let i=0;i<entries.length;i++)await client.query("UPDATE tournament_entries SET rank=$1 WHERE id=$2",[i+1,entries[i].id]);
-      const payouts=[0.5,0.3,0.2];for(let i=0;i<Math.min(3,entries.length);i++){const amount=Number(t.prize_pool_usdt)*payouts[i];if(amount<=0)continue;const uid=(await client.query("SELECT user_id FROM tournament_entries WHERE id=$1",[entries[i].id])).rows[0].user_id;await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[uid]);await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[amount,uid]);}await client.query("UPDATE tournaments SET status='finished' WHERE id=$1",[t.id]);
+      const payouts=[0.5,0.3,0.2];for(let i=0;i<Math.min(3,entries.length);i++){const amount=Number(t.prize_pool_usdt)*payouts[i];if(amount<=0)continue;const uid=(await client.query("SELECT user_id FROM tournament_entries WHERE id=$1",[entries[i].id])).rows[0].user_id;await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[uid]);await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[amount,uid]);await notify(client,uid,"Tournament result","You finished #"+(i+1)+" in \""+t.name+"\" and received "+amount.toFixed(2)+" USDT.","tournament");}await client.query("UPDATE tournaments SET status='finished' WHERE id=$1",[t.id]);
       await client.query("COMMIT");
       res.json({ok:true,ranked:entries.length});
     }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not finish tournament"});}
@@ -254,7 +255,7 @@ function initCommunity(app,pool,auth){
       const entries=(await client.query("SELECT user_id FROM giveaway_entries WHERE giveaway_id=$1 ORDER BY id",[g.id])).rows;
       if(!entries.length)return rollback(client,res,400,"No giveaway entries yet.");
       const winner=entries[crypto.randomInt(entries.length)].user_id;
-      await client.query("UPDATE giveaways SET winner_user_id=$1,status='finished' WHERE id=$2",[winner,g.id]);\n      await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[winner]);await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[Number(g.prize_usdt),winner]);
+      await client.query("UPDATE giveaways SET winner_user_id=$1,status='finished' WHERE id=$2",[winner,g.id]);\n      await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[winner]);await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[Number(g.prize_usdt),winner]);await notify(client,winner,"You won a giveaway","Congratulations! You won \""+g.name+"\" and received "+Number(g.prize_usdt).toFixed(2)+" USDT.","giveaway");
       await client.query("COMMIT");
       const user=(await pool.query("SELECT name,email FROM users WHERE id=$1",[winner])).rows[0];
       res.json({ok:true,winner:user});
