@@ -587,6 +587,13 @@ app.post("/api/auth/logout",(req,res)=>{
   res.json({ok:true});
 });
 
+app.get("/api/wallet/transactions",auth,async(req,res)=>{
+  try{
+    const {rows}=await pool.query("SELECT id,type,coin_id,symbol,quantity,price_usdt,usdt_amount,created_at FROM wallet_transactions WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100",[req.user.id]);
+    res.json({transactions:rows.map(t=>({...t,quantity:t.quantity===null?null:Number(t.quantity),price_usdt:t.price_usdt===null?null:Number(t.price_usdt),usdt_amount:Number(t.usdt_amount)}))});
+  }catch(e){console.error(e);res.status(500).json({error:"Could not load transaction history"});}
+});
+
 app.get("/api/wallet",auth,async(req,res)=>{
   try{
     await pool.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[req.user.id]);
