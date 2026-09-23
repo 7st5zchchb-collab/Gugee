@@ -60,6 +60,20 @@
   </div>
 </section>
 
+<section class="markets-live-board">
+  <div class="markets-live-heading">
+    <div><p class="section-label">LIVE MARKET</p><h2>Cryptocurrency market</h2><p>Live prices in USD, 24H movement, market cap and volume. Select any coin to open its full Gugee analysis.</p></div>
+    <div class="markets-live-controls"><input id="liveCoinSearch" type="search" placeholder="Search coin..." autocomplete="off" aria-label="Search live cryptocurrencies"><select id="liveCoinLimit" aria-label="Number of cryptocurrencies"><option value="50">Top 50</option><option value="100" selected>Top 100</option><option value="250">Top 250</option></select></div>
+  </div>
+  <div class="markets-live-meta"><span id="liveMarketStatus">Loading live market...</span><span id="liveMarketUpdated">Updating...</span></div>
+  <div class="markets-live-table-wrap">
+    <table class="markets-live-table">
+      <thead><tr><th>#</th><th>Asset</th><th>Price</th><th>24H</th><th>24H High</th><th>24H Low</th><th>Volume</th><th>Market Cap</th><th>Analysis</th></tr></thead>
+      <tbody id="liveMarketRows"><tr><td colspan="9" class="market-loading">Loading live cryptocurrency data...</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
 <section class="global-chart-section">
 <div class="global-chart-heading">
   <div><p class="section-label">GLOBAL MARKET CAP</p><h2>Market cap history</h2></div>
@@ -119,6 +133,6 @@
 
 <footer><span>© 2026 Gugee</span><span>Crypto analytics platform</span></footer>
 <script src="js/auth.js"></script>
-<script src="js/markets.js?v=2"></script>
+<script src="js/markets.js?v=3"></script>
 </body>
 </html>
