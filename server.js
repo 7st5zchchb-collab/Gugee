@@ -332,7 +332,7 @@ async function auth(req,res,next){
     const token=parseCookies(req.headers.cookie||"").gugee_token;
     if(!token)return res.status(401).json({error:"Authentication required"});
     const payload=jwt.verify(token,JWT_SECRET);
-    const {rows}=await pool.query("SELECT id,name,email,created_at FROM users WHERE id=$1",[payload.sub]);
+    const {rows}=await pool.query("SELECT id,name,email,created_at,is_admin FROM users WHERE id=$1",[payload.sub]);
     if(!rows[0])return res.status(401).json({error:"User not found"});
     req.user=rows[0];
     next();
