@@ -841,16 +841,15 @@ app.get("/others.html",async(req,res)=>{
   }
 });
 
-const {initCommunity}=require("./community-routes");
-initCommunity(app,pool,auth);
-
 app.use(express.static(path.join(__dirname,".")));
 app.use((req,res)=>{
   if(req.path.startsWith("/api/"))return res.status(404).json({error:"API route not found"});
   res.sendFile(path.join(__dirname,"index.html"));
 });
 
-initDb().then(()=>{
+initDb().then(async()=>{
+  const {initCommunity}=require("./community-routes");
+  await initCommunity(app,pool,auth);
   app.listen(PORT,()=>console.log(`Gugee server listening on port ${PORT}`));
 }).catch(error=>{
   console.error("Database initialization failed:",error);
