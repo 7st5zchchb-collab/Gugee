@@ -1,7 +1,7 @@
 const liveCoinSearch=document.getElementById("liveCoinSearch"),liveCoinLimit=document.getElementById("liveCoinLimit"),liveMarketRows=document.getElementById("liveMarketRows"),liveMarketStatus=document.getElementById("liveMarketStatus"),liveMarketUpdated=document.getElementById("liveMarketUpdated");
 let liveCoins=[];
 function liveLogo(c){return c.image||("https://assets.coincap.io/assets/icons/"+encodeURIComponent(String(c.symbol||"").toLowerCase())+"@2x.png")}
-function liveMoney(v){const n=Number(v);if(!Number.isFinite(n))return"--";if(n>=1000)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:2});if(n>=1)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:4});return"$"+n.toLocaleString("en-US",{maximumFractionDigits:8});})}
+function liveMoney(v){const n=Number(v);if(!Number.isFinite(n))return"--";if(n>=1000)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:2});if(n>=1)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:4});return"$"+n.toLocaleString("en-US",{maximumFractionDigits:8});}
 function liveCompact(v){const n=Number(v);if(!Number.isFinite(n))return"--";return"$"+new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(n)}
 function renderLiveCoins(){
  if(!liveMarketRows)return;
