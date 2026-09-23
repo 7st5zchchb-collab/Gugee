@@ -24,10 +24,10 @@ function renderPulse(coins){
 }
 async function loadPulse(){
  try{
-  const limit=100;
+  const limit=1000;
   let data=null;
   for(const base of API_BASES){
-   try{const r=await fetch(base+"/api/coingecko/coins/markets?vs_currency=usd&order=market_cap_desc&per_page="+limit+"&page=1&sparkline=false&price_change_percentage=24h",{cache:"no-store",headers:{accept:"application/json"}});if(r.ok){data=await r.json();break}}catch{}
+   try{const r=await fetch(base+"/api/coingecko/top1000",{cache:"no-store",headers:{accept:"application/json"}});if(r.ok){const payload=await r.json();data=Array.isArray(payload?.coins)?payload.coins:[];break}}catch{}
   }
   if(Array.isArray(data))renderPulse(data);
  }catch{}
@@ -51,7 +51,8 @@ function mainCard(prefix,c){
  document.getElementById("mainAsset"+prefix+"Volume").textContent=compact(c.total_volume);
 }
 async function loadMainAssets(){
- const data=await baseFetch("/api/coingecko/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana&order=market_cap_desc&per_page=3&page=1&sparkline=false&price_change_percentage=24h");
+ const payload=await baseFetch("/api/coingecko/top1000");
+ const data=Array.isArray(payload?.coins)?payload.coins.filter(c=>["bitcoin","ethereum","solana"].includes(c.id)):[];
  if(!Array.isArray(data))return;
  const by=Object.fromEntries(data.map(c=>[c.id,c]));
  mainCard("Btc",by.bitcoin);mainCard("Eth",by.ethereum);mainCard("Sol",by.solana);
@@ -64,7 +65,8 @@ async function loadTrending(){
  list.innerHTML=coins.length?coins.map((c,i)=>'<a class="market-pulse-item" href="crypto.html?coin='+encodeURIComponent(c.id)+'"><img src="'+(c.small||c.thumb||"")+'" alt="" loading="lazy"><span class="market-pulse-name"><b>'+(i+1)+". "+String(c.name||"Unknown")+'</b><small>'+String(c.symbol||"").toUpperCase()+' • Rank '+(c.market_cap_rank||"--")+'</small></span><span class="market-pulse-value"><b>'+((c.data?.price||"")?String(c.data.price):"--")+'</b><span>'+String(c.data?.price_change_percentage_24h?.usd??"--")+'</span></span></a>').join(""):'<div class="market-pulse-empty">Trending data unavailable</div>';
 }
 async function loadHeatmap(){
- const data=await baseFetch("/api/coingecko/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=30&page=1&sparkline=false&price_change_percentage=24h");
+ const payload=await baseFetch("/api/coingecko/top1000");
+ const data=Array.isArray(payload?.coins)?payload.coins.slice(0,30):[];
  const box=document.getElementById("marketHeatmap");if(!box||!Array.isArray(data))return;
  box.innerHTML=data.map(c=>{const ch=Number(c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h);const size=Math.max(1,Math.min(3.4,Math.log10(Math.max(1,Number(c.market_cap||0)))-7));const cls=ch>=0?"positive":"negative";return '<a class="heat-cell '+cls+'" style="flex-grow:'+size+'" href="crypto.html?coin='+encodeURIComponent(c.id)+'"><img src="'+logo(c)+'" alt="" loading="lazy"><b>'+String(c.symbol||"").toUpperCase()+'</b><span>'+(Number.isFinite(ch)?(ch>=0?"+":"")+ch.toFixed(2)+"%":"--")+'</span></a>'}).join("");
 }
@@ -79,7 +81,7 @@ async function get(path){for(const base of apiBases){try{const r=await fetch(bas
 function money(v){const n=Number(v);return Number.isFinite(n)?"$"+n.toLocaleString("en-US",{maximumFractionDigits:2}):"--"}
 function compact(v){const n=Number(v);return Number.isFinite(n)?"$"+new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(n):"--"}
 async function sentiment(){
- const d=await get("https://api.alternative.me/fng/?limit=1");
+ let d=null;try{const r=await fetch("https://api.alternative.me/fng/?limit=1",{cache:"no-store"});if(r.ok)d=await r.json()}catch{}
  const x=d?.data?.[0]; if(!x)return;
  const value=Number(x.value); document.getElementById("sentimentValue").textContent=Number.isFinite(value)?value:"--";
  document.getElementById("sentimentLabel").textContent=x.value_classification||"Unknown";
@@ -96,7 +98,7 @@ async function globalStats(){
  const dom=Number(x.market_cap_percentage?.btc);document.getElementById("pulseBtcDominance").textContent=Number.isFinite(dom)?dom.toFixed(2)+"%":"--";document.getElementById("dominanceFill").style.width=Math.max(0,Math.min(100,dom||0))+"%";
 }
 async function btcVolume(){
- const d=await get("/api/coingecko/coins/markets?vs_currency=usd&ids=bitcoin&sparkline=false");const x=d?.[0];if(x)document.getElementById("pulseBtcVolume").textContent=compact(x.total_volume);
+ const payload=await get("/api/coingecko/top1000");const x=(payload?.coins||[]).find(c=>c.id==="bitcoin");if(x)document.getElementById("pulseBtcVolume").textContent=compact(x.total_volume);
 }
 async function refreshExtras(){await Promise.all([sentiment(),globalStats(),btcVolume()])}
 refreshExtras();setInterval(refreshExtras,60000);
