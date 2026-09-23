@@ -1,3 +1,4 @@
+const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,""),"https://gugee.onrender.com"])].filter(Boolean);
 const params=new URLSearchParams(location.search);
 const requestedCoin=params.get("coin")||"bitcoin";
 const aliases={btc:"bitcoin",eth:"ethereum",sol:"solana",bnb:"binancecoin",xrp:"ripple",doge:"dogecoin"};
@@ -47,7 +48,7 @@ function drawChart(points,volumes){
  wrap.addEventListener("mouseleave",()=>{tip.style.display=hl.style.display=dot.style.display="none";});
 }
 
-async function api(path){const r=await fetch(path);if(!r.ok)throw new Error("API "+r.status);return r.json();}
+async function api(path){let last;for(const base of API_BASES){try{const r=await fetch(base+path,{cache:"no-store",headers:{accept:"application/json"}});if(r.ok)return r.json();last=new Error("API "+r.status)}catch(e){last=e}}throw last||new Error("API unavailable")}
 async function history(days){return api("/api/coingecko/coins/"+encodeURIComponent(coinId)+"/market_chart?vs_currency=usd&days="+days+"&interval="+(days==="max"?"daily":""));}
 
 function renderPeriods(prices){
