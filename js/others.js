@@ -77,15 +77,6 @@ async function fetchServerList(){
   }
   throw lastError||new Error("Gugee API unavailable");
 }
-async function fetchServerListOriginal(){
-  const r=await fetch(API,{cache:"no-store"});
-  const body=await r.text();
-  if(!r.ok)throw new Error(body||("HTTP "+r.status));
-  const payload=JSON.parse(body);
-  if(!payload||!Array.isArray(payload.coins)||payload.coins.length<900)throw new Error("Invalid server crypto list");
-  return payload.coins.slice(0,1000);
-}
-
 async function fetchLegacyServerList(){
   const pages=[1,2,3,4];
   const loaded=[];
@@ -99,21 +90,6 @@ async function fetchLegacyServerList(){
   }
   return loaded.slice(0,1000);
 }
-async function fetchLegacyServerListOriginal(){
-  const pages=[1,2,3,4];
-  const loaded=[];
-  for(const page of pages){
-    const url="/api/coingecko/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page="+page+"&sparkline=false&price_change_percentage=24h";
-    const r=await fetch(url,{cache:"no-store",headers:{accept:"application/json"}});
-    const body=await r.text();
-    if(!r.ok)throw new Error(body||("HTTP "+r.status));
-    const rows=JSON.parse(body);
-    if(!Array.isArray(rows)||!rows.length)throw new Error("Invalid server crypto page "+page);
-    loaded.push(...rows);
-  }
-  return loaded.slice(0,1000);
-}
-
 async function load(){
   if(loading)return;
   loading=true;
@@ -144,4 +120,5 @@ async function load(){
   }
 }
 input.addEventListener("input",render);
+window.addEventListener("storage",event=>{if(event.key===FAVORITES_KEY)render();});
 load();
