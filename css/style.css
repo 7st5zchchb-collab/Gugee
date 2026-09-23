@@ -1755,3 +1755,56 @@ footer {
 /* Gugee logo asset */
 .brand-logo{width:34px;height:34px;display:block;object-fit:contain;flex:0 0 34px;border-radius:9px}.brand-logo+span{display:inline-block}.brand{gap:10px}.brand:hover .brand-logo{transform:scale(1.03)}
 @media(max-width:700px){.brand-logo{width:30px;height:30px;flex-basis:30px;border-radius:8px}.brand{gap:8px}}
+
+
+/* Final proportional layout normalization */
+:root{--content-width:1180px;--page-gutter:20px}
+.site-header{height:64px;min-height:64px;padding:0 max(20px,calc((100% - var(--content-width))/2));display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:28px;box-sizing:border-box;position:sticky;top:0;z-index:100}
+.site-header .brand{height:40px;display:inline-flex;align-items:center;gap:9px;white-space:nowrap;text-decoration:none}
+.site-header .brand-logo{width:32px;height:32px;flex:0 0 32px;object-fit:contain;border-radius:8px}
+.site-header .brand>span:last-child{font-size:16px;font-weight:800;line-height:1}
+.site-header .nav{height:100%;display:flex;align-items:center;justify-content:flex-start;gap:4px;min-width:0}
+.site-header .nav>a,.site-header .nav-menu>summary{height:36px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;border-radius:7px;font-size:10px;font-weight:600;white-space:nowrap}
+.site-header .login-button{min-height:36px;height:36px;padding:0 14px;border-radius:8px;font-size:10px;white-space:nowrap}
+.home-market-strip-inner,.home-quick-nav{width:min(var(--content-width),calc(100% - 40px))}
+.home-market-strip-inner{grid-template-columns:repeat(5,minmax(0,1fr))}
+.home-quick-nav{margin-top:18px}
+.markets-page,.cryptos-directory,.exchanges-directory,.analysis-page,.page-shell{width:min(var(--content-width),calc(100% - 40px));margin-left:auto;margin-right:auto}
+.markets-page{margin-top:34px}
+.cryptos-directory,.exchanges-directory,.analysis-page{margin-top:34px}
+.markets-intro,.cryptos-directory-hero,.exchanges-directory-hero,.analysis-hero{min-height:96px;box-sizing:border-box}
+.markets-intro h1,.cryptos-directory-hero h1,.exchanges-directory-hero h1,.analysis-hero h1{font-size:34px;line-height:1.12}
+.global-stats{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.global-stat{min-width:0;min-height:78px;box-sizing:border-box}
+.crypto-directory-grid,.crypto-favorites-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.exchanges-directory-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+.analysis-live-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.analysis-learning-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.analysis-indicator-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+.market-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:1000px){
+  .site-header{padding:0 16px;gap:18px}
+  .global-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .crypto-directory-grid,.crypto-favorites-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .exchanges-directory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .analysis-indicator-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .site-header{height:58px;min-height:58px;padding:0 12px;grid-template-columns:minmax(0,1fr) 40px auto;gap:8px}
+  .site-header .brand-logo{width:30px;height:30px;flex-basis:30px}
+  .site-header .brand>span:last-child{font-size:14px}
+  .home-market-strip-inner{width:100%;grid-template-columns:repeat(5,150px)}
+  .home-quick-nav{width:calc(100% - 24px)}
+  .markets-page,.cryptos-directory,.exchanges-directory,.analysis-page,.page-shell{width:calc(100% - 24px);margin-top:24px}
+  .markets-intro,.cryptos-directory-hero,.exchanges-directory-hero,.analysis-hero{padding:20px 0 18px;gap:16px}
+  .markets-intro h1,.cryptos-directory-hero h1,.exchanges-directory-hero h1,.analysis-hero h1{font-size:28px}
+  .global-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .crypto-directory-grid,.crypto-favorites-grid,.exchanges-directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .analysis-live-grid,.analysis-learning-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .analysis-indicator-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:480px){
+  .crypto-directory-grid,.crypto-favorites-grid,.exchanges-directory-grid,.analysis-live-grid,.analysis-learning-grid,.analysis-indicator-grid,.market-grid,.global-stats{grid-template-columns:1fr}
+  .site-header .login-button{height:34px;min-height:34px;padding:0 10px;font-size:9px}
+}
