@@ -63,6 +63,22 @@ const marketCache=new Map();
 const COINGECKO_BASE="https://api.coingecko.com/api/v3";
 let top1000Cache={data:null,expires:0};
 
+function normalizeMarketCoin(coin){
+  const c=coin||{};
+  return {
+    id:String(c.id||""),name:String(c.name||""),symbol:String(c.symbol||"").toLowerCase(),image:c.image||null,
+    current_price:Number.isFinite(Number(c.current_price))?Number(c.current_price):null,
+    market_cap:Number.isFinite(Number(c.market_cap))?Number(c.market_cap):null,
+    market_cap_rank:Number.isFinite(Number(c.market_cap_rank))?Number(c.market_cap_rank):null,
+    total_volume:Number.isFinite(Number(c.total_volume))?Number(c.total_volume):null,
+    price_change_percentage_24h:Number.isFinite(Number(c.price_change_percentage_24h))?Number(c.price_change_percentage_24h):null,
+    price_change_percentage_7d_in_currency:Number.isFinite(Number(c.price_change_percentage_7d_in_currency))?Number(c.price_change_percentage_7d_in_currency):null,
+    price_change_percentage_30d_in_currency:Number.isFinite(Number(c.price_change_percentage_30d_in_currency))?Number(c.price_change_percentage_30d_in_currency):null,
+    high_24h:Number.isFinite(Number(c.high_24h))?Number(c.high_24h):null,
+    low_24h:Number.isFinite(Number(c.low_24h))?Number(c.low_24h):null
+  };
+}
+
 async function fetchCoinGeckoPage(page){
   const url=COINGECKO_BASE+"/coins/markets?"+new URLSearchParams({
     vs_currency:"usd",
@@ -116,7 +132,7 @@ async function getTop1000Coins(){
   try{
     const pages=await Promise.all([1,2,3,4].map(page=>fetchCoinGeckoPage(page)));
     const map=new Map();
-    pages.flat().forEach(coin=>map.set(coin.id,coin));
+    pages.flat().map(normalizeMarketCoin).forEach(coin=>{if(coin.id)map.set(coin.id,coin);});
     coins=Array.from(map.values()).slice(0,1000);
     if(coins.length<900)throw new Error("CoinGecko returned too few cryptocurrencies");
   }catch(coinGeckoError){
