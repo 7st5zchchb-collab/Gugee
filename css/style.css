@@ -1750,3 +1750,8 @@ footer {
 @media(max-width:900px){.crypto-directory-grid,.crypto-favorites-grid{grid-template-columns:repeat(3,1fr)}.exchanges-directory-grid{grid-template-columns:repeat(3,1fr)}.analysis-indicator-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.page-shell,.cryptos-directory,.exchanges-directory,.analysis-page{width:calc(100% - 24px);margin-top:25px}.cryptos-directory-hero,.exchanges-directory-hero,.analysis-hero,.markets-intro{align-items:flex-start;flex-direction:column}.cryptos-directory-hero h1,.exchanges-directory-hero h1,.analysis-hero h1,.markets-intro h1{font-size:29px}.crypto-directory-search,.exchange-directory-search{width:100%}.crypto-directory-grid,.crypto-favorites-grid,.exchanges-directory-grid,.analysis-learning-grid{grid-template-columns:1fr 1fr}.analysis-live-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:480px){.crypto-directory-grid,.crypto-favorites-grid,.exchanges-directory-grid,.analysis-live-grid,.analysis-indicator-grid{grid-template-columns:1fr}.crypto-directory-main{padding:12px}.exchange-directory-card{padding:13px}.analysis-learning-grid{grid-template-columns:1fr}}
+
+
+/* Gugee logo asset */
+.brand-logo{width:34px;height:34px;display:block;object-fit:contain;flex:0 0 34px;border-radius:9px}.brand-logo+span{display:inline-block}.brand{gap:10px}.brand:hover .brand-logo{transform:scale(1.03)}
+@media(max-width:700px){.brand-logo{width:30px;height:30px;flex-basis:30px;border-radius:8px}.brand{gap:8px}}
