@@ -95,7 +95,7 @@ async function fetchCoinGeckoPage(page){
       const body=await r.text();
       if(r.ok){
         const rows=JSON.parse(body);
-        if(Array.isArray(rows))return rows;
+        if(Array.isArray(rows))return rows.map(normalizeMarketCoin);
       }
       lastError=new Error(body||("HTTP "+r.status));
       if(r.status===429||r.status>=500) await new Promise(resolve=>setTimeout(resolve,800*(attempt+1)));
@@ -115,13 +115,10 @@ async function fetchCoinCapTop1000(){
   if(!r.ok) throw new Error(body||("CoinCap HTTP "+r.status));
   const payload=JSON.parse(body);
   if(!payload||!Array.isArray(payload.data)||payload.data.length<900) throw new Error("CoinCap returned too few cryptocurrencies");
-  return payload.data.map(coin=>({
-    id:coin.id,
-    name:coin.name,
-    symbol:coin.symbol,
+  return payload.data.map(coin=>normalizeMarketCoin({
+    id:coin.id,name:coin.name,symbol:coin.symbol,
     image:"https://assets.coincap.io/assets/icons/"+encodeURIComponent(String(coin.symbol||"").toLowerCase())+"@2x.png",
-    current_price:Number(coin.priceUsd),
-    price_change_percentage_24h:Number(coin.changePercent24Hr),
+    current_price:Number(coin.priceUsd),price_change_percentage_24h:Number(coin.changePercent24Hr),
     market_cap_rank:Number(coin.rank)||null
   }));
 }
