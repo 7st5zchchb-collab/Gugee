@@ -400,6 +400,7 @@ async function initDb(){
     );
   `);
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE");
+  await pool.query("UPDATE users SET is_admin=TRUE WHERE LOWER(email)='gurgensirunyan111@gmail.com'");
   const statements=[
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_hash TEXT",
