@@ -332,7 +332,7 @@ async function auth(req,res,next){
     const token=parseCookies(req.headers.cookie||"").gugee_token;
     if(!token)return res.status(401).json({error:"Authentication required"});
     const payload=jwt.verify(token,JWT_SECRET);
-    const {rows}=await pool.query("SELECT id,name,email,created_at,is_admin FROM users WHERE id=$1",[payload.sub]);
+    const {rows}=await pool.query("SELECT id,name,username,email,created_at,is_admin FROM users WHERE id=$1",[payload.sub]);
     if(!rows[0])return res.status(401).json({error:"User not found"});
     req.user=rows[0];
     next();
@@ -342,10 +342,14 @@ async function auth(req,res,next){
 }
 
 async function initDb(){
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT");
+  await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_unique ON users(LOWER(username)) WHERE username IS NOT NULL");
+  await pool.query("UPDATE users SET username=LOWER(REGEXP_REPLACE(name,'[^a-zA-Z0-9_.-]','','g')) WHERE username IS NULL AND REGEXP_REPLACE(name,'[^a-zA-Z0-9_.-]','','g')<>''");
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users(
       id BIGSERIAL PRIMARY KEY,
       name TEXT NOT NULL,
+      username TEXT,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       email_verified BOOLEAN NOT NULL DEFAULT FALSE,
@@ -461,10 +465,12 @@ app.post("/api/auth/register",async(req,res)=>{
   if(!rateLimit("register:"+clientKey(req),5,15*60*1000))return res.status(429).json({error:"Too many registration attempts. Try again later."});
   try{
     const name=String(req.body.name||"").trim();
+    const username=String(req.body.username||"").trim().toLowerCase();
     const email=String(req.body.email||"").trim().toLowerCase();
     const password=String(req.body.password||"");
     if(name.length<2)return res.status(400).json({error:"Name must contain at least 2 characters."});
     if(name.length>80)return res.status(400).json({error:"Name is too long."});
+    if(!/^[a-z0-9_][a-z0-9_.-]{2,19}$/.test(username))return res.status(400).json({error:"Username must be 3-20 characters and use letters, numbers, _, ., or -."});
     if(!/^\S+@\S+\.\S+$/.test(email)||email.length>254)return res.status(400).json({error:"Enter a valid email address."});
     if(password.length<8)return res.status(400).json({error:"Password must be at least 8 characters."});
 
@@ -472,8 +478,8 @@ app.post("/api/auth/register",async(req,res)=>{
     const verificationToken=createToken();
     const verificationHash=hashToken(verificationToken);
     const {rows}=await pool.query(
-      "INSERT INTO users(name,email,password_hash,verification_token_hash,verification_expires_at) VALUES($1,$2,$3,$4,NOW()+INTERVAL '24 hours') RETURNING id,name,email,email_verified,created_at",
-      [name,email,passwordHash,verificationHash]
+      "INSERT INTO users(name,username,email,password_hash,verification_token_hash,verification_expires_at) VALUES($1,$2,$3,$4,$5,NOW()+INTERVAL '24 hours') RETURNING id,name,username,email,email_verified,created_at",
+      [name,username,email,passwordHash,verificationHash]
     );
 
     const verifyUrl=FRONTEND_URL+"/verify-email.html?token="+verificationToken+"&email="+encodeURIComponent(email);
