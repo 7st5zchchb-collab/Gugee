@@ -113,6 +113,13 @@ function initCommunity(app,pool,auth){
     finally{client.release();}
   });
 
+  app.get("/api/tournaments/my",auth,async(req,res)=>{
+    try{
+      const {rows}=await pool.query("SELECT t.name,t.entry_fee_usdt,t.starts_at,t.ends_at,t.status,e.score,e.rank,e.joined_at FROM tournament_entries e JOIN tournaments t ON t.id=e.tournament_id WHERE e.user_id=$1 ORDER BY e.joined_at DESC",[req.user.id]);
+      res.json({entries:rows});
+    }catch(e){console.error(e);res.status(500).json({error:"Could not load tournament entries"});}
+  });
+
   app.get("/api/giveaways",async(req,res)=>{
     try{
       const uid=null;
