@@ -841,6 +841,9 @@ app.get("/others.html",async(req,res)=>{
   }
 });
 
+const {initCommunity}=require("./community-routes");
+initCommunity(app,pool,auth);
+
 app.use(express.static(path.join(__dirname,".")));
 app.use((req,res)=>{
   if(req.path.startsWith("/api/"))return res.status(404).json({error:"API route not found"});
