@@ -322,7 +322,8 @@ const favoriteDefaults = {
 };
 const watchlistGrid=document.getElementById("watchlistGrid");
 const watchlistEmpty=document.getElementById("watchlistEmpty");
-const WATCHLIST_KEY=window.gugeeAuth?.getCurrentUser()? "gugee_watchlist_"+window.gugeeAuth.emailKey(window.gugeeAuth.getCurrentUser().email) : "gugee_watchlist_guest";
+const currentAuthUser=window.gugeeAuth?.getCurrentUser?.();
+const WATCHLIST_KEY=currentAuthUser? "gugee_watchlist_"+String(currentAuthUser.email||"").toLowerCase().replace(/[^a-z0-9]+/g,"_") : "gugee_watchlist_guest";
 function getWatchlist(){return JSON.parse(localStorage.getItem(WATCHLIST_KEY)||"[]")}
 function saveWatchlist(list){
   const clean=[...new Set(list)];
