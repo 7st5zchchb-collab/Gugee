@@ -1664,3 +1664,54 @@ footer {
 }
 
 .notification-bell-wrap{position:relative;display:flex;align-items:center;z-index:1100}.notification-bell{position:relative;width:40px;height:40px;border:1px solid #29292f;background:#101012;color:#eee;border-radius:10px;cursor:pointer;font-size:16px}.notification-count{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#35e08b;color:#06120b;font-size:8px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #09090a}.notification-dropdown{position:absolute;top:48px;right:0;width:340px;max-width:calc(100vw - 28px);background:#0d0d0f;border:1px solid #29292f;border-radius:13px;box-shadow:0 18px 45px rgba(0,0,0,.5);overflow:hidden}.notification-dropdown-head{display:flex;justify-content:space-between;align-items:center;padding:13px;border-bottom:1px solid #222226;font-size:11px}.notification-dropdown-head button{border:0;background:none;color:#35e08b;font-size:9px;cursor:pointer}.notification-items{max-height:360px;overflow:auto}.notification-item{display:flex;flex-direction:column;gap:5px;width:100%;padding:12px 13px;text-align:left;background:#0d0d0f;border:0;border-bottom:1px solid #1b1b1e;color:#ddd;cursor:pointer}.notification-item:hover,.notification-item.unread{background:#111114}.notification-item b{font-size:11px}.notification-item span{font-size:10px;color:#888;line-height:1.45}.notification-item small{font-size:8px;color:#555}.notification-empty{display:block;padding:25px 13px;color:#666;font-size:10px;text-align:center}@media(max-width:700px){.notification-bell-wrap{justify-self:center}.notification-dropdown{position:fixed;top:61px;right:14px}}\n/* User account avatar */\n.user-button{display:flex!important;align-items:center;gap:8px;text-decoration:none!important}.user-avatar{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#1b1b20;border:1px solid #303038;color:#35e08b;font-size:11px;font-weight:800}.user-handle{font-size:10px;color:#eee;white-space:nowrap}@media(max-width:430px){.user-handle{max-width:72px;overflow:hidden;text-overflow:ellipsis}.user-avatar{width:26px;height:26px}}
+/* Gugee exchange-style global shell */
+.site-header{height:64px;min-height:64px;padding:0 24px;border-bottom:1px solid #1d1e22;background:rgba(9,10,12,.94);backdrop-filter:blur(14px);position:sticky;top:0;z-index:1200}
+.site-header .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px}
+.site-header .brand-mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#17181c;border:1px solid #2a2c32;color:#fff;font-size:14px}
+.site-header .nav{display:flex;align-items:center;gap:3px;margin-left:20px}
+.site-header .nav>a,.site-header .nav-menu>summary{display:flex;align-items:center;min-height:38px;padding:0 12px;border-radius:8px;color:#9b9da5;text-decoration:none;font-size:11px;font-weight:600;cursor:pointer;list-style:none}
+.site-header .nav>a:hover,.site-header .nav>a.active,.site-header .nav-menu>summary:hover{background:#15161a;color:#f2f2f4}
+.nav-menu{position:relative}
+.nav-menu>summary::-webkit-details-marker{display:none}
+.nav-menu>summary:after{content:"⌄";font-size:10px;margin-left:6px;color:#686b73}
+.nav-menu-panel{position:absolute;top:43px;left:0;min-width:170px;padding:6px;border:1px solid #292b31;border-radius:10px;background:#0d0e10;box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.nav-menu-panel a{display:block;padding:10px 11px;border-radius:7px;color:#bfc1c7;text-decoration:none;font-size:10px}
+.nav-menu-panel a:hover{background:#17181c;color:#fff}
+.site-header .login-button{margin-left:auto;display:flex;align-items:center;justify-content:center;min-height:38px;padding:0 13px;border:1px solid #2a2c31;border-radius:8px;background:#f0f0f2;color:#0a0b0d;font-size:10px;font-weight:800;text-decoration:none}
+.site-header .login-button:hover{background:#fff}
+.site-header .notification-bell-wrap{margin-left:8px}
+.site-header .notification-bell{width:38px;height:38px;border-radius:8px;background:#111216;border-color:#292b31}
+.site-header .user-button{background:#111216!important;color:#eee!important;border-color:#292b31!important;padding:4px 9px!important}
+.home-market-strip{width:100%;border-bottom:1px solid #1b1c20;background:#0c0d0f;overflow:auto}
+.home-market-strip-inner{width:min(1280px,calc(100% - 32px));margin:auto;display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:0}
+.home-market-strip a{display:block;padding:12px 14px;border-right:1px solid #1b1c20;text-decoration:none;color:#ddd}
+.home-market-strip a:first-child{border-left:1px solid #1b1c20}
+.home-market-strip small{display:block;color:#60636b;font-size:8px;margin-bottom:5px}
+.home-market-strip b{font-size:12px}
+.home-market-strip span{margin-left:7px;font-size:9px;color:#35e08b}
+.home-quick-nav{width:min(1280px,calc(100% - 32px));margin:20px auto 0;display:flex;gap:7px;flex-wrap:wrap}
+.home-quick-nav a{padding:9px 13px;border:1px solid #25272d;border-radius:7px;background:#0e0f11;color:#aaa;text-decoration:none;font-size:9px}
+.home-quick-nav a:hover{color:#fff;border-color:#3a3d45}
+@media(max-width:900px){
+  .site-header{padding:0 14px}
+  .site-header .nav{margin-left:8px}
+  .site-header .nav>a,.site-header .nav-menu>summary{padding:0 8px;font-size:10px}
+  .home-market-strip-inner{grid-template-columns:repeat(5,150px)}
+}
+@media(max-width:700px){
+  .site-header{height:58px;min-height:58px;grid-template-columns:minmax(0,1fr) 40px auto;display:grid;gap:8px}
+  .site-header .nav{position:absolute;top:66px;left:10px;right:10px;margin:0;display:none;padding:6px;border:1px solid #292b31;border-radius:11px;background:#0d0e10;box-shadow:0 20px 45px rgba(0,0,0,.5);flex-direction:column;align-items:stretch}
+  .site-header .nav.mobile-open{display:flex}
+  .site-header .nav>a,.site-header .nav-menu>summary{width:100%;min-height:42px;padding:0 12px}
+  .nav-menu-panel{position:static;box-shadow:none;border:0;border-top:1px solid #202126;border-radius:0;background:transparent;margin-top:3px;padding:4px}
+  .nav-menu-panel a{padding:10px 14px}
+  .mobile-nav-toggle{display:flex!important;justify-self:center}
+  .site-header .notification-bell-wrap{margin-left:0;justify-self:end}
+  .site-header .login-button{justify-self:end}
+  .site-header .notification-bell-wrap + .login-button{margin-left:0}
+}
+@media(max-width:430px){
+  .site-header{grid-template-columns:minmax(0,1fr) 40px auto}
+  .site-header .user-handle{max-width:64px}
+  .site-header .login-button{padding:0 8px!important}
+}
