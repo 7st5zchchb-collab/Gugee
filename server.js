@@ -177,7 +177,15 @@ async function coingeckoProxy(req,res,next){
     res.status(502).json({error:"CoinGecko request failed"});
   }
 }
-app.get("/api/coingecko/top1000",top1000Coins);
+async function fearGreedProxy(req,res){
+  try{
+    const r=await fetch("https://api.alternative.me/fng/?limit=1",{headers:{accept:"application/json","user-agent":"Gugee/1.0"}});
+    const body=await r.text();
+    res.status(r.status).type("application/json").send(body);
+  }catch(e){res.status(502).json({error:"Fear & Greed service unavailable"});}
+}
+
+app.get("/api/market/fear-greed",fearGreedProxy);\napp.get("/api/coingecko/top1000",top1000Coins);
 app.use("/api/coingecko",coingeckoProxy);
 
 app.use("/api/exchanges",async(req,res)=>{
