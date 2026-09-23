@@ -101,12 +101,29 @@ async function fetchCoinData(id){
 }
 async function loadCoin(){
  try{
+  let shared=null;
+  try{
+   const sharedPayload=await api("/api/coingecko/top1000");
+   shared=(sharedPayload?.coins||[]).find(x=>String(x.id).toLowerCase()===coinId);
+  }catch{}
   try{coin=await fetchCoinData(coinId);}
   catch(firstError){
    const resolved=await resolveCoinId(coinId);
    coin=await fetchCoinData(resolved);
+   if(!shared)try{
+    const sharedPayload=await api("/api/coingecko/top1000");
+    shared=(sharedPayload?.coins||[]).find(x=>String(x.id).toLowerCase()===String(resolved).toLowerCase());
+   }catch{}
   }
   market=coin.market_data||{};
+  if(shared){
+   market.current_price={...(market.current_price||{}),usd:shared.current_price};
+   market.market_cap={...(market.market_cap||{}),usd:shared.market_cap};
+   market.total_volume={...(market.total_volume||{}),usd:shared.total_volume};
+   market.high_24h={...(market.high_24h||{}),usd:shared.high_24h};
+   market.low_24h={...(market.low_24h||{}),usd:shared.low_24h};
+   market.price_change_percentage_24h=shared.price_change_percentage_24h;
+  }
   els.name.textContent=coin.name||coinId;els.symbol.textContent=(coin.symbol||"").toUpperCase();
   if(coin.image?.large){els.icon.src=coin.image.large;els.icon.style.display="block";els.fallback.style.display="none";}
   else{els.fallback.textContent=(coin.symbol||"C").slice(0,3).toUpperCase();}
