@@ -9,7 +9,7 @@ const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),windo
 const DIRECT_COIN_GECKO="https://api.coingecko.com/api/v3/coins/markets";
 const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
-const PAGE_SIZE=100;
+const PAGE_SIZE=10;
 let allCoins=[],loading=false,currentPage=1;
 
 const fallbackCoins=[
