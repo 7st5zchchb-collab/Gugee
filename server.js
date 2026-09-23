@@ -639,6 +639,7 @@ app.get("/api/wallet",auth,async(req,res)=>{
 });
 
 app.post("/api/wallet/usdt",auth,async(req,res)=>{
+  if(!req.user.is_admin)return res.status(403).json({error:"Wallet balance adjustments are restricted."});
   const amount=Number(req.body.amount);
   if(!Number.isFinite(amount)||amount===0)return res.status(400).json({error:"Amount must be a non-zero number."});
   const client=await pool.connect();
