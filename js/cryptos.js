@@ -209,3 +209,5 @@ window.addEventListener("storage",event=>{
 });
 
 load();
+
+setInterval(()=>{load();},60000);
