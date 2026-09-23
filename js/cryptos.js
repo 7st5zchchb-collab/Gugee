@@ -11,16 +11,7 @@ const MAX_FAVORITES=5;
 const PAGE_SIZE=10;
 let allCoins=[],loading=false,currentPage=1;
 
-const fallbackCoins=[
-{id:"bitcoin",name:"Bitcoin",symbol:"btc",current_price:0,price_change_percentage_24h:0,image:"https://assets.coingecko.com/coins/images/1/large/bitcoin.png"},
-{id:"ethereum",name:"Ethereum",symbol:"eth",current_price:0,price_change_percentage_24h:0,image:"https://assets.coingecko.com/coins/images/279/large/ethereum.png"},
-{id:"tether",name:"Tether",symbol:"usdt",current_price:0,price_change_percentage_24h:0,image:"https://assets.coingecko.com/coins/images/325/large/Tether.png"},
-{id:"binancecoin",name:"BNB",symbol:"bnb",current_price:0,price_change_percentage_24h:0,image:"https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png"},
-{id:"solana",name:"Solana",symbol:"sol",current_price:0,price_change_percentage_24h:0,image:"https://assets.coingecko.com/coins/images/4128/large/solana.png"},
-{id:"ripple",name:"XRP",symbol:"xrp",current_price:0,price_change_percentage_24h:0,image:"https://assets.coingecko.com/coins/images/44/large/xrp-symbol-white-128.png"},
-{id:"usd-coin",name:"USDC",symbol:"usdc",current_price:0,price_change_percentage_24h:0,image:"https://assets.coingecko.com/coins/images/6319/large/usdc.png"},
-{id:"dogecoin",name:"Dogecoin",symbol:"doge",current_price:0,price_change_percentage_24h:0,image:"https://assets.coingecko.com/coins/images/5/large/dogecoin.png"}
-];
+
 
 function logoFor(c){
   return c.image||("https://assets.coincap.io/assets/icons/"+encodeURIComponent(String(c.symbol||"").toLowerCase())+"@2x.png");
@@ -163,9 +154,8 @@ async function load(){
   loading=true;
   loadStatus.textContent="Loading cryptocurrencies...";
   if(!allCoins.length){
-    allCoins=fallbackCoins.slice();
-    render();
-    renderFavorites();
+    othersPreview.innerHTML='<div class="exchange-directory-empty">Loading live cryptocurrency data...</div>';
+    favoritesGrid.innerHTML='<div class="crypto-favorites-empty">Loading live favorites...</div>';
   }
   try{
     let payload=null;
