@@ -99,7 +99,7 @@ async function initLogin(){
   const form=document.getElementById("loginForm");
   if(!form)return;
   const current=await refreshCurrentUser();
-  if(current){window.location.href="account.html";return;}
+  if(current){window.location.href="index.html";return;}
   form.addEventListener("submit",async e=>{
     e.preventDefault();
     const email=form.email.value.trim().toLowerCase();
@@ -108,7 +108,7 @@ async function initLogin(){
     try{
       const data=await api("/api/auth/login",{method:"POST",body:JSON.stringify({email,password})});
       setCurrentUser(data.user);
-      window.location.href="account.html";
+      window.location.href="index.html";
     }catch(error){setAuthMessage(error.message);}
   });
 }
@@ -134,7 +134,7 @@ async function initRegister(){
       setCurrentUser(data.user);
       const referralCode=new URLSearchParams(window.location.search).get("ref");
       if(referralCode){try{await api("/api/referrals/claim",{method:"POST",body:JSON.stringify({code:referralCode})});}catch{}}
-      window.location.href="account.html";
+      window.location.href="index.html";
     }catch(error){setAuthMessage(error.message);}
   });
 }
