@@ -148,18 +148,38 @@ function renderFavorites(){
 async function load(){
   if(loading)return;
   loading=true;
-  loadStatus.textContent="Loading 1000...";
+  loadStatus.textContent="Loading cryptocurrencies...";
   if(!allCoins.length){
     allCoins=fallbackCoins.slice();
     render();
     renderFavorites();
   }
   try{
-    const r=await fetch(API,{cache:"no-store",headers:{accept:"application/json"}});
-    const body=await r.text();
-    if(!r.ok)throw new Error(body||("HTTP "+r.status));
-    const payload=JSON.parse(body);
-    if(!payload||!Array.isArray(payload.coins)||payload.coins.length<1)throw new Error("No cryptocurrency data");
+    let payload=null;
+    let lastError=null;
+    for(const base of API_BASES){
+      try{
+        const r=await fetch(base+"/api/coingecko/top1000",{cache:"no-store",headers:{accept:"application/json"}});
+        const body=await r.text();
+        if(!r.ok)throw new Error(body||("HTTP "+r.status));
+        const parsed=JSON.parse(body);
+        if(!parsed||!Array.isArray(parsed.coins)||parsed.coins.length<1)throw new Error("No cryptocurrency data");
+        payload=parsed;
+        break;
+      }catch(error){lastError=error;}
+    }
+    if(!payload){
+      const pages=await Promise.all([1,2,3,4].map(async page=>{
+        const r=await fetch(DIRECT_COIN_GECKO+"?vs_currency=usd&order=market_cap_desc&per_page=250&page="+page+"&sparkline=false&price_change_percentage=24h",{cache:"no-store",headers:{accept:"application/json"}});
+        const body=await r.text();
+        if(!r.ok)throw new Error(body||("CoinGecko HTTP "+r.status));
+        return JSON.parse(body);
+      }));
+      const map=new Map();
+      pages.flat().forEach(coin=>map.set(coin.id,coin));
+      payload={coins:Array.from(map.values()).slice(0,1000)};
+    }
+    if(!payload||!Array.isArray(payload.coins)||payload.coins.length<1)throw lastError||new Error("No cryptocurrency data");
     allCoins=payload.coins.slice(0,1000);
     currentPage=1;
     loadStatus.textContent=allCoins.length+" loaded";
@@ -173,3 +193,18 @@ async function load(){
   }finally{loading=false;}
 }
 
+
+
+input.addEventListener("input",()=>{
+  currentPage=1;
+  render();
+});
+
+window.addEventListener("storage",event=>{
+  if(event.key===FAVORITES_KEY){
+    renderFavorites();
+    render();
+  }
+});
+
+load();
