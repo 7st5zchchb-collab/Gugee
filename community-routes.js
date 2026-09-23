@@ -16,6 +16,7 @@ function initCommunity(app,pool,auth){
     next();
   };
   const codeFor=userId=>"GUG-"+crypto.createHash("sha256").update("gugee-referral:"+userId).digest("hex").slice(0,8).toUpperCase();
+  const rewardReferralIfQualified=async(client,userId)=>{const r=(await client.query("SELECT * FROM referrals WHERE referred_id=$1 AND status='registered' FOR UPDATE",[userId])).rows[0];if(!r)return;const reward=1;await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[reward,r.referrer_id]);await client.query("INSERT INTO referral_rewards(referral_id,user_id,amount_usdt,reason) VALUES($1,$2,$3,$4)",[r.id,r.referrer_id,reward,"Qualified referral: paid tournament entry"]);await client.query("UPDATE referrals SET status='rewarded',reward_usdt=$1,qualified_at=NOW() WHERE id=$2",[reward,r.id]);};
 
   return pool.query(`
     CREATE TABLE IF NOT EXISTS referral_codes(
@@ -120,7 +121,7 @@ function initCommunity(app,pool,auth){
       const wallet=await client.query("UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",[fee,req.user.id]);
       if(!wallet.rowCount)return rollback(client,res,400,"Insufficient USDT balance for the entry fee.");
       await client.query("INSERT INTO tournament_entries(tournament_id,user_id,entry_fee_usdt) VALUES($1,$2,$3)",[t.id,req.user.id,fee]);
-      if(fee>0)await client.query("UPDATE tournaments SET prize_pool_usdt=prize_pool_usdt+$1 WHERE id=$2",[fee,t.id]);
+      if(fee>0)await client.query("UPDATE tournaments SET prize_pool_usdt=prize_pool_usdt+$1 WHERE id=$2",[fee,t.id]);if(fee>=5)await rewardReferralIfQualified(client,req.user.id);
       await client.query("COMMIT");
       res.json({ok:true,message:"Tournament entry confirmed.",usdt:Number(wallet.rows[0].usdt)});
     }catch(e){await client.query("ROLLBACK");if(e.code==="23505")return res.status(409).json({error:"You already joined this tournament."});console.error(e);res.status(500).json({error:"Could not join tournament"});}
