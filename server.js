@@ -145,6 +145,8 @@ async function coingeckoProxy(req,res,next){
   if(p==="/global") target=COINGECKO_BASE+"/global";
   else if(p==="/global/market_cap_chart") target=COINGECKO_BASE+"/global/market_cap_chart?"+new URLSearchParams(req.query).toString();
   else if(p==="/search") target=COINGECKO_BASE+"/search?"+new URLSearchParams(req.query).toString();
+  else if(p==="/search/trending") target=COINGECKO_BASE+"/search/trending";
+  else if(p==="/simple/price") target=COINGECKO_BASE+"/simple/price?"+new URLSearchParams(req.query).toString();
   else if(p==="/coins/categories") target=COINGECKO_BASE+"/coins/categories?"+new URLSearchParams(req.query).toString();
   else if(p==="/coins/markets") target=COINGECKO_BASE+"/coins/markets?"+new URLSearchParams(req.query).toString();
   else if(p.startsWith("/coins/") && p.endsWith("/market_chart")){
