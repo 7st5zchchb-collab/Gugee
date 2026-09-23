@@ -66,7 +66,7 @@ async function initRegister(){
   const form=document.getElementById("registerForm");
   if(!form)return;
   const current=await refreshCurrentUser();
-  if(current){window.location.href="./";return;}
+  if(current){window.location.href="account.html";return;}
   form.addEventListener("submit",async e=>{
     e.preventDefault();
     const name=form.name.value.trim();
@@ -80,7 +80,7 @@ async function initRegister(){
     try{
       const data=await api("/api/auth/register",{method:"POST",body:JSON.stringify({name,email,password})});
       setCurrentUser(data.user);
-      window.location.href="./";
+      window.location.href="account.html";
     }catch(error){setAuthMessage(error.message);}
   });
 }
