@@ -38,7 +38,13 @@ function initGlobalNavigation(){
     header.insertBefore(nav,login||null);
   }
 
-  nav.innerHTML='<a href="markets.html">Markets</a><a href="cryptos.html">Crypto</a><a href="analysis.html">Analysis</a><a href="exchanges.html">Exchanges</a><details class="nav-menu"><summary>Community</summary><div class="nav-menu-panel"><a href="tournaments.html">Tournaments</a><a href="giveaways.html">Giveaways</a><a href="referrals.html">Referrals</a></div></details>';
+  nav.innerHTML='<a data-nav="markets" href="markets.html">Markets</a><a data-nav="crypto" href="cryptos.html">Crypto</a><a data-nav="analysis" href="analysis.html">Analysis</a><a data-nav="exchanges" href="exchanges.html">Exchanges</a><details class="nav-menu"><summary>Community</summary><div class="nav-menu-panel"><a href="tournaments.html">Tournaments</a><a href="giveaways.html">Giveaways</a><a href="referrals.html">Referrals</a></div></details>';
+  const current=(window.location.pathname.split("/").pop()||"index.html").toLowerCase();
+  nav.querySelectorAll("[data-nav]").forEach(link=>{
+    const key=link.dataset.nav;
+    const active=(key==="crypto" && (current==="cryptos.html"||current==="crypto.html")) || (key!=="crypto" && current===key+".html");
+    link.classList.toggle("active",active);
+  });
 
   let toggle=header.querySelector(".mobile-nav-toggle");
   if(!toggle){
