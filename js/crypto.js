@@ -18,7 +18,7 @@ const els={
 const ranges=["1","3","7","30","365","1825","max"];
 let coin=null,market=null,latestHistory=null;
 
-function money(v){if(!Number.isFinite(Number(v)))return"$--";const n=Number(v);if(n>=1000)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:2});if(n>=1)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:4});return"$"+n.toLocaleString("en-US",{maximumFractionDigits:8});});return"$"+v.toLocaleString("en-US",{maximumSignificantDigits:6});}
+function money(v){if(!Number.isFinite(Number(v)))return"$--";const n=Number(v);if(n>=1000)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:2});if(n>=1)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:4});return"$"+n.toLocaleString("en-US",{maximumFractionDigits:8});}
 function compact(v){return Number.isFinite(Number(v))?new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(Number(v)):"--";}
 function pct(v){return Number.isFinite(Number(v))?(Number(v)>=0?"+":"")+Number(v).toFixed(2)+"%":"--";}
 function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}
@@ -85,7 +85,7 @@ function analyze(data){
 
 async function loadChart(days){
  els.chart.textContent="Loading historical data...";
- try{const d=await history(days);latestHistory=d;drawChart(d.prices||[],d.total_volumes||[]);if(days==="30"){analyze(d);renderPeriods(d.prices||[]);}}catch(e){console.error(e);els.chart.textContent="Historical data unavailable.";}
+ try{const d=await history(days);latestHistory=d;drawChart(d.prices||[],d.total_volumes||[]);if(days==="90"){analyze(d);renderPeriods(d.prices||[]);}}catch(e){console.error(e);els.chart.textContent="Historical data unavailable.";}
 }
 
 async function resolveCoinId(id){
@@ -112,7 +112,7 @@ async function loadCoin(){
   else{els.fallback.textContent=(coin.symbol||"C").slice(0,3).toUpperCase();}
   set(els.price,money(market.current_price?.usd));const ch=Number(market.price_change_percentage_24h||0);set(els.change,pct(ch),colorFor(ch));
   set(els.marketCap,money(market.market_cap?.usd));set(els.volume,money(market.total_volume?.usd));set(els.high,money(market.high_24h?.usd));set(els.low,money(market.low_24h?.usd));set(els.supply,compact(market.circulating_supply));set(els.ath,money(market.ath?.usd));set(els.athDate,market.ath_date?.usd?new Date(market.ath_date.usd).toLocaleDateString():"--");set(els.updated,new Date().toLocaleTimeString());
-  await loadChart("30");await loadExchanges((coin.symbol||"").toUpperCase());
+  await loadChart("90");await loadExchanges((coin.symbol||"").toUpperCase());
  }catch(e){console.error(e);els.name.textContent="Data unavailable";els.chart.textContent="Could not load cryptocurrency data.";}
 }
 
