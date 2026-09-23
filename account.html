@@ -103,6 +103,15 @@ document.addEventListener("DOMContentLoaded",async()=>{
       });
     }catch(e){document.getElementById("subscriptionMessage").textContent=e.message}
   }
+  async function loadTransactions(){
+    try{
+      const data=await window.gugeeAuth.api("/api/wallet/transactions");
+      const box=document.getElementById("transactions");
+      const labels={buy:"Crypto purchase",subscription:"Subscription",tournament_entry:"Tournament entry",tournament_prize:"Tournament prize",giveaway_prize:"Giveaway prize",referral_reward:"Referral reward",usdt_adjustment:"USDT adjustment"};
+      if(!data.transactions.length){box.innerHTML='<p class="muted">No transactions yet.</p>';return;}
+      box.innerHTML=data.transactions.map(t=>{const n=Number(t.usdt_amount||0),sign=n>=0?"+":"-";return '<div class="transaction-row"><div class="transaction-meta"><div class="transaction-type">'+(labels[t.type]||t.type)+'</div><div class="transaction-date">'+new Date(t.created_at).toLocaleString()+'</div></div><div class="transaction-amount '+(n>=0?'plus':'minus')+'">'+sign+Math.abs(n).toFixed(2)+' USDT</div></div>'}).join("");
+    }catch(e){document.getElementById("transactions").innerHTML='<p class="error">Could not load transaction history.</p>'}
+  }
   async function loadNotifications(){
     try{
       const data=await window.gugeeAuth.api("/api/notifications");
