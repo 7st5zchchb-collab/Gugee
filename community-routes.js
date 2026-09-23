@@ -125,7 +125,8 @@ function initCommunity(app,pool,auth){
       if(n>=t.max_players)return rollback(client,res,400,"Tournament is full.");
       const exists=await client.query("SELECT 1 FROM tournament_entries WHERE tournament_id=$1 AND user_id=$2",[t.id,req.user.id]);
       if(exists.rowCount)return rollback(client,res,409,"You already joined this tournament.");
-      const fee=Number(t.entry_fee_usdt);\n      if(!Number.isFinite(fee)||fee<0)return rollback(client,res,400,"Invalid tournament entry fee.");
+      const fee=Number(t.entry_fee_usdt);
+      if(!Number.isFinite(fee)||fee<0)return rollback(client,res,400,"Invalid tournament entry fee.");
       await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[req.user.id]);
       const wallet=await client.query("UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",[fee,req.user.id]);
       if(!wallet.rowCount)return rollback(client,res,400,"Insufficient USDT balance for the entry fee.");
@@ -255,7 +256,8 @@ function initCommunity(app,pool,auth){
       const entries=(await client.query("SELECT user_id FROM giveaway_entries WHERE giveaway_id=$1 ORDER BY id",[g.id])).rows;
       if(!entries.length)return rollback(client,res,400,"No giveaway entries yet.");
       const winner=entries[crypto.randomInt(entries.length)].user_id;
-      await client.query("UPDATE giveaways SET winner_user_id=$1,status='finished' WHERE id=$2",[winner,g.id]);\n      await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[winner]);await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[Number(g.prize_usdt),winner]);await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount) VALUES($1,$2,$3)",[winner,"giveaway_prize",Number(g.prize_usdt)]);await notify(client,winner,"You won a giveaway","Congratulations! You won \""+g.name+"\" and received "+Number(g.prize_usdt).toFixed(2)+" USDT.","giveaway");
+      await client.query("UPDATE giveaways SET winner_user_id=$1,status='finished' WHERE id=$2",[winner,g.id]);
+      await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[winner]);await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[Number(g.prize_usdt),winner]);await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount) VALUES($1,$2,$3)",[winner,"giveaway_prize",Number(g.prize_usdt)]);await notify(client,winner,"You won a giveaway","Congratulations! You won \""+g.name+"\" and received "+Number(g.prize_usdt).toFixed(2)+" USDT.","giveaway");
       await client.query("COMMIT");
       const user=(await pool.query("SELECT name,email FROM users WHERE id=$1",[winner])).rows[0];
       res.json({ok:true,winner:user});
