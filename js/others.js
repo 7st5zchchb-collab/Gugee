@@ -70,19 +70,19 @@ async function fetchServerList(){
   return payload.coins.slice(0,1000);
 }
 
-async function fetchDirectCoinCap(){
-  const r=await fetch("https://api.coincap.io/v2/assets?limit=1000",{cache:"no-store"});
-  if(!r.ok)throw new Error("CoinCap HTTP "+r.status);
-  const payload=await r.json();
-  if(!payload||!Array.isArray(payload.data)||payload.data.length<900)throw new Error("CoinCap returned too few assets");
-  return payload.data.map(c=>({
-    id:c.id,
-    name:c.name,
-    symbol:c.symbol,
-    image:"https://assets.coincap.io/assets/icons/"+encodeURIComponent(String(c.symbol||"").toLowerCase())+"@2x.png",
-    current_price:Number(c.priceUsd),
-    price_change_percentage_24h:Number(c.changePercent24Hr)
-  }));
+async function fetchLegacyServerList(){
+  const pages=[1,2,3,4];
+  const loaded=[];
+  for(const page of pages){
+    const url="/api/coingecko/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page="+page+"&sparkline=false&price_change_percentage=24h";
+    const r=await fetch(url,{cache:"no-store",headers:{accept:"application/json"}});
+    const body=await r.text();
+    if(!r.ok)throw new Error(body||("HTTP "+r.status));
+    const rows=JSON.parse(body);
+    if(!Array.isArray(rows)||!rows.length)throw new Error("Invalid server crypto page "+page);
+    loaded.push(...rows);
+  }
+  return loaded.slice(0,1000);
 }
 
 async function load(){
@@ -96,7 +96,7 @@ async function load(){
       coins=await fetchServerList();
     }catch(serverError){
       console.warn("Gugee API failed, using direct CoinCap fallback:",serverError);
-      coins=await fetchDirectCoinCap();
+      coins=await fetchLegacyServerList();
     }
     const map=new Map();
     coins.forEach(c=>map.set(c.id,c));
