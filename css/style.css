@@ -1829,3 +1829,97 @@ footer {
   .markets-live-meta{font-size:8px}
   .markets-live-table{min-width:900px}
 }
+
+
+/* Final mobile repair pass */
+html,body{max-width:100%;overflow-x:hidden}
+@media(max-width:700px){
+  .site-header{width:100%;height:58px;min-height:58px;padding:0 12px;grid-template-columns:minmax(0,1fr) 40px auto;gap:8px;box-sizing:border-box}
+  .site-header .brand{min-width:0;max-width:100%}
+  .site-header .brand>span:last-child{font-size:14px}
+  .site-header .login-button{height:34px;min-height:34px;padding:0 11px;font-size:9px}
+  .mobile-nav-toggle{width:38px;height:38px}
+  .site-header .nav{left:12px;right:12px;top:64px;max-width:none;box-sizing:border-box}
+  .markets-page{width:calc(100% - 24px);margin:22px auto 60px}
+  .markets-intro{padding:18px 0 16px;margin-bottom:10px;gap:14px}
+  .markets-intro h1{font-size:26px;letter-spacing:-.8px}
+  .markets-intro p:not(.section-label){font-size:10px;line-height:1.65}
+  .market-search{width:100%;display:flex;gap:7px}
+  .market-search input{min-width:0;flex:1}
+  .market-search button{flex:0 0 auto}
+  .global-stats{gap:7px}
+  .global-stat{min-height:72px;padding:12px 10px}
+  .global-stat span{font-size:7px}
+  .global-stat strong{font-size:15px}
+  .markets-bitcoin-feature{padding:13px;border-radius:12px}
+  .markets-bitcoin-main{gap:13px}
+  .coin-title{align-items:flex-start}
+  .coin-title .coin-icon{width:38px;height:38px;flex:0 0 38px}
+  .coin-title h2{font-size:16px}
+  .coin-title p:not(.section-label){font-size:9px;line-height:1.55}
+  .markets-bitcoin-actions{width:100%;display:grid;grid-template-columns:1fr;gap:7px}
+  .markets-bitcoin-actions a{width:100%;box-sizing:border-box;text-align:center}
+  .markets-bitcoin-metrics{grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+  .markets-bitcoin-metrics>div{padding:10px}
+  .markets-bitcoin-metrics span{font-size:7px}
+  .markets-bitcoin-metrics strong{font-size:12px}
+  .markets-live-board{padding:12px;margin:12px 0}
+  .markets-live-heading{gap:11px}
+  .markets-live-heading h2{font-size:16px}
+  .markets-live-heading p{font-size:9px;line-height:1.55}
+  .markets-live-controls{width:100%;display:grid;grid-template-columns:1fr 100px;gap:7px}
+  .markets-live-controls input,.markets-live-controls select{width:100%;min-width:0;box-sizing:border-box}
+  .markets-live-meta{font-size:7px;padding:7px 1px}
+  .markets-live-table-wrap{max-width:100%;overflow-x:auto}
+  .markets-live-table{min-width:900px}
+  .markets-live-table th,.markets-live-table td{padding:8px 9px;font-size:8px}
+  .market-main-assets{padding:12px;margin:12px 0}
+  .market-main-assets-heading h2{font-size:16px}
+  .market-main-assets-heading p:not(.section-label){font-size:9px}
+  .market-main-assets-grid{grid-template-columns:1fr;gap:7px}
+  .main-asset-card{padding:12px}
+  .main-asset-card h3{font-size:18px;margin:9px 0 3px}
+  .market-trending-heatmap{grid-template-columns:1fr;gap:10px;margin:12px 0}
+  .market-trending-card,.market-heatmap-card{padding:12px}
+  .market-pulse-head h2{font-size:15px}
+  .market-heatmap{min-height:190px}
+  .heat-cell{min-width:48px;min-height:50px;padding:6px}
+  .market-sentiment{grid-template-columns:1fr;gap:10px;margin:12px 0}
+  .sentiment-main,.btc-dominance-card{padding:12px}
+  .sentiment-head h2{font-size:15px}
+  .sentiment-head p:not(.section-label){font-size:9px;line-height:1.5}
+  .sentiment-score{margin:14px 0}
+  .sentiment-score>strong{font-size:36px}
+  .btc-dominance-card>strong{font-size:30px;margin:20px 0 8px}
+  .market-stats-grid{grid-template-columns:1fr 1fr;gap:7px;margin:12px 0}
+  .market-stats-grid article{padding:11px}
+  .market-stats-grid strong{font-size:15px}
+  .market-categories{padding:12px;margin:12px 0}
+  .market-categories-grid{grid-template-columns:1fr 1fr;gap:7px}
+  .market-category{padding:10px}
+  .market-category b{font-size:9px}
+  .market-pulse{grid-template-columns:1fr;gap:8px;margin:12px 0}
+  .market-pulse-card{padding:12px}
+  .global-chart-section{padding:12px!important;margin:12px 0!important}
+  .global-chart-heading{gap:9px}
+  .global-chart-heading h2{font-size:16px}
+  .global-chart-ranges{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+  .global-range{min-width:0!important;padding:7px 4px!important;font-size:8px!important}
+  .global-chart-wrap{width:100%;overflow:hidden}
+  .market-condition-panel{padding:12px!important;margin:12px 0!important}
+  .market-condition-grid{grid-template-columns:1fr;gap:7px}
+  .market-condition-grid article{padding:11px}
+  .market-education{grid-template-columns:1fr!important;gap:8px!important}
+  .market-next-section{grid-template-columns:1fr!important;gap:12px!important}
+  footer{padding:20px 12px!important;gap:7px!important;flex-wrap:wrap}
+}
+@media(max-width:480px){
+  .global-stats{grid-template-columns:1fr 1fr}
+  .markets-live-controls{grid-template-columns:1fr}
+  .markets-live-controls select{height:36px}
+  .markets-bitcoin-metrics{grid-template-columns:1fr}
+  .market-stats-grid{grid-template-columns:1fr}
+  .market-categories-grid{grid-template-columns:1fr}
+  .global-chart-ranges{grid-template-columns:repeat(2,1fr)}
+  .markets-intro h1{font-size:24px}
+}
