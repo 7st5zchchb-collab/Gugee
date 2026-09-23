@@ -5,7 +5,8 @@ const favoritesCount=document.getElementById("cryptoFavoritesCount");
 const loadStatus=document.getElementById("cryptoLoadStatus");
 const othersPreview=document.getElementById("cryptoOthersPreview");
 
-const API=(window.GUGEE_API_BASE||"https://gugee.onrender.com").replace(/\/$/,"")+"/api/coingecko/top1000";
+const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,""),"https://gugee.onrender.com"])].filter(Boolean);
+const DIRECT_COIN_GECKO="https://api.coingecko.com/api/v3/coins/markets";
 const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
 const PAGE_SIZE=50;
