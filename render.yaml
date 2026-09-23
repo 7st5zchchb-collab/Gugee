@@ -19,6 +19,8 @@ services:
         value: https://gugee.onrender.com
       - key: EMAIL_FROM
         value: Gugee <noreply@gugee.com>
+      - key: RESEND_API_KEY
+        sync: false
 
 databases:
   - name: gugee-db
