@@ -2021,3 +2021,8 @@ footer{width:100%;box-sizing:border-box}
   .markets-bitcoin-metrics{grid-template-columns:1fr}
   .global-chart-ranges{grid-template-columns:repeat(2,1fr)}
 }
+
+
+/* Live crypto directory card values */
+.crypto-directory-extra{display:block!important;width:100%;margin-top:7px;color:#66666d!important;font-size:8px!important;line-height:1.45;white-space:normal!important;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:700px){.crypto-directory-main{flex-wrap:wrap}.crypto-directory-main .crypto-directory-info{min-width:calc(100% - 80px)}.crypto-directory-main strong{margin-left:auto}.crypto-directory-main>.crypto-directory-extra{flex-basis:100%}}
