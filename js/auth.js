@@ -80,6 +80,8 @@ async function initRegister(){
     try{
       const data=await api("/api/auth/register",{method:"POST",body:JSON.stringify({name,email,password})});
       setCurrentUser(data.user);
+      const referralCode=new URLSearchParams(window.location.search).get("ref");
+      if(referralCode){try{await api("/api/referrals/claim",{method:"POST",body:JSON.stringify({code:referralCode})});}catch{}}
       window.location.href="account.html";
     }catch(error){setAuthMessage(error.message);}
   });
