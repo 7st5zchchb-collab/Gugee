@@ -3,7 +3,7 @@ const input=document.getElementById("othersSearch");
 const count=document.getElementById("othersCount");
 const status=document.getElementById("othersStatus");
 
-const API="/api/coingecko/top1000";
+const API=(window.GUGEE_API_BASE||"https://gugee.onrender.com").replace(/\/$/,"")+"/api/coingecko/top1000";
 const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
 let allCoins=[],loading=false;
