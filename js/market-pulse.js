@@ -101,3 +101,19 @@ async function btcVolume(){
 async function refreshExtras(){await Promise.all([sentiment(),globalStats(),btcVolume()])}
 refreshExtras();setInterval(refreshExtras,60000);
 })();
+
+(function(){
+const bases=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,""),"https://gugee.onrender.com"])].filter(Boolean);
+async function get(path){for(const base of bases){try{const r=await fetch(base+path,{cache:"no-store",headers:{accept:"application/json"}});if(r.ok)return await r.json()}catch{}}return null}
+function compact(v){const n=Number(v);return Number.isFinite(n)?"$"+new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(n):"--"}
+async function loadCategories(){
+ const data=await get("/api/coingecko/coins/categories?order=market_cap_desc");
+ const box=document.getElementById("marketCategories");if(!box)return;
+ const rows=Array.isArray(data)?data.slice(0,12):[];
+ box.innerHTML=rows.length?rows.map(c=>{
+   const ch=Number(c.market_cap_change_24h),cls=ch>=0?"positive":"negative";
+   return '<a class="market-category" href="cryptos.html"><div class="market-category-top"><b>'+String(c.name||"Unknown")+'</b><small>'+compact(c.market_cap)</small></div><div class="market-category-value"><span>24H</span><strong class="'+cls+'">'+(Number.isFinite(ch)?(ch>=0?"+":"")+ch.toFixed(2)+"%":"--")+'</strong></div></a>';
+ }).join(""):'<div class="market-pulse-empty">Sector data unavailable</div>';
+}
+loadCategories();setInterval(loadCategories,60000);
+})();
