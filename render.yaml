@@ -17,6 +17,8 @@ services:
           property: connectionString
       - key: FRONTEND_URL
         value: https://gugee.onrender.com
+      - key: EMAIL_FROM
+        value: Gugee <noreply@gugee.com>
 
 databases:
   - name: gugee-db
