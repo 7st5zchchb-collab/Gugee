@@ -113,9 +113,9 @@ function initCommunity(app,pool,auth){
     finally{client.release();}
   });
 
-  app.get("/api/giveaways",authOptional,async(req,res)=>{
+  app.get("/api/giveaways",async(req,res)=>{
     try{
-      const uid=req.user?.id||null;
+      const uid=null;
       const {rows}=await pool.query(`SELECT g.*,COUNT(e.id)::int AS entry_count,CASE WHEN $1::bigint IS NULL THEN false ELSE EXISTS(SELECT 1 FROM giveaway_entries x WHERE x.giveaway_id=g.id AND x.user_id=$1) END AS joined FROM giveaways g LEFT JOIN giveaway_entries e ON e.giveaway_id=g.id WHERE g.status IN ('upcoming','live') GROUP BY g.id ORDER BY g.starts_at`,[uid]);
       res.json({giveaways:rows});
     }catch(e){console.error(e);res.status(500).json({error:"Could not load giveaways"});}
@@ -157,10 +157,4 @@ function initCommunity(app,pool,auth){
   });
 }
 
-function authOptional(req,res,next){
-  const token=req.cookies?.gugee_token;
-  if(!token)return next();
-  try{req.user=require("jsonwebtoken").verify(token,process.env.JWT_SECRET);next();}catch{next();}
-}
-function rollback(client,res,status,message){client.query("ROLLBACK").catch(()=>{});res.status(status).json({error:message});return res.end();}
 module.exports={initCommunity};
