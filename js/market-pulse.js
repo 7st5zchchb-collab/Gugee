@@ -17,7 +17,7 @@ function renderPulse(coins){
  const changes=valid.filter(c=>Number.isFinite(Number(c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h)));
  const gainers=[...changes].sort((a,b)=>Number(b.price_change_percentage_24h_in_currency??b.price_change_percentage_24h)-Number(a.price_change_percentage_24h_in_currency??a.price_change_percentage_24h));
  const losers=[...changes].sort((a,b)=>Number(a.price_change_percentage_24h_in_currency??a.price_change_percentage_24h)-Number(b.price_change_percentage_24h_in_currency??b.price_change_percentage_24h));
- const volume=[...valid].sort((a,b)=>Number(b.total_volume||0)-Number(a.total_volume||0);
+ const volume=[...valid].sort((a,b)=>Number(b.total_volume||0)-Number(a.total_volume||0));
  if(pulseGainers)pulseGainers.innerHTML=pulseItems(gainers)||'<div class="market-pulse-empty">No data</div>';
  if(pulseLosers)pulseLosers.innerHTML=pulseItems(losers)||'<div class="market-pulse-empty">No data</div>';
  if(pulseVolume)pulseVolume.innerHTML=volume.slice(0,5).map(c=>'<a class="market-pulse-item" href="crypto.html?coin='+encodeURIComponent(c.id)+'"><img src="'+pulseLogo(c)+'" alt="" loading="lazy"><span class="market-pulse-name"><b>'+String(c.name||"Unknown")+'</b><small>'+String(c.symbol||"").toUpperCase()+'</small></span><span class="market-pulse-value"><b>'+pulseMoney(c.current_price)+'</b><span>'+pulseCompact(c.total_volume)+'</span></span></a>').join("");
