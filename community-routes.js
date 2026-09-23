@@ -198,7 +198,7 @@ function initCommunity(app,pool,auth){
       if(t.status==="finished")return rollback(client,res,400,"Tournament is already finished.");
       const entries=(await client.query("SELECT id FROM tournament_entries WHERE tournament_id=$1 ORDER BY score DESC,joined_at ASC",[t.id])).rows;
       for(let i=0;i<entries.length;i++)await client.query("UPDATE tournament_entries SET rank=$1 WHERE id=$2",[i+1,entries[i].id]);
-      await client.query("UPDATE tournaments SET status='finished' WHERE id=$1",[t.id]);
+      const payouts=[0.5,0.3,0.2];for(let i=0;i<Math.min(3,entries.length);i++){const amount=Number(t.prize_pool_usdt)*payouts[i];if(amount<=0)continue;const uid=(await client.query("SELECT user_id FROM tournament_entries WHERE id=$1",[entries[i].id])).rows[0].user_id;await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[uid]);await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[amount,uid]);}await client.query("UPDATE tournaments SET status='finished' WHERE id=$1",[t.id]);
       await client.query("COMMIT");
       res.json({ok:true,ranked:entries.length});
     }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not finish tournament"});}
@@ -215,7 +215,7 @@ function initCommunity(app,pool,auth){
       const entries=(await client.query("SELECT user_id FROM giveaway_entries WHERE giveaway_id=$1 ORDER BY id",[g.id])).rows;
       if(!entries.length)return rollback(client,res,400,"No giveaway entries yet.");
       const winner=entries[crypto.randomInt(entries.length)].user_id;
-      await client.query("UPDATE giveaways SET winner_user_id=$1,status='finished' WHERE id=$2",[winner,g.id]);
+      await client.query("UPDATE giveaways SET winner_user_id=$1,status='finished' WHERE id=$2",[winner,g.id]);\n      await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[winner]);await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[Number(g.prize_usdt),winner]);
       await client.query("COMMIT");
       const user=(await pool.query("SELECT name,email FROM users WHERE id=$1",[winner])).rows[0];
       res.json({ok:true,winner:user});
