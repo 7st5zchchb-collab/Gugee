@@ -9,7 +9,7 @@ const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),windo
 const DIRECT_COIN_GECKO="https://api.coingecko.com/api/v3/coins/markets";
 const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
-const PAGE_SIZE=50;
+const PAGE_SIZE=100;
 let allCoins=[],loading=false,currentPage=1;
 
 const fallbackCoins=[
@@ -58,7 +58,7 @@ function coinCard(c){
   return '<div class="crypto-directory-card" role="link" tabindex="0" data-coin-link="'+encodeURIComponent(c.id)+'">'+
     '<button class="crypto-favorite-button '+(fav?"active":"")+'" data-favorite="'+String(c.id).replace(/"/g,"&quot;")+'" aria-label="'+(fav?"Remove from favorites":"Add to favorites")+'" title="'+(fav?"Remove from favorites":"Add to favorites")+'">'+(fav?"★":"☆")+'</button>'+
     '<a class="crypto-directory-main" href="crypto.html?coin='+encodeURIComponent(c.id)+'">'+
-    '<img src="'+logoFor(c)+'" alt="'+String(c.name||"Crypto")+' logo" loading="lazy"").toLowerCase())+'@2x.png\';">'+
+    '<img src="'+logoFor(c)+'" alt="'+String(c.name||"Crypto")+' logo" loading="lazy">'+
     '<span class="crypto-directory-info"><b>'+String(c.name||"Unknown")+'</b><small>'+String(c.symbol||"").toUpperCase()+'</small></span>'+
     '<strong>'+(Number.isFinite(price)&&price>0?"$"+price.toLocaleString("en-US",{maximumFractionDigits:price>=1?2:8}):"--")+'</strong>'+
     '<span class="'+(ch>=0?"positive":"negative")+'">'+(Number.isFinite(ch)&&price>0?(ch>=0?"+":"")+ch.toFixed(2)+"%":"Live")+'</span>'+
