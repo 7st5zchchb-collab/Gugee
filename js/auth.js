@@ -28,22 +28,44 @@ window.gugeeAuth={getCurrentUser,setCurrentUser,refreshCurrentUser,logout,api};
 function initGlobalNavigation(){
   const header=document.querySelector(".site-header");
   if(!header)return;
+
   let nav=header.querySelector(".nav");
   if(!nav){
-    nav=document.createElement("nav"); nav.className="nav"; nav.id="siteNav";
-    nav.innerHTML='<a href="markets.html">Markets</a><a href="trading.html">Trading</a><a href="tournaments.html">Tournaments</a><a href="giveaways.html">Giveaways</a><a href="referrals.html">Referrals</a><a href="./#analysis">Analysis</a><a href="./#exchanges">Exchanges</a>';
-    const login=header.querySelector(".login-button"); header.insertBefore(nav,login||null);
+    nav=document.createElement("nav");
+    nav.className="nav";
+    nav.id="siteNav";
+    const login=header.querySelector(".login-button");
+    header.insertBefore(nav,login||null);
   }
+
+  nav.innerHTML='<a href="markets.html">Markets</a><a href="cryptos.html">Crypto</a><a href="analysis.html">Analysis</a><a href="exchanges.html">Exchanges</a><details class="nav-menu"><summary>Community</summary><div class="nav-menu-panel"><a href="tournaments.html">Tournaments</a><a href="giveaways.html">Giveaways</a><a href="referrals.html">Referrals</a></div></details>';
+
   let toggle=header.querySelector(".mobile-nav-toggle");
   if(!toggle){
-    toggle=document.createElement("button"); toggle.className="mobile-nav-toggle"; toggle.id="mobileNavToggle"; toggle.type="button"; toggle.setAttribute("aria-label","Open navigation"); toggle.setAttribute("aria-expanded","false"); toggle.innerHTML="<span></span><span></span><span></span>";
+    toggle=document.createElement("button");
+    toggle.className="mobile-nav-toggle";
+    toggle.id="mobileNavToggle";
+    toggle.type="button";
+    toggle.setAttribute("aria-label","Open navigation");
+    toggle.setAttribute("aria-expanded","false");
+    toggle.innerHTML="<span></span><span></span><span></span>";
     header.insertBefore(toggle,nav);
   }
+
   if(!toggle.dataset.bound){
     toggle.dataset.bound="1";
-    toggle.onclick=()=>{const open=nav.classList.toggle("mobile-open");toggle.classList.toggle("active",open);toggle.setAttribute("aria-expanded",String(open));};
-    nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>{nav.classList.remove("mobile-open");toggle.classList.remove("active");toggle.setAttribute("aria-expanded","false")}));
+    toggle.onclick=()=>{
+      const open=nav.classList.toggle("mobile-open");
+      toggle.classList.toggle("active",open);
+      toggle.setAttribute("aria-expanded",String(open));
+    };
   }
+
+  nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>{
+    nav.classList.remove("mobile-open");
+    toggle.classList.remove("active");
+    toggle.setAttribute("aria-expanded","false");
+  }));
 }
 function renderAuthNav(){
   const button=document.querySelector(".login-button");
