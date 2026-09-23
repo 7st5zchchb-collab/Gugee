@@ -1923,3 +1923,101 @@ html,body{max-width:100%;overflow-x:hidden}
   .global-chart-ranges{grid-template-columns:repeat(2,1fr)}
   .markets-intro h1{font-size:24px}
 }
+
+
+/* Final unified Markets + header layout pass */
+.site-header{
+  grid-template-columns:auto minmax(0,1fr) auto auto;
+  gap:18px;
+}
+.site-header .nav{min-width:0}
+.site-header .notification-bell-wrap{grid-column:auto}
+.site-header .login-button{grid-column:auto}
+
+.markets-page{
+  width:min(1180px,calc(100% - 40px));
+  margin:34px auto 80px;
+}
+.markets-intro{
+  width:100%;
+  padding:22px 0 20px;
+  margin:0 0 10px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:28px;
+}
+.markets-intro>div{min-width:0}
+.markets-intro h1{font-size:34px;line-height:1.12;letter-spacing:-1px}
+.markets-intro p:not(.section-label){max-width:760px;font-size:11px;line-height:1.7}
+.market-search{width:min(400px,100%);flex:0 0 min(400px,42%);box-sizing:border-box}
+
+.global-stats{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.markets-bitcoin-feature{grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:14px;margin:12px 0;padding:20px}
+.markets-live-board{margin:12px 0;padding:16px}
+.markets-live-heading{align-items:flex-end}
+.market-main-assets{margin:12px 0;padding:16px}
+.market-main-assets-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.market-trending-heatmap{grid-template-columns:minmax(280px,.8fr) minmax(0,1.7fr);margin:12px 0}
+.market-sentiment{margin:12px 0}
+.market-stats-grid{margin:12px 0}
+.market-categories{margin:12px 0;padding:16px}
+.market-pulse{margin:12px 0}
+.global-chart-section{margin:12px 0;padding:16px}
+.market-condition-panel,.market-next-section{width:100%;box-sizing:border-box;margin:12px 0}
+.market-condition-panel{padding:16px!important}
+.market-education{width:100%;box-sizing:border-box;margin:12px 0}
+.market-next-section{margin-bottom:60px}
+.exchange-overview{margin:12px 0;padding:16px}
+footer{width:100%;box-sizing:border-box}
+
+@media(max-width:1000px){
+  .markets-page{width:min(1180px,calc(100% - 32px))}
+  .markets-intro{align-items:flex-start}
+  .market-search{flex:0 1 360px}
+  .global-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .markets-bitcoin-feature{grid-template-columns:1fr}
+  .market-main-assets-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+@media(max-width:700px){
+  .site-header{
+    grid-template-columns:minmax(0,1fr) 40px auto auto;
+    gap:8px;
+    padding:0 12px;
+  }
+  .site-header .nav{
+    left:12px;
+    right:12px;
+    top:66px;
+  }
+  .site-header .notification-bell-wrap{justify-self:end}
+  .site-header .login-button{justify-self:end}
+  .markets-page{width:calc(100% - 24px);margin:22px auto 60px}
+  .markets-intro{width:100%;padding:18px 0 16px;gap:14px}
+  .markets-intro h1{font-size:26px}
+  .market-search{width:100%;flex:1 1 auto}
+  .global-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .markets-bitcoin-feature{grid-template-columns:1fr;padding:13px}
+  .markets-live-board{padding:12px}
+  .market-main-assets-grid{grid-template-columns:1fr}
+  .market-trending-heatmap{grid-template-columns:1fr}
+  .market-sentiment{grid-template-columns:1fr}
+  .market-stats-grid{grid-template-columns:1fr 1fr}
+  .market-categories-grid{grid-template-columns:1fr 1fr}
+  .market-pulse{grid-template-columns:1fr}
+  .market-pulse-card:last-child{grid-column:auto}
+  .market-education{grid-template-columns:1fr!important}
+  .market-next-section{flex-direction:column;align-items:flex-start}
+  .exchange-overview-grid{grid-template-columns:1fr 1fr}
+}
+
+@media(max-width:480px){
+  .site-header{grid-template-columns:minmax(0,1fr) 38px auto auto}
+  .site-header .notification-bell{width:34px;height:34px}
+  .site-header .login-button{height:34px;min-height:34px;padding:0 10px;font-size:9px}
+  .global-stats,.market-stats-grid,.market-categories-grid,.exchange-overview-grid{grid-template-columns:1fr}
+  .markets-live-controls{grid-template-columns:1fr}
+  .markets-bitcoin-metrics{grid-template-columns:1fr}
+  .global-chart-ranges{grid-template-columns:repeat(2,1fr)}
+}
