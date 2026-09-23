@@ -1715,3 +1715,38 @@ footer {
   .site-header .user-handle{max-width:64px}
   .site-header .login-button{padding:0 8px!important}
 }
+
+/* Gugee unified exchange-style page system */
+.page-shell,.cryptos-directory,.exchanges-directory,.analysis-page{width:min(1180px,calc(100% - 40px));margin:42px auto 90px}
+.cryptos-directory-hero,.exchanges-directory-hero,.analysis-hero,.markets-intro{
+ display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding:26px 0 22px;border-bottom:1px solid #202024;margin-bottom:14px
+}
+.cryptos-directory-hero h1,.exchanges-directory-hero h1,.analysis-hero h1,.markets-intro h1{font-size:36px;letter-spacing:-1.6px;margin:6px 0}
+.cryptos-directory-hero p:not(.section-label),.exchanges-directory-hero p:not(.section-label),.analysis-hero p:not(.section-label),.markets-intro p:not(.section-label){color:#77777f;font-size:12px;line-height:1.7;max-width:720px}
+.crypto-directory-search,.exchange-directory-search,.market-search input,.markets-live-controls input,.markets-live-controls select{
+ background:#0b0b0d;border:1px solid #29292f;color:#eee;border-radius:9px;padding:12px 13px;font-size:11px;outline:none
+}
+.crypto-directory-search,.exchange-directory-search{width:min(310px,100%)}
+.crypto-directory-search:focus,.exchange-directory-search:focus,.market-search input:focus,.markets-live-controls input:focus{border-color:#45454d}
+.crypto-favorites-section,.crypto-others-section,.exchanges-directory-grid-wrap{background:#0b0b0d;border:1px solid #242429;border-radius:13px;padding:18px;margin-bottom:12px}
+.crypto-favorites-heading,.crypto-directory-toolbar{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:14px}
+.crypto-favorites-heading h2{font-size:16px;margin-top:3px}.crypto-favorites-heading span,.crypto-directory-toolbar{color:#66666d;font-size:10px}
+.crypto-directory-grid,.crypto-favorites-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.crypto-directory-card{min-width:0;background:#0d0d10;border:1px solid #242429;border-radius:10px;transition:.15s}
+.crypto-directory-card:hover{border-color:#3b3b43;transform:translateY(-1px)}
+.crypto-directory-main{display:flex;align-items:center;gap:10px;padding:13px;color:#eee;text-decoration:none;min-width:0}
+.crypto-directory-main img{width:30px;height:30px;border-radius:50%;background:#151518;flex:none}
+.crypto-directory-info{display:flex;flex-direction:column;min-width:0;flex:1;gap:3px}.crypto-directory-info b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.crypto-directory-info small{font-size:9px;color:#66666d}.crypto-directory-main strong{font-size:11px;white-space:nowrap}.crypto-directory-main .positive,.crypto-directory-main .negative{font-size:9px;white-space:nowrap}
+.crypto-others-more{display:block;margin-top:10px;padding:12px;text-align:center;border:1px solid #29292f;border-radius:9px;color:#aaa;text-decoration:none;font-size:10px;background:#101012}.crypto-others-more:hover{color:#fff;border-color:#444}
+.exchanges-directory-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.exchange-directory-card{display:flex;align-items:center;gap:11px;min-width:0;padding:15px;background:#0b0b0d;border:1px solid #242429;border-radius:10px;color:#eee;text-decoration:none;transition:.15s}
+.exchange-directory-card:hover{border-color:#414149;transform:translateY(-1px)}
+.exchange-directory-logo{width:34px;height:34px;object-fit:contain;border-radius:9px;background:#151518;padding:4px;flex:none}
+.exchange-directory-info{display:flex;flex-direction:column;gap:4px;min-width:0}.exchange-directory-info b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.exchange-directory-info span{font-size:8px;color:#66666d}.exchange-directory-arrow{margin-left:auto;color:#555;flex:none}
+.exchange-directory-count{color:#66666d;font-size:10px;margin:0 0 10px}
+.analysis-live-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}.analysis-live-card{background:#0b0b0d;border:1px solid #242429;border-radius:12px;padding:18px}.analysis-live-card span{display:block;color:#66666d;font-size:9px;letter-spacing:.7px}.analysis-live-card strong{display:block;font-size:21px;margin:9px 0}.analysis-live-card small{color:#77777f;font-size:9px}
+.analysis-learning-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.analysis-lesson{background:#0b0b0d;border:1px solid #242429;border-radius:12px;padding:22px}.analysis-lesson>span{color:#35e08b;font-size:10px}.analysis-lesson h2{font-size:17px;margin:8px 0}.analysis-lesson p,.analysis-lesson li{color:#77777f;font-size:11px;line-height:1.7}.analysis-lesson ul{padding-left:18px}
+.analysis-indicator-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.analysis-indicator-grid article{padding:16px;background:#0b0b0d;border:1px solid #242429;border-radius:10px}.analysis-indicator-grid b{font-size:11px}.analysis-indicator-grid p{font-size:10px;color:#77777f;line-height:1.6}
+@media(max-width:900px){.crypto-directory-grid,.crypto-favorites-grid{grid-template-columns:repeat(3,1fr)}.exchanges-directory-grid{grid-template-columns:repeat(3,1fr)}.analysis-indicator-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.page-shell,.cryptos-directory,.exchanges-directory,.analysis-page{width:calc(100% - 24px);margin-top:25px}.cryptos-directory-hero,.exchanges-directory-hero,.analysis-hero,.markets-intro{align-items:flex-start;flex-direction:column}.cryptos-directory-hero h1,.exchanges-directory-hero h1,.analysis-hero h1,.markets-intro h1{font-size:29px}.crypto-directory-search,.exchange-directory-search{width:100%}.crypto-directory-grid,.crypto-favorites-grid,.exchanges-directory-grid,.analysis-learning-grid{grid-template-columns:1fr 1fr}.analysis-live-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.crypto-directory-grid,.crypto-favorites-grid,.exchanges-directory-grid,.analysis-live-grid,.analysis-indicator-grid{grid-template-columns:1fr}.crypto-directory-main{padding:12px}.exchange-directory-card{padding:13px}.analysis-learning-grid{grid-template-columns:1fr}}
