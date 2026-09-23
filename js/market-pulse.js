@@ -73,3 +73,31 @@ async function refresh(){
 }
 refresh();setInterval(refresh,60000);
 })();
+(function(){
+const apiBases=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,""),"https://gugee.onrender.com"])].filter(Boolean);
+async function get(path){for(const base of apiBases){try{const r=await fetch(base+path,{cache:"no-store",headers:{accept:"application/json"}});if(r.ok)return await r.json()}catch{}}return null}
+function money(v){const n=Number(v);return Number.isFinite(n)?"$"+n.toLocaleString("en-US",{maximumFractionDigits:2}):"--"}
+function compact(v){const n=Number(v);return Number.isFinite(n)?"$"+new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(n):"--"}
+async function sentiment(){
+ const d=await get("https://api.alternative.me/fng/?limit=1");
+ const x=d?.data?.[0]; if(!x)return;
+ const value=Number(x.value); document.getElementById("sentimentValue").textContent=Number.isFinite(value)?value:"--";
+ document.getElementById("sentimentLabel").textContent=x.value_classification||"Unknown";
+ document.getElementById("sentimentTime").textContent=x.timestamp?new Date(Number(x.timestamp)*1000).toLocaleString():"--";
+ document.getElementById("sentimentUpdated").textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
+ const m=document.getElementById("sentimentMarker"); if(m)m.style.left=Math.max(0,Math.min(100,value))+"%";
+}
+async function globalStats(){
+ const d=await get("/api/coingecko/global"); const x=d?.data;if(!x)return;
+ document.getElementById("pulseActiveCrypto").textContent=Number(x.active_cryptocurrencies||0).toLocaleString();
+ document.getElementById("pulseGlobalVolume").textContent=compact(x.total_volume?.usd);
+ const capChange=Number(x.market_cap_change_percentage_24h_usd);
+ const capEl=document.getElementById("pulseMarketCapChange");capEl.textContent=Number.isFinite(capChange)?(capChange>=0?"+":"")+capChange.toFixed(2)+"%":"--";capEl.className=capChange>=0?"positive":"negative";
+ const dom=Number(x.market_cap_percentage?.btc);document.getElementById("pulseBtcDominance").textContent=Number.isFinite(dom)?dom.toFixed(2)+"%":"--";document.getElementById("dominanceFill").style.width=Math.max(0,Math.min(100,dom||0))+"%";
+}
+async function btcVolume(){
+ const d=await get("/api/coingecko/coins/markets?vs_currency=usd&ids=bitcoin&sparkline=false");const x=d?.[0];if(x)document.getElementById("pulseBtcVolume").textContent=compact(x.total_volume);
+}
+async function refreshExtras(){await Promise.all([sentiment(),globalStats(),btcVolume()])}
+refreshExtras();setInterval(refreshExtras,60000);
+})();
