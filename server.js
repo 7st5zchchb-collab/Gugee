@@ -188,7 +188,8 @@ async function fearGreedProxy(req,res){
   }catch(e){res.status(502).json({error:"Fear & Greed service unavailable"});}
 }
 
-app.get("/api/market/fear-greed",fearGreedProxy);\napp.get("/api/coingecko/top1000",top1000Coins);
+app.get("/api/market/fear-greed",fearGreedProxy);
+app.get("/api/coingecko/top1000",top1000Coins);
 app.use("/api/coingecko",coingeckoProxy);
 
 app.use("/api/exchanges",async(req,res)=>{
