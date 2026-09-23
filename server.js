@@ -399,6 +399,7 @@ async function initDb(){
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE");
   const statements=[
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_hash TEXT",
