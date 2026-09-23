@@ -4,7 +4,7 @@ const pulseLosers=document.getElementById("pulseLosers");
 const pulseVolume=document.getElementById("pulseVolume");
 const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,""),"https://gugee.onrender.com"])].filter(Boolean);
 function pulseLogo(c){return c.image||"https://assets.coincap.io/assets/icons/"+encodeURIComponent(String(c.symbol||"").toLowerCase())+"@2x.png"}
-function pulseMoney(v){const n=Number(v);if(!Number.isFinite(n))return"--";if(n>=1000)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:2});if(n>=1)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:4});return"$"+n.toLocaleString("en-US",{maximumFractionDigits:8});})}
+function pulseMoney(v){const n=Number(v);if(!Number.isFinite(n))return"--";if(n>=1000)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:2});if(n>=1)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:4});return"$"+n.toLocaleString("en-US",{maximumFractionDigits:8});}
 function pulseCompact(v){const n=Number(v);if(!Number.isFinite(n))return"--";return"$"+new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(n)}
 function pulseItems(list){
  return list.slice(0,5).map(c=>{
@@ -38,7 +38,7 @@ setInterval(loadPulse,60000);
 (function(){
 const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,""),"https://gugee.onrender.com"])].filter(Boolean);
 function baseFetch(path){return Promise.all(API_BASES.map(base=>fetch(base+path,{cache:"no-store",headers:{accept:"application/json"}}).then(r=>r.ok?r.json():Promise.reject()).catch(()=>null))).then(xs=>xs.find(Boolean))}
-function money(v){const n=Number(v);if(!Number.isFinite(n))return"--";if(n>=1000)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:2});if(n>=1)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:4});return"$"+n.toLocaleString("en-US",{maximumFractionDigits:8});}):"--"}
+function money(v){const n=Number(v);if(!Number.isFinite(n))return"--";if(n>=1000)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:2});if(n>=1)return"$"+n.toLocaleString("en-US",{maximumFractionDigits:4});return"$"+n.toLocaleString("en-US",{maximumFractionDigits:8}):"--"}
 function compact(v){const n=Number(v);return Number.isFinite(n)?"$"+new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(n):"--"}
 function logo(c){return c.image||"https://assets.coincap.io/assets/icons/"+encodeURIComponent(String(c.symbol||"").toLowerCase())+"@2x.png"}
 function mainCard(prefix,c){
