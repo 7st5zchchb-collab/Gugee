@@ -1523,3 +1523,86 @@ footer {
 .crypto-others-section{margin-top:4px}
 .crypto-others-more{display:block;width:max-content;max-width:100%;margin:18px auto 0;padding:11px 16px;border:1px solid #292b31;border-radius:9px;color:#ddd;text-decoration:none;font-size:10px;background:#0d0e10;transition:.15s ease}
 .crypto-others-more:hover{border-color:#35e08b;color:#35e08b;transform:translateY(-1px)}
+
+
+/* 1000-coin pagination + mobile directory */
+.crypto-pagination{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:7px;
+  margin:20px 0 4px;
+}
+.crypto-pagination button{
+  min-width:34px;
+  height:34px;
+  padding:0 10px;
+  border:1px solid #292b31;
+  border-radius:8px;
+  background:#0d0e10;
+  color:#aeb1b8;
+  font-size:10px;
+  cursor:pointer;
+}
+.crypto-pagination button:hover:not(:disabled){
+  border-color:#35e08b;
+  color:#35e08b;
+}
+.crypto-pagination button.active{
+  border-color:#35e08b;
+  background:#35e08b;
+  color:#07100b;
+  font-weight:800;
+}
+.crypto-pagination button:disabled{
+  opacity:.35;
+  cursor:not-allowed;
+}
+.crypto-pagination .crypto-page-arrow{
+  font-size:18px;
+  line-height:1;
+}
+.crypto-page-label{
+  margin-left:8px;
+  color:#62656d;
+  font-size:9px;
+}
+@media(max-width:650px){
+  .crypto-directory-card{
+    min-width:0;
+  }
+  .crypto-directory-main{
+    grid-template-columns:32px minmax(0,1fr) auto;
+    column-gap:8px;
+    padding:12px 38px 12px 11px;
+  }
+  .crypto-directory-main img{
+    width:30px;
+    height:30px;
+  }
+  .crypto-directory-info b{font-size:10px}
+  .crypto-directory-card>strong,.crypto-directory-main>strong{font-size:9px}
+  .crypto-directory-main>.positive,.crypto-directory-main>.negative{font-size:8px}
+  .crypto-pagination{gap:5px;margin-top:16px}
+  .crypto-pagination button{min-width:31px;height:32px;padding:0 8px}
+  .crypto-page-label{width:100%;margin:2px 0 0;text-align:center}
+}
+@media(max-width:430px){
+  .crypto-directory-main{
+    grid-template-columns:34px minmax(0,1fr);
+    grid-template-rows:auto auto;
+  }
+  .crypto-directory-main>strong{
+    grid-column:2;
+    grid-row:2;
+    justify-self:start;
+    margin-top:3px;
+  }
+  .crypto-directory-main>.positive,.crypto-directory-main>.negative{
+    grid-column:2;
+    grid-row:2;
+    justify-self:end;
+    margin-top:3px;
+  }
+}
