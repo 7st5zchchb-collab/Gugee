@@ -410,7 +410,7 @@ async function initDb(){
     CREATE TABLE IF NOT EXISTS wallet_transactions(
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      type TEXT NOT NULL CHECK(type IN ('buy','usdt_adjustment')),
+      type TEXT NOT NULL CHECK(type IN ('buy','usdt_adjustment','tournament_entry','tournament_prize','giveaway_prize','referral_reward','subscription')),
       coin_id TEXT,
       symbol TEXT,
       quantity NUMERIC(40,18),
@@ -437,7 +437,7 @@ app.post("/api/subscriptions/subscribe",auth,async(req,res)=>{
   const prices={free:0,pro:5,elite:25};
   if(!(plan in prices))return res.status(400).json({error:"Invalid subscription plan."});
   const client=await pool.connect();try{await client.query("BEGIN");
-    if(plan!=="free"){await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[req.user.id]);const w=await client.query("UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",[prices[plan],req.user.id]);if(!w.rowCount)return rollback(client,res,400,"Insufficient USDT balance.");}
+    if(plan!=="free"){await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[req.user.id]);const w=await client.query("UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",[prices[plan],req.user.id]);if(!w.rowCount)return rollback(client,res,400,"Insufficient USDT balance.");await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount) VALUES($1,$2,$3)",[req.user.id,"subscription",-prices[plan]]);}
     await client.query("INSERT INTO subscriptions(user_id,plan,price_usdt,status,expires_at) VALUES($1,$2,$3,'active',NOW()+INTERVAL '30 days') ON CONFLICT(user_id) DO UPDATE SET plan=EXCLUDED.plan,price_usdt=EXCLUDED.price_usdt,status='active',started_at=NOW(),expires_at=EXCLUDED.expires_at",[req.user.id,plan,prices[plan]]);
     await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,$2,$3,$4)",[req.user.id,"Subscription activated",plan.toUpperCase()+" plan is now active for 30 days.","subscription"]);
     await client.query("COMMIT");res.json({ok:true,plan,price_usdt:prices[plan]});
