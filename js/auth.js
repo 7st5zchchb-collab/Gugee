@@ -150,9 +150,16 @@ function initNotificationsBell(){
   document.addEventListener("click",e=>{if(!wrap.contains(e.target)){dropdown.hidden=true;bell.setAttribute("aria-expanded","false")}});
   loadNotificationsBell();
 }
+function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));}
 async function loadNotificationsBell(){
-  const box=document.getElementById("notificationItems"),count=document.getElementById("notificationCount");if(!box||!count)return;
-  try{const data=await api("/api/notifications"),notes=data.notifications||[],unread=notes.filter(n=>!n.read_at);count.textContent=unread.length>99?"99+":String(unread.length);count.hidden=!unread.length;box.innerHTML=notes.slice(0,8).map(n=>'<button class="notification-item '+(n.read_at?'':'unread')+'" data-notification-id="'+n.id+'" type="button"><b>'+String(n.title)+'</b><span>'+String(n.message)+'</span><small>'+new Date(n.created_at).toLocaleString()+'</small></button>').join("")||'<span class="notification-empty">No notifications yet.</span>';box.querySelectorAll(".notification-item").forEach(item=>item.onclick=async()=>{await api("/api/notifications/"+item.dataset.notificationId+"/read",{method:"POST"}).catch(()=>{});await loadNotificationsBell()})}catch(e){box.innerHTML='<span class="notification-empty">Notifications unavailable.</span>'}
+  const box=document.getElementById("notificationItems"),count=document.getElementById("notificationCount");
+  if(!box||!count)return;
+  try{
+    const data=await api("/api/notifications"),notes=data.notifications||[],unread=notes.filter(n=>!n.read_at);
+    count.textContent=unread.length>99?"99+":String(unread.length);count.hidden=!unread.length;
+    box.innerHTML=notes.slice(0,8).map(n=>'<button class="notification-item '+(n.read_at?'':'unread')+'" data-notification-id="'+escapeHtml(n.id)+'" type="button"><b>'+escapeHtml(n.title)+'</b><span>'+escapeHtml(n.message)+'</span><small>'+escapeHtml(new Date(n.created_at).toLocaleString())+'</small></button>').join("")||'<span class="notification-empty">No notifications yet.</span>';
+    box.querySelectorAll(".notification-item").forEach(item=>item.onclick=async()=>{await api("/api/notifications/"+encodeURIComponent(item.dataset.notificationId)+"/read",{method:"POST"}).catch(()=>{});await loadNotificationsBell()});
+  }catch(e){box.innerHTML='<span class="notification-empty">Notifications unavailable.</span>'}
 }
 document.addEventListener("DOMContentLoaded",async()=>{
   await refreshCurrentUser();initGlobalNavigation();renderAuthNav();initLogin();initRegister();if(getCurrentUser())initNotificationsBell();
