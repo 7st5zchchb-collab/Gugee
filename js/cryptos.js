@@ -8,7 +8,8 @@ const othersPreview=document.getElementById("cryptoOthersPreview");
 const API="/api/coingecko/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=";
 const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
-let allCoins=[],loading=false;
+const PAGE_SIZE=50;
+let allCoins=[],loading=false,currentPage=1;
 
 const fallbackCoins=[
 {id:"bitcoin",name:"Bitcoin",symbol:"btc",current_price:0,price_change_percentage_24h:0,image:"https://assets.coingecko.com/coins/images/1/large/bitcoin.png"},
@@ -31,27 +32,17 @@ function getFavorites(){
     return Array.isArray(value)?value.slice(0,MAX_FAVORITES):[];
   }catch{return [];}
 }
-
-function saveFavorites(items){
-  localStorage.setItem(FAVORITES_KEY,JSON.stringify(items.slice(0,MAX_FAVORITES)));
-}
-
-function isFavorite(id){
-  return getFavorites().some(x=>x.id===id);
-}
+function saveFavorites(items){localStorage.setItem(FAVORITES_KEY,JSON.stringify(items.slice(0,MAX_FAVORITES)));}
+function isFavorite(id){return getFavorites().some(x=>x.id===id);}
 
 function toggleFavorite(id){
   const coin=allCoins.find(c=>c.id===id);
   if(!coin)return;
   let favorites=getFavorites();
   const exists=favorites.some(x=>x.id===id);
-  if(exists){
-    favorites=favorites.filter(x=>x.id!==id);
-  }else{
-    if(favorites.length>=MAX_FAVORITES){
-      alert("You can select up to 5 favorite cryptocurrencies.");
-      return;
-    }
+  if(exists) favorites=favorites.filter(x=>x.id!==id);
+  else{
+    if(favorites.length>=MAX_FAVORITES){alert("You can select up to 5 favorite cryptocurrencies.");return;}
     favorites.push({id:coin.id,name:coin.name,symbol:coin.symbol,image:coin.image,current_price:coin.current_price,price_change_percentage_24h:coin.price_change_percentage_24h});
   }
   saveFavorites(favorites);
@@ -73,43 +64,10 @@ function coinCard(c){
     '</a></div>';
 }
 
-function renderOthersPreview(){
-  if(!othersPreview)return;
-  const favoriteIds=new Set(getFavorites().map(x=>x.id));
-  const preview=allCoins.filter(c=>!favoriteIds.has(c.id)).slice(0,8);
-  othersPreview.innerHTML=preview.length?preview.map(coinCard).join(""):'<div class="exchange-directory-empty">No cryptocurrencies available.</div>';
+function attachCards(){
   othersPreview.querySelectorAll(".crypto-directory-card[data-coin-link]").forEach(card=>{
-    const openCoin=()=>{ window.location.href="crypto.html?coin="+decodeURIComponent(card.dataset.coinLink); };
-    card.addEventListener("click",event=>{
-      if(event.target.closest("[data-favorite]"))return;
-      openCoin();
-    });
-    card.addEventListener("keydown",event=>{
-      if((event.key==="Enter"||event.key===" ")&&!event.target.closest("[data-favorite]")){
-        event.preventDefault();
-        openCoin();
-      }
-    });
-  });
-  othersPreview.querySelectorAll("[data-favorite]").forEach(button=>{
-    button.addEventListener("click",event=>{
-      event.preventDefault();
-      event.stopPropagation();
-      toggleFavorite(button.dataset.favorite);
-    });
-  });
-}
-
-function render(){
-  if(!othersPreview)return;
-  const q=input.value.trim().toLowerCase();
-  const favoriteIds=new Set(getFavorites().map(x=>x.id));
-  const filtered=allCoins.filter(c=>!favoriteIds.has(c.id)&&(!q||String(c.name||"").toLowerCase().includes(q)||String(c.symbol||"").toLowerCase().includes(q)||String(c.id||"").toLowerCase().includes(q))).slice(0,8);
-  count.textContent=(allCoins.length?allCoins.length:1000)+" cryptocurrencies";
-  othersPreview.innerHTML=filtered.length?filtered.map(coinCard).join(""):'<div class="exchange-directory-empty">No cryptocurrency found.</div>';
-  othersPreview.querySelectorAll(".crypto-directory-card[data-coin-link]").forEach(card=>{
-    const openCoin=()=>{ window.location.href="crypto.html?coin="+decodeURIComponent(card.dataset.coinLink); };
-    card.addEventListener("click",event=>{ if(event.target.closest("[data-favorite]"))return; openCoin(); });
+    const openCoin=()=>{window.location.href="crypto.html?coin="+decodeURIComponent(card.dataset.coinLink);};
+    card.addEventListener("click",event=>{if(event.target.closest("[data-favorite]"))return;openCoin();});
     card.addEventListener("keydown",event=>{
       if((event.key==="Enter"||event.key===" ")&&!event.target.closest("[data-favorite]")){event.preventDefault();openCoin();}
     });
@@ -117,6 +75,54 @@ function render(){
   othersPreview.querySelectorAll("[data-favorite]").forEach(button=>{
     button.addEventListener("click",event=>{event.preventDefault();event.stopPropagation();toggleFavorite(button.dataset.favorite);});
   });
+}
+
+function ensurePagination(){
+  let box=document.getElementById("cryptoPagination");
+  if(!box){
+    box=document.createElement("div");
+    box.id="cryptoPagination";
+    box.className="crypto-pagination";
+    othersPreview.parentElement.appendChild(box);
+  }
+  return box;
+}
+
+function renderPagination(totalPages){
+  const box=ensurePagination();
+  if(totalPages<=1){box.innerHTML="";box.style.display="none";return;}
+  box.style.display="flex";
+  const buttons=[];
+  const start=Math.max(1,currentPage-2);
+  const end=Math.min(totalPages,start+4);
+  for(let p=start;p<=end;p++) buttons.push('<button type="button" class="'+(p===currentPage?"active":"")+'" data-page="'+p+'">'+p+'</button>');
+  box.innerHTML=
+    '<button type="button" class="crypto-page-arrow" data-page="'+Math.max(1,currentPage-1)+'" '+(currentPage===1?"disabled":"")+' aria-label="Previous page">‹</button>'+
+    buttons.join("")+
+    '<button type="button" class="crypto-page-arrow" data-page="'+Math.min(totalPages,currentPage+1)+'" '+(currentPage===totalPages?"disabled":"")+' aria-label="Next page">›</button>'+
+    '<span class="crypto-page-label">Page '+currentPage+' / '+totalPages+'</span>';
+  box.querySelectorAll("button[data-page]").forEach(button=>button.addEventListener("click",()=>{
+    const page=Number(button.dataset.page);
+    if(page===currentPage)return;
+    currentPage=page;
+    render();
+    othersPreview.scrollIntoView({behavior:"smooth",block:"start"});
+  }));
+}
+
+function render(){
+  if(!othersPreview)return;
+  const q=input.value.trim().toLowerCase();
+  const favoriteIds=new Set(getFavorites().map(x=>x.id));
+  const filtered=allCoins.filter(c=>!favoriteIds.has(c.id)&&(!q||String(c.name||"").toLowerCase().includes(q)||String(c.symbol||"").toLowerCase().includes(q)||String(c.id||"").toLowerCase().includes(q)));
+  const totalPages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
+  if(currentPage>totalPages)currentPage=totalPages;
+  const start=(currentPage-1)*PAGE_SIZE;
+  const pageItems=filtered.slice(start,start+PAGE_SIZE);
+  count.textContent=(allCoins.length||1000)+" cryptocurrencies";
+  othersPreview.innerHTML=pageItems.length?pageItems.map(coinCard).join(""):'<div class="exchange-directory-empty">No cryptocurrency found.</div>';
+  attachCards();
+  renderPagination(totalPages);
 }
 
 function renderFavorites(){
@@ -129,17 +135,14 @@ function renderFavorites(){
   favoritesGrid.innerHTML=favorites.map(c=>{
     const live=allCoins.find(x=>x.id===c.id)||c;
     const price=Number(live.current_price);
-    const ch=Number(live.price_change_percentage_24h_in_currency??live.price_change_percentage_24h);
     return '<div class="crypto-favorite-card">'+
       '<a href="crypto.html?coin='+encodeURIComponent(live.id)+'" class="crypto-favorite-link">'+
-      '<img src="'+logoFor(live)+'" alt="'+String(live.name||"Crypto")+' logo" onerror="this.onerror=null;this.src=\'https://assets.coincap.io/assets/icons/'+encodeURIComponent(String(live.symbol||"").toLowerCase())+'@2x.png\';">'+
+      '<img src="'+logoFor(live)+'" alt="'+String(live.name||"Crypto")+' logo" loading="lazy">'+
       '<span><b>'+String(live.name||"Unknown")+'</b><small>'+String(live.symbol||"").toUpperCase()+'</small></span>'+
       '<strong>'+(Number.isFinite(price)&&price>0?"$"+price.toLocaleString("en-US",{maximumFractionDigits:price>=1?2:8}):"--")+'</strong>'+
       '</a><button class="crypto-favorite-remove" data-favorite="'+String(live.id).replace(/"/g,"&quot;")+'" title="Remove">×</button></div>';
   }).join("");
-  favoritesGrid.querySelectorAll(".crypto-favorite-remove").forEach(button=>{
-    button.addEventListener("click",()=>toggleFavorite(button.dataset.favorite));
-  });
+  favoritesGrid.querySelectorAll(".crypto-favorite-remove").forEach(button=>button.addEventListener("click",()=>toggleFavorite(button.dataset.favorite)));
 }
 
 async function load(){
@@ -166,23 +169,19 @@ async function load(){
     const map=new Map();
     [...fallbackCoins,...loaded].forEach(c=>map.set(c.id,c));
     allCoins=Array.from(map.values()).slice(0,1000);
-    loadStatus.textContent="1000 loaded";
+    currentPage=1;
+    loadStatus.textContent=allCoins.length+" loaded";
     render();
     renderFavorites();
-    renderOthersPreview();
   }catch(error){
     console.error("Crypto directory error:",error);
     loadStatus.textContent="Live list unavailable — showing saved fallback";
     render();
     renderFavorites();
-    renderOthersPreview();
-  }finally{
-    loading=false;
-  }
+  }finally{loading=false;}
 }
 
-input.addEventListener("input",render);
+input.addEventListener("input",()=>{currentPage=1;render();});
 renderFavorites();
 render();
-renderOthersPreview();
 load();
