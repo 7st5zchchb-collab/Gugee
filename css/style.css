@@ -1808,3 +1808,24 @@ footer {
   .crypto-directory-grid,.crypto-favorites-grid,.exchanges-directory-grid,.analysis-live-grid,.analysis-learning-grid,.analysis-indicator-grid,.market-grid,.global-stats{grid-template-columns:1fr}
   .site-header .login-button{height:34px;min-height:34px;padding:0 10px;font-size:9px}
 }
+
+/* Shared crypto data + mobile polish */
+.markets-live-table-wrap{width:100%;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.markets-live-table{table-layout:auto}
+@media(max-width:700px){
+  .markets-live-board{padding:12px;border-radius:12px}
+  .markets-live-heading h2{font-size:16px}
+  .markets-live-table-wrap{margin:0 -1px}
+  .markets-live-table{min-width:920px}
+  .markets-live-table th,.markets-live-table td{padding:9px 10px;font-size:8px}
+  .live-asset{min-width:135px}
+  .live-asset img{width:24px;height:24px}
+  .live-asset b{font-size:9px}
+  .live-asset small{font-size:7px}
+}
+@media(max-width:480px){
+  .markets-live-board{margin-left:0;margin-right:0}
+  .markets-live-controls{gap:6px}
+  .markets-live-meta{font-size:8px}
+  .markets-live-table{min-width:900px}
+}
