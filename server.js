@@ -355,6 +355,20 @@ async function initDb(){
       reset_expires_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS wallets(
+      user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      usdt NUMERIC(30,10) NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS wallet_assets(
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      coin_id TEXT NOT NULL,
+      symbol TEXT NOT NULL,
+      quantity NUMERIC(40,18) NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY(user_id,coin_id)
+    );
     CREATE TABLE IF NOT EXISTS watchlist(
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       coin_id TEXT NOT NULL,
@@ -407,6 +421,7 @@ app.post("/api/auth/register",async(req,res)=>{
       '<h2>Welcome to Gugee</h2><p>Verify your email to activate your account.</p><p><a href="'+verifyUrl+'">Verify email</a></p>'
     );
 
+    await pool.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[rows[0].id]);
     setAuthCookie(res,signUser(rows[0]));
     res.status(201).json({user:rows[0],verificationSent});
   }catch(e){
@@ -510,6 +525,52 @@ app.get("/api/auth/me",auth,(req,res)=>res.json({user:req.user}));
 app.post("/api/auth/logout",(req,res)=>{
   clearAuthCookie(res);
   res.json({ok:true});
+});
+
+app.get("/api/wallet",auth,async(req,res)=>{
+  try{
+    await pool.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[req.user.id]);
+    const wallet=(await pool.query("SELECT usdt,created_at,updated_at FROM wallets WHERE user_id=$1",[req.user.id])).rows[0];
+    const assets=(await pool.query("SELECT coin_id,symbol,quantity,updated_at FROM wallet_assets WHERE user_id=$1 AND quantity<>0 ORDER BY updated_at DESC",[req.user.id])).rows;
+    res.json({wallet:{usdt:Number(wallet.usdt),created_at:wallet.created_at,updated_at:wallet.updated_at},assets:assets.map(a=>({...a,quantity:Number(a.quantity)}))});
+  }catch(e){
+    console.error(e);
+    res.status(500).json({error:"Could not load wallet"});
+  }
+});
+
+app.post("/api/wallet/usdt",auth,async(req,res)=>{
+  const amount=Number(req.body.amount);
+  if(!Number.isFinite(amount)||amount===0)return res.status(400).json({error:"Amount must be a non-zero number."});
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[req.user.id]);
+    const result=await client.query(
+      "UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2 AND usdt+$1>=0 RETURNING usdt",
+      [amount,req.user.id]
+    );
+    if(!result.rows[0]){
+      await client.query("ROLLBACK");
+      return res.status(400).json({error:"Insufficient USDT balance."});
+    }
+    await client.query("COMMIT");
+    res.json({usdt:Number(result.rows[0].usdt)});
+  }catch(e){
+    await client.query("ROLLBACK");
+    console.error(e);
+    res.status(500).json({error:"Could not update USDT balance"});
+  }finally{client.release();}
+});
+
+app.get("/api/wallet/assets",auth,async(req,res)=>{
+  try{
+    const {rows}=await pool.query("SELECT coin_id,symbol,quantity,updated_at FROM wallet_assets WHERE user_id=$1 AND quantity<>0 ORDER BY updated_at DESC",[req.user.id]);
+    res.json({assets:rows.map(a=>({...a,quantity:Number(a.quantity)}))});
+  }catch(e){
+    console.error(e);
+    res.status(500).json({error:"Could not load crypto assets"});
+  }
 });
 
 app.get("/api/watchlist",auth,async(req,res)=>{
