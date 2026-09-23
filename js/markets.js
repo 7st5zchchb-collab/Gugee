@@ -20,8 +20,9 @@ async function loadLiveCoins(){
  if(!liveMarketRows)return;
  try{
    const limit=Math.min(250,Math.max(50,Number(liveCoinLimit?.value||100)));
-   const data=await api("/api/coingecko/coins/markets?vs_currency=usd&order=market_cap_desc&per_page="+limit+"&page=1&sparkline=false&price_change_percentage=24h");
-   liveCoins=Array.isArray(data)?data:[];
+   const payload=await api("/api/coingecko/top1000");
+   const data=Array.isArray(payload?.coins)?payload.coins:[];
+   liveCoins=data.slice(0,limit);
    renderLiveCoins();
    liveMarketStatus.textContent=liveCoins.length+" cryptocurrencies • live USD market data";
    liveMarketUpdated.textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
