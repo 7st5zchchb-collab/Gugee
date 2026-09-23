@@ -112,7 +112,7 @@ async function loadCoin(){
   else{els.fallback.textContent=(coin.symbol||"C").slice(0,3).toUpperCase();}
   set(els.price,money(market.current_price?.usd));const ch=Number(market.price_change_percentage_24h||0);set(els.change,pct(ch),colorFor(ch));
   set(els.marketCap,money(market.market_cap?.usd));set(els.volume,money(market.total_volume?.usd));set(els.high,money(market.high_24h?.usd));set(els.low,money(market.low_24h?.usd));set(els.supply,compact(market.circulating_supply));set(els.ath,money(market.ath?.usd));set(els.athDate,market.ath_date?.usd?new Date(market.ath_date.usd).toLocaleDateString():"--");set(els.updated,new Date().toLocaleTimeString());
-  await loadChart("90");await loadExchanges((coin.symbol||"").toUpperCase());
+  try{await loadChart("90");}catch(error){console.warn("Historical analysis unavailable:",error);}  try{await loadExchanges((coin.symbol||"").toUpperCase());}catch(error){console.warn("Exchange analysis unavailable:",error);}
  }catch(e){console.error(e);els.name.textContent="Data unavailable";els.chart.textContent="Could not load cryptocurrency data.";}
 }
 
