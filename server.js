@@ -118,7 +118,10 @@ async function fetchCoinCapTop1000(){
   return payload.data.map(coin=>normalizeMarketCoin({
     id:coin.id,name:coin.name,symbol:coin.symbol,
     image:"https://assets.coincap.io/assets/icons/"+encodeURIComponent(String(coin.symbol||"").toLowerCase())+"@2x.png",
-    current_price:Number(coin.priceUsd),price_change_percentage_24h:Number(coin.changePercent24Hr),
+    current_price:Number(coin.priceUsd),
+    market_cap:Number(coin.marketCapUsd),
+    total_volume:Number(coin.volumeUsd24Hr),
+    price_change_percentage_24h:Number(coin.changePercent24Hr),
     market_cap_rank:Number(coin.rank)||null
   }));
 }
