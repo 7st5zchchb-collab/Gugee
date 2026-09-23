@@ -21,15 +21,18 @@
 <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button><nav class="nav" id="siteNav"><a href="markets.html">Markets</a><a href="trading.html">Trading</a><a href="tournaments.html">Tournaments</a><a href="giveaways.html">Giveaways</a><a href="referrals.html">Referrals</a><a href="./#analysis">Analysis</a><a href="./#exchanges">Exchanges</a></nav>
 <button id="logoutBtn" class="login-button" type="button">Log out</button>
 </header>
-<main class="account-shell"><div id="adminLink"></div>
+<main class="account-shell">
+<div id="adminLink"></div>
 <div class="account-head">
 <div><p class="section-label">GUGEE ACCOUNT</p><h1 id="welcome">Your Account</h1><p class="muted" id="email"></p></div>
 </div>
+
 <section class="account-card">
 <p class="section-label">CASH BALANCE</p>
 <div class="balance" id="usdt">0.00 USDT</div>
-<p class="muted">Your normal wallet balance. Crypto assets are shown separately below.</p>
+<p class="muted">Internal Gugee wallet balance. Purchases and platform rewards are recorded in your transaction history.</p>
 </section>
+
 <section class="account-card" style="margin-top:20px">
 <p class="section-label">BUY CRYPTO</p>
 <h2>Buy with USDT</h2>
@@ -41,45 +44,72 @@
 <p id="buyMessage" class="muted" aria-live="polite"></p>
 </form>
 </section>
+
 <section class="account-card" style="margin-top:20px">
-<p class="section-label">CRYPTO ASSETS</p>
-<h2>Your assets</h2>
+<div class="account-head" style="margin-bottom:12px"><div><p class="section-label">CRYPTO ASSETS</p><h2>Your assets</h2></div><span class="muted" id="walletUpdated">Updating...</span></div>
 <div id="assets" class="asset-list"><p class="muted">Loading...</p></div>
 </section>
+
+<section class="account-card subscription-ui">
+<div class="account-head" style="margin-bottom:10px"><div><p class="section-label">SUBSCRIPTION</p><h2>Your plan</h2></div><span id="subscriptionStatus" class="muted">Loading...</span></div>
+<div class="plan-grid">
+<div class="plan-card" data-plan="free"><h3>Free</h3><div class="plan-price">0 USDT</div><ul><li>Market analytics</li><li>Crypto directory</li><li>Basic account wallet</li></ul><button class="plan-btn" type="button">Select</button></div>
+<div class="plan-card" data-plan="pro"><h3>Pro</h3><div class="plan-price">5 USDT / 30d</div><ul><li>Extended analysis</li><li>Portfolio tracking</li><li>Advanced account features</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
+<div class="plan-card" data-plan="elite"><h3>Elite</h3><div class="plan-price">25 USDT / 30d</div><ul><li>All Pro features</li><li>Priority platform features</li><li>Advanced community access</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
+</div>
+<p id="subscriptionMessage" class="muted" aria-live="polite"></p>
+</section>
+
+<section class="account-card notification-ui">
+<div class="account-head" style="margin-bottom:10px"><div><p class="section-label">NOTIFICATIONS</p><h2>Recent notifications</h2></div></div>
+<div id="notifications" class="notification-list"><p class="muted">Loading...</p></div>
+</section>
+
+<section class="account-card" style="margin-top:20px">
+<div class="account-head" style="margin-bottom:10px"><div><p class="section-label">TRANSACTIONS</p><h2>Wallet history</h2></div></div>
+<div id="transactions" class="notification-list"><p class="muted">Loading...</p></div>
+</section>
 </main>
+
 <script src="js/auth.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded",async()=>{
   const user=await window.gugeeAuth.refreshCurrentUser();
   if(!user){window.location.href="login.html";return;}
-  document.getElementById("welcome").textContent="Welcome, "+(user.name||"User");
-  document.getElementById("email").textContent=user.email;
-  document.getElementById("logoutBtn").onclick=window.gugeeAuth.logout;\n  if(user.is_admin)document.getElementById("adminLink").innerHTML='<a class="auth-submit" style="display:inline-block;text-decoration:none;margin-bottom:20px" href="community-admin.html">Community Admin</a>';
-  const buyForm=document.getElementById("buyForm");
-  const buyCoin=document.getElementById("buyCoin");
-  const buyAmount=document.getElementById("buyAmount");
-  const buyPrice=document.getElementById("buyPrice");
-  const buyMessage=document.getElementById("buyMessage");
+  const $=id=>document.getElementById(id);
+  $("welcome").textContent="Welcome, "+(user.name||"User");
+  $("email").textContent=user.email;
+  $("logoutBtn").onclick=window.gugeeAuth.logout;
+  if(user.is_admin)$("adminLink").innerHTML='<a class="auth-submit" style="display:inline-block;text-decoration:none;margin-bottom:20px" href="community-admin.html">Community Admin</a>';
+
+  const buyForm=$("buyForm"),buyCoin=$("buyCoin"),buyAmount=$("buyAmount"),buyPrice=$("buyPrice"),buyMessage=$("buyMessage");
   let currentPrice=null;
-  let priceTimer=null;
 
   async function loadBuyPrice(){
     const coin=buyCoin.value.trim().toLowerCase();
     if(!coin){currentPrice=null;buyPrice.textContent="Enter a coin ID to load its live price.";return;}
     try{
       const data=await window.gugeeAuth.api("/api/wallet/price?coin="+encodeURIComponent(coin));
-      currentPrice=data.price;
-      buyPrice.textContent=data.symbol+" live price: $"+Number(data.price).toLocaleString("en-US",{maximumFractionDigits:12});
-    }catch(e){
-      currentPrice=null;
-      buyPrice.textContent=e.message;
-    }
+      currentPrice=Number(data.price);
+      buyPrice.textContent=data.symbol+" live price: $"+currentPrice.toLocaleString("en-US",{maximumFractionDigits:12});
+    }catch(e){currentPrice=null;buyPrice.textContent=e.message;}
   }
   buyCoin.addEventListener("change",loadBuyPrice);
   buyCoin.addEventListener("blur",loadBuyPrice);
+
+  async function loadWallet(){
+    try{
+      const data=await window.gugeeAuth.api("/api/wallet");
+      $("usdt").textContent=Number(data.wallet.usdt||0).toFixed(2)+" USDT";
+      $("walletUpdated").textContent="Updated "+new Date(data.wallet.updated_at).toLocaleTimeString();
+      const assets=$("assets");
+      if(!data.assets.length){assets.innerHTML='<p class="muted">No crypto assets yet.</p>';return;}
+      assets.innerHTML=data.assets.map(a=>'<div class="asset"><strong>'+String(a.symbol||a.coin_id).toUpperCase()+'</strong><span>'+Number(a.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+'</span></div>').join("");
+    }catch(e){$("assets").innerHTML='<p class="error">Could not load wallet.</p>';}
+  }
+
   buyForm.addEventListener("submit",async e=>{
-    e.preventDefault();
-    buyMessage.textContent="";
+    e.preventDefault();buyMessage.textContent="";
     if(!currentPrice)await loadBuyPrice();
     if(!currentPrice)return;
     const amount=Number(buyAmount.value);
@@ -88,51 +118,59 @@ document.addEventListener("DOMContentLoaded",async()=>{
       const result=await window.gugeeAuth.api("/api/wallet/buy",{method:"POST",body:JSON.stringify({coinId:buyCoin.value.trim(),usdtAmount:amount})});
       buyMessage.textContent="Bought "+Number(result.purchase.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+" "+result.purchase.symbol+" for "+Number(result.purchase.usdtAmount).toFixed(2)+" USDT.";
       buyAmount.value="";
-      await loadWallet();\n  await loadSubscription();\n  await loadNotifications();
+      await loadWallet();await loadTransactions();await loadNotifications();
     }catch(e){buyMessage.textContent=e.message;}
   });
 
   async function loadSubscription(){
     try{
       const data=await window.gugeeAuth.api("/api/subscriptions");
-      const plan=data.subscription.plan||"free";
+      const sub=data.subscription||{plan:"free",status:"active"};
+      const plan=sub.plan||"free";
+      $("subscriptionStatus").textContent=plan.toUpperCase()+(sub.expires_at?" · expires "+new Date(sub.expires_at).toLocaleDateString():"");
       document.querySelectorAll(".plan-card").forEach(card=>{
-        const active=card.dataset.plan===plan; card.classList.toggle("active",active);
-        const btn=card.querySelector("button"); btn.textContent=active?"Active":(card.dataset.plan==="free"?"Select":"Upgrade");
-        btn.onclick=async()=>{if(active)return;try{const r=await window.gugeeAuth.api("/api/subscriptions/subscribe",{method:"POST",body:JSON.stringify({plan:card.dataset.plan})});document.getElementById("subscriptionMessage").textContent=r.plan.toUpperCase()+" activated.";await loadSubscription();}catch(e){document.getElementById("subscriptionMessage").textContent=e.message;}};
+        const active=card.dataset.plan===plan;
+        card.classList.toggle("active",active);
+        const btn=card.querySelector("button");
+        btn.textContent=active?"Active":(card.dataset.plan==="free"?"Select":"Upgrade");
+        btn.onclick=async()=>{
+          if(active)return;
+          $("subscriptionMessage").textContent="Processing...";
+          try{
+            const result=await window.gugeeAuth.api("/api/subscriptions/subscribe",{method:"POST",body:JSON.stringify({plan:card.dataset.plan})});
+            $("subscriptionMessage").textContent=result.plan.toUpperCase()+" activated.";
+            await loadSubscription();await loadWallet();await loadTransactions();await loadNotifications();
+          }catch(e){$("subscriptionMessage").textContent=e.message;}
+        };
       });
-    }catch(e){document.getElementById("subscriptionMessage").textContent=e.message}
+    }catch(e){$("subscriptionMessage").textContent=e.message;}
   }
+
   async function loadTransactions(){
     try{
       const data=await window.gugeeAuth.api("/api/wallet/transactions");
-      const box=document.getElementById("transactions");
+      const box=$("transactions");
       const labels={buy:"Crypto purchase",subscription:"Subscription",tournament_entry:"Tournament entry",tournament_prize:"Tournament prize",giveaway_prize:"Giveaway prize",referral_reward:"Referral reward",usdt_adjustment:"USDT adjustment"};
       if(!data.transactions.length){box.innerHTML='<p class="muted">No transactions yet.</p>';return;}
-      box.innerHTML=data.transactions.map(t=>{const n=Number(t.usdt_amount||0),sign=n>=0?"+":"-";return '<div class="transaction-row"><div class="transaction-meta"><div class="transaction-type">'+(labels[t.type]||t.type)+'</div><div class="transaction-date">'+new Date(t.created_at).toLocaleString()+'</div></div><div class="transaction-amount '+(n>=0?'plus':'minus')+'">'+sign+Math.abs(n).toFixed(2)+' USDT</div></div>'}).join("");
-    }catch(e){document.getElementById("transactions").innerHTML='<p class="error">Could not load transaction history.</p>'}
+      box.innerHTML=data.transactions.map(t=>{
+        const n=Number(t.usdt_amount||0);
+        const sign=n>=0?"+":"-";
+        return '<div class="notice"><div class="notice-title">'+(labels[t.type]||t.type)+'</div><div class="notice-message">'+sign+Math.abs(n).toFixed(2)+' USDT'+(t.symbol?" · "+String(t.symbol).toUpperCase():"")+(t.quantity?" · "+Number(t.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+" units":"")+'</div><div class="notice-time">'+new Date(t.created_at).toLocaleString()+'</div></div>';
+      }).join("");
+    }catch(e){$("transactions").innerHTML='<p class="error">Could not load transaction history.</p>';}
   }
+
   async function loadNotifications(){
     try{
       const data=await window.gugeeAuth.api("/api/notifications");
-      const box=document.getElementById("notifications");
+      const box=$("notifications");
       if(!data.notifications.length){box.innerHTML='<p class="muted">No notifications yet.</p>';return;}
       box.innerHTML=data.notifications.map(n=>'<div class="notice '+(n.read_at?'':'unread')+'"><div class="notice-title">'+String(n.title)+'</div><div class="notice-message">'+String(n.message)+'</div><div class="notice-time">'+new Date(n.created_at).toLocaleString()+'</div></div>').join("");
       data.notifications.filter(n=>!n.read_at).slice(0,10).forEach(n=>window.gugeeAuth.api("/api/notifications/"+n.id+"/read",{method:"POST"}).catch(()=>{}));
-    }catch(e){document.getElementById("notifications").innerHTML='<p class="error">Could not load notifications.</p>'}
+    }catch(e){$("notifications").innerHTML='<p class="error">Could not load notifications.</p>';}
   }
-  async function loadWallet(){
-  try{
-    const data=await window.gugeeAuth.api("/api/wallet");
-    document.getElementById("usdt").textContent=Number(data.wallet.usdt||0).toFixed(2)+" USDT";
-    const assets=document.getElementById("assets");
-    if(!data.assets.length){assets.innerHTML='<p class="muted">No crypto assets yet.</p>';return;}
-    assets.innerHTML=data.assets.map(a=>'<div class="asset"><strong>'+String(a.symbol||a.coin_id).toUpperCase()+'</strong><span>'+Number(a.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+'</span></div>').join("");
-  }catch(e){
-    document.getElementById("assets").innerHTML='<p class="error">Could not load wallet.</p>';
-  }
-  }
-  await loadWallet();
+
+  await Promise.all([loadWallet(),loadSubscription(),loadTransactions(),loadNotifications()]);
 });
 </script>
 </body>
