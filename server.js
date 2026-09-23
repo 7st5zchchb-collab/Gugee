@@ -387,6 +387,26 @@ async function initDb(){
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE(user_id,exchange_id)
     );
+    CREATE TABLE IF NOT EXISTS subscriptions(
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      plan TEXT NOT NULL CHECK(plan IN ('free','pro','elite')),
+      price_usdt NUMERIC(30,10) NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','cancelled')),
+      started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ,
+      UNIQUE(user_id)
+    );
+    CREATE TABLE IF NOT EXISTS notifications(
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'system',
+      read_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id,created_at DESC);
     CREATE TABLE IF NOT EXISTS wallet_transactions(
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -411,6 +431,21 @@ async function initDb(){
   for(const sql of statements)await pool.query(sql);
 }
 
+app.get("/api/subscriptions",auth,async(req,res)=>{try{const {rows}=await pool.query("SELECT * FROM subscriptions WHERE user_id=$1",[req.user.id]);res.json({subscription:rows[0]||{plan:"free",status:"active",price_usdt:0}})}catch(e){res.status(500).json({error:"Could not load subscription"})}});
+app.post("/api/subscriptions/subscribe",auth,async(req,res)=>{
+  const plan=String(req.body.plan||"").toLowerCase();
+  const prices={free:0,pro:5,elite:25};
+  if(!(plan in prices))return res.status(400).json({error:"Invalid subscription plan."});
+  const client=await pool.connect();try{await client.query("BEGIN");
+    if(plan!=="free"){await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[req.user.id]);const w=await client.query("UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",[prices[plan],req.user.id]);if(!w.rowCount)return rollback(client,res,400,"Insufficient USDT balance.");}
+    await client.query("INSERT INTO subscriptions(user_id,plan,price_usdt,status,expires_at) VALUES($1,$2,$3,'active',NOW()+INTERVAL '30 days') ON CONFLICT(user_id) DO UPDATE SET plan=EXCLUDED.plan,price_usdt=EXCLUDED.price_usdt,status='active',started_at=NOW(),expires_at=EXCLUDED.expires_at",[req.user.id,plan,prices[plan]]);
+    await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,$2,$3,$4)",[req.user.id,"Subscription activated",plan.toUpperCase()+" plan is now active for 30 days.","subscription"]);
+    await client.query("COMMIT");res.json({ok:true,plan,price_usdt:prices[plan]});
+  }catch(e){await client.query("ROLLBACK");res.status(500).json({error:"Could not activate subscription"})}finally{client.release()}
+});
+app.post("/api/subscriptions/cancel",auth,async(req,res)=>{try{await pool.query("UPDATE subscriptions SET status='cancelled',expires_at=NOW() WHERE user_id=$1",[req.user.id]);res.json({ok:true})}catch(e){res.status(500).json({error:"Could not cancel subscription"})}});
+app.get("/api/notifications",auth,async(req,res)=>{try{const {rows}=await pool.query("SELECT * FROM notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50",[req.user.id]);res.json({notifications:rows})}catch(e){res.status(500).json({error:"Could not load notifications"})}});
+app.post("/api/notifications/:id/read",auth,async(req,res)=>{try{await pool.query("UPDATE notifications SET read_at=NOW() WHERE id=$1 AND user_id=$2",[req.params.id,req.user.id]);res.json({ok:true})}catch(e){res.status(500).json({error:"Could not update notification"})}});
 app.get("/api/health",async(req,res)=>{
   try{
     await pool.query("SELECT 1");
