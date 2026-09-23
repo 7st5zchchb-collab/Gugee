@@ -419,6 +419,8 @@ async function initDb(){
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  await pool.query("ALTER TABLE wallet_transactions DROP CONSTRAINT IF EXISTS wallet_transactions_type_check");
+  await pool.query("ALTER TABLE wallet_transactions ADD CONSTRAINT wallet_transactions_type_check CHECK(type IN ('buy','usdt_adjustment','tournament_entry','tournament_prize','giveaway_prize','referral_reward','subscription'))");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE");
   await pool.query("UPDATE users SET is_admin=TRUE WHERE LOWER(email)='gurgensirunyan111@gmail.com'");
   const statements=[
