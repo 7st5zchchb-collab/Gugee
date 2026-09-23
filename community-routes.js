@@ -162,6 +162,73 @@ function initCommunity(app,pool,auth){
       res.json({ok:true,message:"Referral linked to your account."});
     }catch(e){if(e.code==="23505")return res.status(409).json({error:"This account already has a referral."});console.error(e);res.status(500).json({error:"Could not claim referral"});}
   });
+
+  app.get("/api/admin/community/overview",adminAuth,async(req,res)=>{
+    try{
+      const tournaments=(await pool.query("SELECT t.*,COUNT(e.id)::int AS entry_count FROM tournaments t LEFT JOIN tournament_entries e ON e.tournament_id=t.id GROUP BY t.id ORDER BY t.created_at DESC")).rows;
+      const giveaways=(await pool.query("SELECT g.*,COUNT(e.id)::int AS entry_count,u.name AS winner_name FROM giveaways g LEFT JOIN giveaway_entries e ON e.giveaway_id=g.id LEFT JOIN users u ON u.id=g.winner_user_id GROUP BY g.id,u.name ORDER BY g.created_at DESC")).rows;
+      const referrals=(await pool.query("SELECT COUNT(*)::int AS total,COUNT(*) FILTER(WHERE status='qualified')::int AS qualified,COALESCE(SUM(reward_usdt),0) AS rewards FROM referrals")).rows[0];
+      res.json({tournaments,giveaways,referrals:{...referrals,rewards:Number(referrals.rewards)}});
+    }catch(e){console.error(e);res.status(500).json({error:"Could not load admin data"});}
+  });
+
+  app.post("/api/admin/tournaments",adminAuth,async(req,res)=>{
+    try{
+      const name=String(req.body.name||"").trim(),description=String(req.body.description||"").trim();
+      const entry=Math.max(0,Number(req.body.entryFeeUsdt||0)),prize=Math.max(0,Number(req.body.prizePoolUsdt||0)),max=Math.max(1,parseInt(req.body.maxPlayers||1000,10));
+      const starts=new Date(req.body.startsAt),ends=new Date(req.body.endsAt);
+      if(!name||!Number.isFinite(entry)||!Number.isFinite(prize)||isNaN(starts)||isNaN(ends)||ends<=starts)return res.status(400).json({error:"Invalid tournament data."});
+      const {rows}=await pool.query("INSERT INTO tournaments(name,description,entry_fee_usdt,prize_pool_usdt,max_players,starts_at,ends_at,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",[name,description,entry,prize,max,starts,ends,starts<=new Date()?"live":"upcoming"]);
+      res.status(201).json({tournament:rows[0]});
+    }catch(e){console.error(e);res.status(500).json({error:"Could not create tournament"});}
+  });
+
+  app.patch("/api/admin/tournaments/:id",adminAuth,async(req,res)=>{
+    try{
+      const fields=[],values=[]; let i=1;
+      for(const [key,col] of [["name","name"],["description","description"],["entryFeeUsdt","entry_fee_usdt"],["prizePoolUsdt","prize_pool_usdt"],["maxPlayers","max_players"],["startsAt","starts_at"],["endsAt","ends_at"],["status","status"]]){
+        if(req.body[key]!==undefined){fields.push(col+"=$"+i++);values.push(req.body[key]);}
+      }
+      if(!fields.length)return res.status(400).json({error:"No changes supplied."});
+      values.push(req.params.id);
+      const {rows}=await pool.query("UPDATE tournaments SET "+fields.join(",")+" WHERE id=$"+i+" RETURNING *",values);
+      if(!rows[0])return res.status(404).json({error:"Tournament not found."});
+      res.json({tournament:rows[0]});
+    }catch(e){console.error(e);res.status(400).json({error:"Could not update tournament"});}
+  });
+
+  app.post("/api/admin/giveaways",adminAuth,async(req,res)=>{
+    try{
+      const name=String(req.body.name||"").trim(),description=String(req.body.description||"").trim();
+      const prize=Math.max(0,Number(req.body.prizeUsdt||0)),max=Math.max(1,parseInt(req.body.maxEntries||1000,10));
+      const starts=new Date(req.body.startsAt),ends=new Date(req.body.endsAt);
+      if(!name||!Number.isFinite(prize)||isNaN(starts)||isNaN(ends)||ends<=starts)return res.status(400).json({error:"Invalid giveaway data."});
+      const {rows}=await pool.query("INSERT INTO giveaways(name,description,prize_usdt,max_entries,starts_at,ends_at,status) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *",[name,description,prize,max,starts,ends,starts<=new Date()?"live":"upcoming"]);
+      res.status(201).json({giveaway:rows[0]});
+    }catch(e){console.error(e);res.status(500).json({error:"Could not create giveaway"});}
+  });
+
+  app.patch("/api/admin/giveaways/:id",adminAuth,async(req,res)=>{
+    try{
+      const fields=[],values=[]; let i=1;
+      for(const [key,col] of [["name","name"],["description","description"],["prizeUsdt","prize_usdt"],["maxEntries","max_entries"],["startsAt","starts_at"],["endsAt","ends_at"],["status","status"]]){
+        if(req.body[key]!==undefined){fields.push(col+"=$"+i++);values.push(req.body[key]);}
+      }
+      if(req.body.winnerUserId!==undefined){fields.push("winner_user_id=$"+i++);values.push(req.body.winnerUserId||null);}
+      if(!fields.length)return res.status(400).json({error:"No changes supplied."});
+      values.push(req.params.id);
+      const {rows}=await pool.query("UPDATE giveaways SET "+fields.join(",")+" WHERE id=$"+i+" RETURNING *",values);
+      if(!rows[0])return res.status(404).json({error:"Giveaway not found."});
+      res.json({giveaway:rows[0]});
+    }catch(e){console.error(e);res.status(400).json({error:"Could not update giveaway"});}
+  });
+
+}
+
+function adminAuth(req,res,next){
+  if(!req.user)return res.status(401).json({error:"Authentication required."});
+  if(!req.user.is_admin)return res.status(403).json({error:"Admin access required."});
+  next();
 }
 
 module.exports={initCommunity};
