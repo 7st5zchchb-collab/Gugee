@@ -6,7 +6,7 @@ const pagination=document.getElementById('othersPagination');
 const favoritesGrid=document.getElementById('othersFavorites');
 const favoritesSection=document.getElementById('othersFavoritesSection');
 const API_BASES=[...new Set([(window.GUGEE_API_BASE||'').replace(/\/$/,''),window.location.origin.replace(/\/$/,''),'https://gugee.onrender.com'])].filter(Boolean);
-const FAVORITES_KEY='gugeeFavoriteCryptos'; const MAX_FAVORITES=5; const PER_PAGE=100;
+const FAVORITES_KEY='gugeeFavoriteCryptos'; const MAX_FAVORITES=5; const PER_PAGE=10;
 let allCoins=[]; let currentPage=1; let loading=false;
 function getFavorites(){try{const v=JSON.parse(localStorage.getItem(FAVORITES_KEY)||'[]');return Array.isArray(v)?v.slice(0,MAX_FAVORITES):[]}catch{return []}}
 function saveFavorites(v){localStorage.setItem(FAVORITES_KEY,JSON.stringify(v.slice(0,MAX_FAVORITES)))}
