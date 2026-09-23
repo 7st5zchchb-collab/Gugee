@@ -504,11 +504,11 @@ app.post("/api/auth/login",async(req,res)=>{
   try{
     const email=String(req.body.email||"").trim().toLowerCase();
     const password=String(req.body.password||"");
-    const {rows}=await pool.query("SELECT id,name,email,password_hash,created_at FROM users WHERE email=$1",[email]);
+    const {rows}=await pool.query("SELECT id,name,username,email,password_hash,created_at FROM users WHERE email=$1",[email]);
     if(!rows[0])return res.status(401).json({error:"Incorrect email or password."});
     const valid=await bcrypt.compare(password,rows[0].password_hash);
     if(!valid)return res.status(401).json({error:"Incorrect email or password."});
-    const user={id:rows[0].id,name:rows[0].name,email:rows[0].email,created_at:rows[0].created_at};
+    const user={id:rows[0].id,name:rows[0].name,username:rows[0].username,email:rows[0].email,created_at:rows[0].created_at};
     setAuthCookie(res,signUser(user));
     res.json({user});
   }catch(e){
