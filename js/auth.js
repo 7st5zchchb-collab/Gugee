@@ -86,9 +86,22 @@ async function initRegister(){
     }catch(error){setAuthMessage(error.message);}
   });
 }
+function initNotificationsBell(){
+  const header=document.querySelector(".site-header");
+  if(!header||document.getElementById("notificationBell"))return;
+  const wrap=document.createElement("div"); wrap.className="notification-bell-wrap";
+  wrap.innerHTML='<button id="notificationBell" class="notification-bell" type="button" aria-label="Notifications" aria-expanded="false">🔔<span id="notificationCount" class="notification-count" hidden>0</span></button><div id="notificationDropdown" class="notification-dropdown" hidden><div class="notification-dropdown-head"><strong>Notifications</strong><button id="markNotificationsRead" type="button">Mark all read</button></div><div id="notificationItems" class="notification-items"><span class="notification-empty">Loading...</span></div></div>';
+  const login=header.querySelector(".login-button"); header.insertBefore(wrap,login||null);
+  const bell=wrap.querySelector("#notificationBell"), dropdown=wrap.querySelector("#notificationDropdown");
+  bell.onclick=async()=>{const open=dropdown.hidden;dropdown.hidden=!open;bell.setAttribute("aria-expanded",String(open));if(open)await loadNotificationsBell()};
+  wrap.querySelector("#markNotificationsRead").onclick=async()=>{const ids=[...wrap.querySelectorAll("[data-notification-id]")].map(x=>x.dataset.notificationId);await Promise.all(ids.map(id=>api("/api/notifications/"+id+"/read",{method:"POST"}).catch(()=>{})));await loadNotificationsBell()};
+  document.addEventListener("click",e=>{if(!wrap.contains(e.target)){dropdown.hidden=true;bell.setAttribute("aria-expanded","false")}});
+  loadNotificationsBell();
+}
+async function loadNotificationsBell(){
+  const box=document.getElementById("notificationItems"),count=document.getElementById("notificationCount");if(!box||!count)return;
+  try{const data=await api("/api/notifications"),notes=data.notifications||[],unread=notes.filter(n=>!n.read_at);count.textContent=unread.length>99?"99+":String(unread.length);count.hidden=!unread.length;box.innerHTML=notes.slice(0,8).map(n=>'<button class="notification-item '+(n.read_at?'':'unread')+'" data-notification-id="'+n.id+'" type="button"><b>'+String(n.title)+'</b><span>'+String(n.message)+'</span><small>'+new Date(n.created_at).toLocaleString()+'</small></button>').join("")||'<span class="notification-empty">No notifications yet.</span>';box.querySelectorAll(".notification-item").forEach(item=>item.onclick=async()=>{await api("/api/notifications/"+item.dataset.notificationId+"/read",{method:"POST"}).catch(()=>{});await loadNotificationsBell()})}catch(e){box.innerHTML='<span class="notification-empty">Notifications unavailable.</span>'}
+}
 document.addEventListener("DOMContentLoaded",async()=>{
-  await refreshCurrentUser();
-  renderAuthNav();
-  initLogin();
-  initRegister();
+  await refreshCurrentUser();renderAuthNav();initLogin();initRegister();if(getCurrentUser())initNotificationsBell();
 });
