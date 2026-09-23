@@ -1,0 +1,18 @@
+/* Live market pulse widgets */
+.market-pulse{margin:16px 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.market-pulse-card{min-width:0;padding:16px;border:1px solid #242429;border-radius:14px;background:#0b0b0d}
+.market-pulse-head{display:flex;align-items:end;justify-content:space-between;gap:10px;margin-bottom:11px}
+.market-pulse-head h2{margin:3px 0 0;color:#eee;font-size:16px}
+.market-pulse-head small{color:#555861;font-size:8px}
+.market-pulse-list{display:grid;gap:6px}
+.market-pulse-item{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px;border:1px solid #1b1d21;border-radius:8px;background:#0d0e10;text-decoration:none;color:inherit}
+.market-pulse-item img{width:26px;height:26px;border-radius:50%;background:#fff;object-fit:contain}
+.market-pulse-name{min-width:0}
+.market-pulse-name b{display:block;color:#eee;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.market-pulse-name small{display:block;margin-top:2px;color:#5f626a;font-size:7px}
+.market-pulse-value{text-align:right}
+.market-pulse-value b{display:block;color:#ddd;font-size:9px}
+.market-pulse-value span{display:block;margin-top:2px;font-size:8px;font-weight:700}
+.market-pulse-empty{padding:18px;text-align:center;color:#5f626a;font-size:9px;border:1px dashed #25272d;border-radius:8px}
+@media(max-width:900px){.market-pulse{grid-template-columns:1fr 1fr}.market-pulse-card:last-child{grid-column:1/-1}}
+@media(max-width:600px){.market-pulse{grid-template-columns:1fr}.market-pulse-card:last-child{grid-column:auto}}
