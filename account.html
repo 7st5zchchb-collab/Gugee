@@ -31,6 +31,17 @@
 <p class="muted">Your normal wallet balance. Crypto assets are shown separately below.</p>
 </section>
 <section class="account-card" style="margin-top:20px">
+<p class="section-label">BUY CRYPTO</p>
+<h2>Buy with USDT</h2>
+<form id="buyForm" style="display:grid;gap:12px;max-width:520px;margin-top:16px">
+<input id="buyCoin" type="text" placeholder="Coin ID, e.g. bitcoin" required>
+<input id="buyAmount" type="number" min="0.01" step="0.01" placeholder="USDT amount" required>
+<p id="buyPrice" class="muted">Enter a coin ID to load its live price.</p>
+<button class="auth-submit" type="submit">Buy crypto</button>
+<p id="buyMessage" class="muted" aria-live="polite"></p>
+</form>
+</section>
+<section class="account-card" style="margin-top:20px">
 <p class="section-label">CRYPTO ASSETS</p>
 <h2>Your assets</h2>
 <div id="assets" class="asset-list"><p class="muted">Loading...</p></div>
@@ -44,6 +55,44 @@ document.addEventListener("DOMContentLoaded",async()=>{
   document.getElementById("welcome").textContent="Welcome, "+(user.name||"User");
   document.getElementById("email").textContent=user.email;
   document.getElementById("logoutBtn").onclick=window.gugeeAuth.logout;
+  const buyForm=document.getElementById("buyForm");
+  const buyCoin=document.getElementById("buyCoin");
+  const buyAmount=document.getElementById("buyAmount");
+  const buyPrice=document.getElementById("buyPrice");
+  const buyMessage=document.getElementById("buyMessage");
+  let currentPrice=null;
+  let priceTimer=null;
+
+  async function loadBuyPrice(){
+    const coin=buyCoin.value.trim().toLowerCase();
+    if(!coin){currentPrice=null;buyPrice.textContent="Enter a coin ID to load its live price.";return;}
+    try{
+      const data=await window.gugeeAuth.api("/api/wallet/price?coin="+encodeURIComponent(coin));
+      currentPrice=data.price;
+      buyPrice.textContent=data.symbol+" live price: $"+Number(data.price).toLocaleString("en-US",{maximumFractionDigits:12});
+    }catch(e){
+      currentPrice=null;
+      buyPrice.textContent=e.message;
+    }
+  }
+  buyCoin.addEventListener("change",loadBuyPrice);
+  buyCoin.addEventListener("blur",loadBuyPrice);
+  buyForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    buyMessage.textContent="";
+    if(!currentPrice)await loadBuyPrice();
+    if(!currentPrice)return;
+    const amount=Number(buyAmount.value);
+    if(!Number.isFinite(amount)||amount<=0){buyMessage.textContent="Enter a valid USDT amount.";return;}
+    try{
+      const result=await window.gugeeAuth.api("/api/wallet/buy",{method:"POST",body:JSON.stringify({coinId:buyCoin.value.trim(),usdtAmount:amount})});
+      buyMessage.textContent="Bought "+Number(result.purchase.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+" "+result.purchase.symbol+" for "+Number(result.purchase.usdtAmount).toFixed(2)+" USDT.";
+      buyAmount.value="";
+      await loadWallet();
+    }catch(e){buyMessage.textContent=e.message;}
+  });
+
+  async function loadWallet(){
   try{
     const data=await window.gugeeAuth.api("/api/wallet");
     document.getElementById("usdt").textContent=Number(data.wallet.usdt||0).toFixed(2)+" USDT";
@@ -53,6 +102,8 @@ document.addEventListener("DOMContentLoaded",async()=>{
   }catch(e){
     document.getElementById("assets").innerHTML='<p class="error">Could not load wallet.</p>';
   }
+  }
+  await loadWallet();
 });
 </script>
 </body>
