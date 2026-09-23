@@ -375,6 +375,17 @@ async function initDb(){
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY(user_id,coin_id)
     );
+    CREATE TABLE IF NOT EXISTS wallet_transactions(
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL CHECK(type IN ('buy','usdt_adjustment')),
+      coin_id TEXT,
+      symbol TEXT,
+      quantity NUMERIC(40,18),
+      price_usdt NUMERIC(30,12),
+      usdt_amount NUMERIC(30,10) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
   const statements=[
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE",
@@ -561,6 +572,82 @@ app.post("/api/wallet/usdt",auth,async(req,res)=>{
     console.error(e);
     res.status(500).json({error:"Could not update USDT balance"});
   }finally{client.release();}
+});
+
+async function getPurchaseCoin(coinId){
+  const id=String(coinId||"").trim().toLowerCase();
+  if(!/^[a-z0-9][a-z0-9._-]{1,80}$/.test(id))throw new Error("Invalid coin id");
+  try{
+    const coins=await getTop1000Coins();
+    const coin=coins.find(c=>String(c.id).toLowerCase()===id);
+    if(coin&&Number.isFinite(Number(coin.current_price))&&Number(coin.current_price)>0){
+      return {id:coin.id,symbol:String(coin.symbol||"").toUpperCase(),price:Number(coin.current_price)};
+    }
+  }catch{}
+  const target=COINGECKO_BASE+"/simple/price?ids="+encodeURIComponent(id)+"&vs_currencies=usd";
+  const response=await fetch(target,{headers:{accept:"application/json","user-agent":"Gugee/1.0"}});
+  if(!response.ok)throw new Error("Live price unavailable");
+  const data=await response.json();
+  const price=Number(data?.[id]?.usd);
+  if(!Number.isFinite(price)||price<=0)throw new Error("Coin not found");
+  return {id,symbol:id.toUpperCase(),price};
+}
+
+app.get("/api/wallet/price",auth,async(req,res)=>{
+  try{
+    const coin=await getPurchaseCoin(req.query.coin);
+    res.json(coin);
+  }catch(e){
+    res.status(400).json({error:e.message||"Could not load coin price"});
+  }
+});
+
+app.post("/api/wallet/buy",auth,async(req,res)=>{
+  const coinId=String(req.body.coinId||"").trim().toLowerCase();
+  const usdtAmount=Number(req.body.usdtAmount);
+  if(!Number.isFinite(usdtAmount)||usdtAmount<=0)return res.status(400).json({error:"USDT amount must be greater than 0."});
+  if(usdtAmount>1000000000)return res.status(400).json({error:"USDT amount is too large."});
+  let coin;
+  try{coin=await getPurchaseCoin(coinId);}catch(e){return res.status(400).json({error:e.message||"Could not load coin price"});}
+  const quantity=usdtAmount/coin.price;
+  if(!Number.isFinite(quantity)||quantity<=0)return res.status(400).json({error:"Could not calculate crypto quantity."});
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[req.user.id]);
+    const wallet=await client.query(
+      "UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",
+      [usdtAmount,req.user.id]
+    );
+    if(!wallet.rows[0]){
+      await client.query("ROLLBACK");
+      return res.status(400).json({error:"Insufficient USDT balance."});
+    }
+    await client.query(
+      "INSERT INTO wallet_assets(user_id,coin_id,symbol,quantity,updated_at) VALUES($1,$2,$3,$4,NOW()) ON CONFLICT(user_id,coin_id) DO UPDATE SET quantity=wallet_assets.quantity+EXCLUDED.quantity,symbol=EXCLUDED.symbol,updated_at=NOW()",
+      [req.user.id,coin.id,coin.symbol,quantity]
+    );
+    const tx=await client.query(
+      "INSERT INTO wallet_transactions(user_id,type,coin_id,symbol,quantity,price_usdt,usdt_amount) VALUES($1,'buy',$2,$3,$4,$5,$6) RETURNING id,created_at",
+      [req.user.id,coin.id,coin.symbol,quantity,coin.price,usdtAmount]
+    );
+    await client.query("COMMIT");
+    res.json({ok:true,purchase:{coinId:coin.id,symbol:coin.symbol,quantity,price:coin.price,usdtAmount},usdt:Number(wallet.rows[0].usdt),transactionId:tx.rows[0].id,createdAt:tx.rows[0].created_at});
+  }catch(e){
+    await client.query("ROLLBACK");
+    console.error(e);
+    res.status(500).json({error:"Could not complete crypto purchase"});
+  }finally{client.release();}
+});
+
+app.get("/api/wallet/transactions",auth,async(req,res)=>{
+  try{
+    const {rows}=await pool.query("SELECT id,type,coin_id,symbol,quantity,price_usdt,usdt_amount,created_at FROM wallet_transactions WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100",[req.user.id]);
+    res.json({transactions:rows.map(t=>({...t,quantity:t.quantity===null?null:Number(t.quantity),price_usdt:t.price_usdt===null?null:Number(t.price_usdt),usdt_amount:Number(t.usdt_amount)}))});
+  }catch(e){
+    console.error(e);
+    res.status(500).json({error:"Could not load wallet transactions"});
+  }
 });
 
 app.get("/api/wallet/assets",auth,async(req,res)=>{
