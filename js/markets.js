@@ -1,3 +1,38 @@
+const liveCoinSearch=document.getElementById("liveCoinSearch"),liveCoinLimit=document.getElementById("liveCoinLimit"),liveMarketRows=document.getElementById("liveMarketRows"),liveMarketStatus=document.getElementById("liveMarketStatus"),liveMarketUpdated=document.getElementById("liveMarketUpdated");
+let liveCoins=[];
+function liveLogo(c){return c.image||("https://assets.coincap.io/assets/icons/"+encodeURIComponent(String(c.symbol||"").toLowerCase())+"@2x.png")}
+function liveMoney(v){const n=Number(v);if(!Number.isFinite(n))return"--";return"$"+n.toLocaleString("en-US",{maximumFractionDigits:n>=1?2:8})}
+function liveCompact(v){const n=Number(v);if(!Number.isFinite(n))return"--";return"$"+new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:2}).format(n)}
+function renderLiveCoins(){
+ if(!liveMarketRows)return;
+ const q=(liveCoinSearch?.value||"").trim().toLowerCase();
+ const limit=Number(liveCoinLimit?.value||100);
+ const items=liveCoins.filter(c=>!q||String(c.name||"").toLowerCase().includes(q)||String(c.symbol||"").toLowerCase().includes(q)||String(c.id||"").toLowerCase().includes(q)).slice(0,limit);
+ if(!items.length){liveMarketRows.innerHTML='<tr><td colspan="9" class="market-loading">No cryptocurrency found.</td></tr>';return}
+ liveMarketRows.innerHTML=items.map(c=>{
+   const price=Number(c.current_price),ch=Number(c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h),hi=Number(c.high_24h),lo=Number(c.low_24h);
+   const cls=ch>=0?"positive":"negative";
+   return '<tr class="live-coin-row" data-coin="'+String(c.id).replace(/"/g,"&quot;")+'"><td>'+Number(c.market_cap_rank||0)+'</td><td><div class="live-asset"><img src="'+liveLogo(c)+'" alt="'+String(c.name||"Crypto")+' logo" loading="lazy"><span><b>'+String(c.name||"Unknown")+'</b><small>'+String(c.symbol||"").toUpperCase()+'</small></span></div></td><td><b>'+liveMoney(price)+'</b></td><td class="'+cls+'">'+(Number.isFinite(ch)?(ch>=0?"+":"")+ch.toFixed(2)+"%":"--")+'</td><td>'+liveMoney(hi)+'</td><td>'+liveMoney(lo)+'</td><td>'+liveCompact(c.total_volume)+'</td><td>'+liveCompact(c.market_cap)+'</td><td><a class="live-analysis-link" href="crypto.html?coin='+encodeURIComponent(c.id)+'">Analyze →</a></td></tr>';
+ }).join("");
+ liveMarketRows.querySelectorAll(".live-coin-row").forEach(row=>row.addEventListener("click",e=>{if(e.target.closest("a"))return;location.href="crypto.html?coin="+encodeURIComponent(row.dataset.coin)}));
+}
+async function loadLiveCoins(){
+ if(!liveMarketRows)return;
+ try{
+   const limit=Math.min(250,Math.max(50,Number(liveCoinLimit?.value||100)));
+   const data=await api("/api/coingecko/coins/markets?vs_currency=usd&order=market_cap_desc&per_page="+limit+"&page=1&sparkline=false&price_change_percentage=24h");
+   liveCoins=Array.isArray(data)?data:[];
+   renderLiveCoins();
+   liveMarketStatus.textContent=liveCoins.length+" cryptocurrencies • live USD market data";
+   liveMarketUpdated.textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
+ }catch(e){
+   liveMarketStatus.textContent="Live market data unavailable";
+   liveMarketRows.innerHTML='<tr><td colspan="9" class="market-loading">Live cryptocurrency data is temporarily unavailable.</td></tr>';
+ }
+}
+liveCoinSearch?.addEventListener("input",renderLiveCoins);
+liveCoinLimit?.addEventListener("change",loadLiveCoins);
+
 const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,""),"https://gugee.onrender.com"])].filter(Boolean);
 async function api(path){let last;for(const base of API_BASES){try{const r=await fetch(base+path,{cache:"no-store",headers:{accept:"application/json"}});if(r.ok)return r.json();last=new Error("HTTP "+r.status)}catch(e){last=e}}throw last||new Error("API unavailable")}
 async function loadBitcoinFeature(){try{const d=await api("/api/coingecko/coins/bitcoin?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false"),m=d.market_data||{},price=Number(m.current_price?.usd),ch=Number(m.price_change_percentage_24h||0);if(marketBtcPrice)marketBtcPrice.textContent=Number.isFinite(price)?price.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}):"--";if(marketBtcChange){marketBtcChange.textContent=(ch>=0?"+":"")+ch.toFixed(2)+"%";marketBtcChange.className=ch>=0?"positive":"negative"}if(marketBtcCap)marketBtcCap.textContent=money(m.market_cap?.usd);if(marketBtcVolume)marketBtcVolume.textContent=money(m.total_volume?.usd)}catch{if(marketBtcPrice)marketBtcPrice.textContent="--"}}
@@ -15,4 +50,4 @@ const ex=[["Binance","binance","BTCUSDT","binance"],["Coinbase","coinbase","BTC-
 async function loadExchanges(){const rows=await Promise.all(ex.map(async e=>{try{const d=await api("/api/exchanges?provider="+e[1]+"&symbol="+encodeURIComponent(e[2]));let p=null,v=null,ch=null;if(e[1]=="binance"){p=+d.lastPrice;v=+d.quoteVolume;ch=+d.priceChangePercent}if(e[1]=="coinbase"){p=+d.price;v=+d.volume_24h*p}if(e[1]=="kraken"){const x=d.result?.XXBTZUSD||Object.values(d.result||{})[0];p=+x?.c?.[0];v=+x?.v?.[1]*p}if(e[1]=="bybit"){const x=d.result?.list?.[0];p=+x?.lastPrice;v=+x?.turnover24h;ch=+x?.price24hPcnt*100}if(e[1]=="okx"){const x=d.data?.[0];p=+x?.last;v=+x?.volCcy24h;ch=+x?.open24h?(p/+x.open24h-1)*100:null}if(e[1]=="kucoin"){p=+d.data?.last;v=+d.data?.volValue;ch=+d.data?.changeRate*100}if(e[1]=="bitget"){const x=d.data?.[0];p=+x?.lastPr;v=+x?.quoteVolume;ch=+x?.change24h*100}if(e[1]=="gate"){const x=Array.isArray(d)?d[0]:d;p=+x?.last;v=+x?.quote_volume;ch=+x?.change_percentage}if(e[1]=="mexc"){p=+d.lastPrice;v=+d.quoteVolume;ch=+d.priceChangePercent}if(e[1]=="cryptocom"){const x=d.result?.data?.[0];p=+x?.k;v=+x?.v;ch=+x?.c}return {name:e[0],logo:"https://cdn.simpleicons.org/"+e[3],p,v,ch}}catch{return {name:e[0],logo:"https://cdn.simpleicons.org/"+e[3],p:null,v:null,ch:null}}}));const valid=rows.filter(x=>Number.isFinite(x.p)),min=valid.length?Math.min(...valid.map(x=>x.p)):0;if(!valid.length){exchangeOverview.innerHTML='<div class="exchange-overview-empty">Exchange data unavailable.</div>';return}exchangeOverview.innerHTML=rows.map(x=>{const cls=x.ch==null?"neutral":x.ch>=0?"positive":"negative";return '<div class="exchange-live-card"><div class="exchange-live-top"><div class="exchange-brand"><img src="'+x.logo+'" alt="'+x.name+' logo"><b>'+x.name+'</b></div><span>BTC / USD</span></div><strong>'+exchangeMoney(x.p)+'</strong><div class="exchange-live-metrics"><span>24H</span><b class="'+cls+'">'+(x.ch==null?"--":(x.ch>=0?"+":"")+x.ch.toFixed(2)+"%")+'</b><span>Volume</span><b>'+exchangeMoney(x.v)+'</b></div><div class="exchange-spread">'+(Number.isFinite(x.p)?((x.p/min-1)*100).toFixed(3)+"% vs lowest price":"Unavailable")+'</div></div>'}).join("");exchangeUpdated.textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}
 searchForm?.addEventListener("submit",async e=>{e.preventDefault();const q=search.value.trim();if(!q){search.focus();return}try{const d=await api("/api/coingecko/search?query="+encodeURIComponent(q)),c=(d.coins||[])[0];if(c){location.href="crypto.html?coin="+encodeURIComponent(c.id);return}}catch{}search.focus()});
 document.querySelectorAll(".global-range").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".global-range").forEach(x=>x.classList.remove("active"));b.classList.add("active");loadChart(+b.dataset.days)}));
-window.addEventListener("resize",drawChart);loadGlobal();loadBitcoinFeature();loadBreadth();loadChart(1);loadExchanges();setInterval(loadGlobal,60000);setInterval(loadBitcoinFeature,60000);setInterval(loadBreadth,60000);setInterval(loadExchanges,60000);
+window.addEventListener("resize",drawChart);loadGlobal();loadBitcoinFeature();loadBreadth();loadChart(1);loadExchanges();loadLiveCoins();setInterval(loadGlobal,60000);setInterval(loadBitcoinFeature,60000);setInterval(loadBreadth,60000);setInterval(loadExchanges,60000);setInterval(loadLiveCoins,60000);
