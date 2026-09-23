@@ -11,7 +11,7 @@
 <div class="background-glow"></div>
 <header class="site-header">
 <a class="brand" href="./"><span class="brand-mark">G</span><span>Gugee</span></a>
-<nav class="nav">
+<button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>\n<nav class="nav" id="siteNav">
 <a class="active" href="markets.html">Markets</a>
 <a href="cryptos.html">Crypto</a>
 <a href="analysis.html">Analysis</a>
@@ -158,7 +158,7 @@
 </main>
 
 <footer><span>© 2026 Gugee</span><span>Crypto analytics platform</span></footer>
-<script src="js/auth.js"></script>
+<script src="js/auth.js"></script>\n<script>\n(function(){const b=document.getElementById("mobileNavToggle"),n=document.getElementById("siteNav");if(!b||!n)return;b.addEventListener("click",()=>{const o=n.classList.toggle("mobile-open");b.classList.toggle("active",o);b.setAttribute("aria-expanded",o);b.setAttribute("aria-label",o?"Close navigation":"Open navigation")});n.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{n.classList.remove("mobile-open");b.classList.remove("active");b.setAttribute("aria-expanded","false");b.setAttribute("aria-label","Open navigation")}));})();\n</script>
 <script src="js/markets.js?v=3"></script>\n<script src="js/market-pulse.js?v=2"></script>
 </body>
 </html>
