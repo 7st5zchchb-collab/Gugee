@@ -729,35 +729,6 @@ app.get("/api/exchange/balance/:exchangeId",auth,async(req,res)=>{
   }
 });
 
-app.post("/api/exchange/order",auth,async(req,res)=>{
-  const exchangeId=String(req.body.exchangeId||"").toLowerCase().trim();
-  const symbol=String(req.body.symbol||"").toUpperCase().trim();
-  const side=String(req.body.side||"").toLowerCase().trim();
-  const type=String(req.body.type||"").toLowerCase().trim();
-  const amount=Number(req.body.amount);
-  const price=req.body.price==null||req.body.price===""?undefined:Number(req.body.price);
-  if(!["buy","sell"].includes(side))return res.status(400).json({error:"Side must be buy or sell."});
-  if(!["market","limit"].includes(type))return res.status(400).json({error:"Order type must be market or limit."});
-  if(!/^[A-Z0-9]{2,20}\/[A-Z0-9]{2,20}$/.test(symbol))return res.status(400).json({error:"Use a symbol such as BTC/USDT."});
-  if(!Number.isFinite(amount)||amount<=0)return res.status(400).json({error:"Amount must be greater than 0."});
-  if(type==="limit"&&(!Number.isFinite(price)||price<=0))return res.status(400).json({error:"Limit price must be greater than 0."});
-  try{
-    const row=await getExchangeConnection(req.user.id,exchangeId);
-    if(!row)return res.status(404).json({error:"Exchange is not connected."});
-    const exchange=createExchange(row.exchange_id,decryptSecret(row.api_key_encrypted),decryptSecret(row.api_secret_encrypted),row.passphrase_encrypted?decryptSecret(row.passphrase_encrypted):"");
-    const order=await exchange.createOrder(symbol,type,side,amount,price);
-    res.json({ok:true,order:{
-      id:order.id,status:order.status,type:order.type,side:order.side,symbol:order.symbol,
-      amount:Number(order.amount||amount),filled:Number(order.filled||0),remaining:Number(order.remaining||0),
-      price:order.price==null?null:Number(order.price),average:order.average==null?null:Number(order.average),
-      cost:Number(order.cost||0),timestamp:order.timestamp||Date.now()
-    }});
-  }catch(e){
-    console.error("Real exchange order failed:",e.message);
-    res.status(400).json({error:"Exchange rejected the order: "+String(e.message||"unknown error").slice(0,300)});
-  }
-});
-
 app.get("/api/exchange/orders/:exchangeId",auth,async(req,res)=>{
   try{
     const row=await getExchangeConnection(req.user.id,req.params.exchangeId);
