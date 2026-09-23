@@ -1,124 +1,28 @@
-const grid=document.getElementById("othersGrid");
-const input=document.getElementById("othersSearch");
-const count=document.getElementById("othersCount");
-const status=document.getElementById("othersStatus");
-
-const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,""),"https://gugee.onrender.com"])].filter(Boolean);
-const DIRECT_COIN_GECKO="https://api.coingecko.com/api/v3/coins/markets";
-const API=API_BASES[0]+"/api/coingecko/top1000";
-const FAVORITES_KEY="gugeeFavoriteCryptos";
-const MAX_FAVORITES=5;
-let allCoins=[],loading=false;
-
-function getFavorites(){
-  try{
-    const value=JSON.parse(localStorage.getItem(FAVORITES_KEY)||"[]");
-    return Array.isArray(value)?value.slice(0,MAX_FAVORITES):[];
-  }catch{return [];}
-}
-function saveFavorites(items){localStorage.setItem(FAVORITES_KEY,JSON.stringify(items.slice(0,MAX_FAVORITES)));}
-function logoFor(c){return c.image||("https://assets.coincap.io/assets/icons/"+encodeURIComponent(String(c.symbol||"").toLowerCase())+"@2x.png");}
-
-function toggleFavorite(id){
-  const coin=allCoins.find(c=>c.id===id);
-  if(!coin)return;
-  let favorites=getFavorites();
-  if(favorites.some(x=>x.id===id)){
-    favorites=favorites.filter(x=>x.id!==id);
-  }else{
-    if(favorites.length>=MAX_FAVORITES){
-      alert("You can select up to 5 favorite cryptocurrencies.");
-      return;
-    }
-    favorites.push({id:coin.id,name:coin.name,symbol:coin.symbol,image:coin.image,current_price:coin.current_price,price_change_percentage_24h:coin.price_change_percentage_24h});
-  }
-  saveFavorites(favorites);
-  render();
-}
-
-function card(c){
-  const price=Number(c.current_price);
-  const ch=Number(c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h);
-  const fav=getFavorites().some(x=>x.id===c.id);
-  return '<div class="crypto-directory-card">'+
-    '<button class="crypto-favorite-button '+(fav?"active":"")+'" data-favorite="'+String(c.id).replace(/"/g,"&quot;")+'" title="'+(fav?"Remove from favorites":"Add to favorites")+'">'+(fav?"★":"☆")+'</button>'+
-    '<a class="crypto-directory-main" href="crypto.html?coin='+encodeURIComponent(c.id)+'">'+
-    '<img src="'+logoFor(c)+'" alt="'+String(c.name||"Crypto")+' logo" loading="lazy"").toLowerCase())+'@2x.png\';">'+
-    '<span class="crypto-directory-info"><b>'+String(c.name||"Unknown")+'</b><small>'+String(c.symbol||"").toUpperCase()+'</small></span>'+
-    '<strong>'+(Number.isFinite(price)&&price>0?"$"+price.toLocaleString("en-US",{maximumFractionDigits:price>=1?2:8}):"--")+'</strong>'+
-    '<span class="'+(ch>=0?"positive":"negative")+'">'+(Number.isFinite(ch)&&price>0?(ch>=0?"+":"")+ch.toFixed(2)+"%":"Live")+'</span>'+
-    '</a></div>';
-}
-
-function render(){
-  const q=input.value.trim().toLowerCase();
-  const favorites=new Set(getFavorites().map(x=>x.id));
-  const filtered=allCoins.filter(c=>!q||String(c.name||"").toLowerCase().includes(q)||String(c.symbol||"").toLowerCase().includes(q)||String(c.id||"").toLowerCase().includes(q));
-  count.textContent=(filtered.length||allCoins.length)+" cryptocurrencies";
-  grid.innerHTML=filtered.length?filtered.map(card).join(""):'<div class="exchange-directory-empty">No cryptocurrency found.</div>';
-  grid.querySelectorAll("[data-favorite]").forEach(button=>button.addEventListener("click",event=>{
-    event.preventDefault();
-    event.stopPropagation();
-    toggleFavorite(button.dataset.favorite);
-  }));
-}
-
-async function fetchServerList(){
-  let lastError=null;
-  for(const base of API_BASES){
-    try{
-      const r=await fetch(base+"/api/coingecko/top1000",{cache:"no-store",headers:{accept:"application/json"}});
-      const body=await r.text();
-      if(!r.ok)throw new Error(body||("HTTP "+r.status));
-      const payload=JSON.parse(body);
-      if(!payload||!Array.isArray(payload.coins)||payload.coins.length<900)throw new Error("Invalid server crypto list");
-      return payload.coins.slice(0,1000);
-    }catch(error){lastError=error;}
-  }
-  throw lastError||new Error("Gugee API unavailable");
-}
-async function fetchLegacyServerList(){
-  const pages=[1,2,3,4];
-  const loaded=[];
-  for(const page of pages){
-    const r=await fetch(DIRECT_COIN_GECKO+"?vs_currency=usd&order=market_cap_desc&per_page=250&page="+page+"&sparkline=false&price_change_percentage=24h",{cache:"no-store",headers:{accept:"application/json"}});
-    const body=await r.text();
-    if(!r.ok)throw new Error(body||("CoinGecko HTTP "+r.status));
-    const rows=JSON.parse(body);
-    if(!Array.isArray(rows)||!rows.length)throw new Error("Invalid CoinGecko page "+page);
-    loaded.push(...rows);
-  }
-  return loaded.slice(0,1000);
-}
-async function load(){
-  if(loading)return;
-  loading=true;
-  status.textContent="Loading 1000 cryptocurrencies...";
-  if(!grid.children.length)grid.innerHTML='<div class="exchange-directory-empty">Loading 1000 cryptocurrency cards...</div>';
-  try{
-    let coins;
-    try{
-      coins=await fetchServerList();
-    }catch(serverError){
-      console.warn("Gugee API failed, using CoinGecko fallback:",serverError);
-      coins=await fetchLegacyServerList();
-    }
-    const map=new Map();
-    coins.forEach(c=>map.set(c.id,c));
-    allCoins=Array.from(map.values()).slice(0,1000);
-    count.textContent=allCoins.length+" cryptocurrencies";
-    status.textContent=allCoins.length+" loaded";
-    render();
-  }catch(error){
-    console.error("Others directory error:",error);
-    allCoins=[];
-    count.textContent="0 cryptocurrencies";
-    status.textContent="Loading failed";
-    if(!grid.children.length)grid.innerHTML='<div class="exchange-directory-empty">Could not load the 1000 cryptocurrencies. Please refresh the page.</div>';
-  }finally{
-    loading=false;
-  }
-}
-input.addEventListener("input",render);
-window.addEventListener("storage",event=>{if(event.key===FAVORITES_KEY)render();});
-load();
+const grid=document.getElementById('othersGrid');
+const input=document.getElementById('othersSearch');
+const count=document.getElementById('othersCount');
+const status=document.getElementById('othersStatus');
+const pagination=document.getElementById('othersPagination');
+const favoritesGrid=document.getElementById('othersFavorites');
+const favoritesSection=document.getElementById('othersFavoritesSection');
+const API_BASES=[...new Set([(window.GUGEE_API_BASE||'').replace(/\/$/,''),window.location.origin.replace(/\/$/,''),'https://gugee.onrender.com'])].filter(Boolean);
+const FAVORITES_KEY='gugeeFavoriteCryptos'; const MAX_FAVORITES=5; const PER_PAGE=100;
+let allCoins=[]; let currentPage=1; let loading=false;
+function getFavorites(){try{const v=JSON.parse(localStorage.getItem(FAVORITES_KEY)||'[]');return Array.isArray(v)?v.slice(0,MAX_FAVORITES):[]}catch{return []}}
+function saveFavorites(v){localStorage.setItem(FAVORITES_KEY,JSON.stringify(v.slice(0,MAX_FAVORITES)))}
+function esc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[c]))}
+function logo(c){return c.image||'https://assets.coincap.io/assets/icons/'+encodeURIComponent(String(c.symbol||'').toLowerCase())+'@2x.png'}
+function money(v){const n=Number(v);if(!Number.isFinite(n)||n<=0)return'--';if(n<.000001)return'$'+n.toFixed(10);if(n<.01)return'$'+n.toFixed(8);if(n<1)return'$'+n.toFixed(6);return'$'+n.toLocaleString('en-US',{maximumFractionDigits:8})}
+function compact(v){const n=Number(v);return Number.isFinite(n)&&n>0?new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:2}).format(n):'--'}
+function ch(v){const n=Number(v);return Number.isFinite(n)?{text:(n>=0?'+':'')+n.toFixed(2)+'%',cls:n>0?'positive':n<0?'negative':'neutral'}:{text:'--',cls:'neutral'}}
+function fav(id){return getFavorites().some(x=>x.id===id)}
+function toggleFavorite(id){const c=allCoins.find(x=>x.id===id);if(!c)return;let f=getFavorites();if(fav(id))f=f.filter(x=>x.id!==id);else{if(f.length>=MAX_FAVORITES){alert('You can select up to 5 favorite cryptocurrencies.');return}f.push({id:c.id,name:c.name,symbol:c.symbol,image:c.image,current_price:c.current_price,price_change_percentage_24h:c.price_change_percentage_24h,price_change_percentage_7d:c.price_change_percentage_7d,price_change_percentage_30d:c.price_change_percentage_30d,market_cap:c.market_cap,total_volume:c.total_volume})}saveFavorites(f);currentPage=1;render()}
+function card(c){const a=ch(c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h),b=ch(c.price_change_percentage_7d_in_currency??c.price_change_percentage_7d),d=ch(c.price_change_percentage_30d_in_currency??c.price_change_percentage_30d);const rank=c.market_cap_rank?'#'+c.market_cap_rank:'';return '<article class="others-coin-card"><button class="crypto-favorite-button '+(fav(c.id)?'active':'')+'" data-favorite="'+esc(c.id)+'">'+(fav(c.id)?'★':'☆')+'</button><a class="others-coin-main" href="crypto.html?coin='+encodeURIComponent(c.id)+'"><div class="others-coin-head"><img src="'+esc(logo(c))+'" alt="'+esc(c.name)+' logo" loading="lazy"><div><b>'+esc(c.name)+'</b><small>'+esc(String(c.symbol||'').toUpperCase())+' '+rank+'</small></div></div><div class="others-price-row"><strong>'+money(c.current_price)+'</strong><span class="'+a.cls+'">'+a.text+'</span></div><div class="others-metrics"><div><span>24H</span><b class="'+a.cls+'">'+a.text+'</b></div><div><span>7D</span><b class="'+b.cls+'">'+b.text+'</b></div><div><span>30D</span><b class="'+d.cls+'">'+d.text+'</b></div></div><div class="others-market-row"><span>Market Cap</span><b>'+compact(c.market_cap)+'</b><span>Volume</span><b>'+compact(c.total_volume)+'</b></div><div class="others-analysis-link">Open full analysis →</div></a></article>'}
+function bind(root){root.querySelectorAll('[data-favorite]').forEach(x=>x.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggleFavorite(x.dataset.favorite)}))}
+function filtered(){const q=input.value.trim().toLowerCase(),fs=new Set(getFavorites().map(x=>x.id));return allCoins.filter(c=>!fs.has(c.id)&&(!q||String(c.name||'').toLowerCase().includes(q)||String(c.symbol||'').toLowerCase().includes(q)||String(c.id||'').toLowerCase().includes(q)))}
+function renderFavorites(){const f=getFavorites();if(!f.length){favoritesSection.style.display='none';favoritesGrid.innerHTML='';return}favoritesSection.style.display='';favoritesGrid.innerHTML=f.map(card).join('');bind(favoritesGrid)}
+function renderPagination(total){const pages=Math.max(1,Math.ceil(total/PER_PAGE));currentPage=Math.min(currentPage,pages);if(pages<=1){pagination.innerHTML='';return}let h='<button class="others-page-btn" data-page="'+(currentPage-1)+'" '+(currentPage===1?'disabled':'')+'>← Previous</button>';for(let p=1;p<=pages;p++){if(p===1||p===pages||Math.abs(p-currentPage)<=1)h+='<button class="others-page-btn '+(p===currentPage?'active':'')+'" data-page="'+p+'">'+p+'</button>';else if(p===2&&currentPage>3||p===pages-1&&currentPage<pages-2)h+='<span class="others-page-dots">…</span>'}h+='<button class="others-page-btn" data-page="'+(currentPage+1)+'" '+(currentPage===pages?'disabled':'')+'>Next →</button>';pagination.innerHTML=h;pagination.querySelectorAll('[data-page]').forEach(x=>x.addEventListener('click',()=>{const p=Number(x.dataset.page);if(p>=1&&p<=pages){currentPage=p;render();scrollTo({top:0,behavior:'smooth'})}}))}
+function render(){renderFavorites();const f=filtered(),start=(currentPage-1)*PER_PAGE,rows=f.slice(start,start+PER_PAGE);count.textContent=allCoins.length+' cryptocurrencies • '+f.length+' in list';grid.innerHTML=rows.length?rows.map(card).join(''):'<div class="exchange-directory-empty">No cryptocurrency found.</div>';bind(grid);renderPagination(f.length);status.textContent='Page '+currentPage+' • '+rows.length+' shown'}
+async function fetchServerList(){let last;for(const base of API_BASES){try{const r=await fetch(base+'/api/coingecko/top1000',{cache:'no-store',headers:{accept:'application/json'}});const body=await r.text();if(!r.ok)throw new Error(body||('HTTP '+r.status));const p=JSON.parse(body);if(!p||!Array.isArray(p.coins)||p.coins.length<900)throw new Error('Invalid server crypto list');const m=new Map(p.coins.map(c=>[c.id,c]));return [...m.values()].slice(0,1000)}catch(e){last=e}}throw last||new Error('Gugee API unavailable')}
+async function load(){if(loading)return;loading=true;status.textContent='Loading market data for up to 1000 cryptocurrencies...';grid.innerHTML='<div class="exchange-directory-empty">Loading 1000 cryptocurrency cards...</div>';try{allCoins=await fetchServerList();currentPage=1;render()}catch(e){console.error(e);allCoins=[];count.textContent='0 cryptocurrencies';status.textContent='Loading failed';grid.innerHTML='<div class="exchange-directory-empty">Could not load the 1000 cryptocurrencies. Please refresh the page.</div>';pagination.innerHTML=''}finally{loading=false}}
+input.addEventListener('input',()=>{currentPage=1;render()});window.addEventListener('storage',e=>{if(e.key===FAVORITES_KEY){currentPage=1;render()}});load();
