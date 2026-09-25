@@ -8,8 +8,7 @@ const favoritesSection=document.getElementById("othersFavoritesSection");
 
 const API_BASES=[...new Set([
   (window.GUGEE_API_BASE||"").replace(/\/$/,""),
-  window.location.origin.replace(/\/$/,""),
-  "https://gugee.onrender.com"
+  window.location.origin.replace(/\/$/,"")
 ])].filter(Boolean);
 
 const FAVORITES_KEY="gugeeFavoriteCryptos";
