@@ -10,6 +10,13 @@ const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
 const PAGE_SIZE=10;
 let allCoins=[],loading=false,currentPage=1;
+try{
+ const cached=JSON.parse(localStorage.getItem("gugeeTopCoinsCache")||"null");
+ if(cached&&Array.isArray(cached.coins)&&cached.coins.length){
+  allCoins=cached.coins;
+  queueMicrotask(()=>{render();renderFavorites();});
+ }
+}catch{}
 
 
 
@@ -155,6 +162,7 @@ async function load(){
   const payload=await window.gugeeMarketData.fetch("/api/coingecko/top1000");
   if(!Array.isArray(payload?.coins)||!payload.coins.length)throw Error("No live coins returned");
   allCoins=[...new Map(payload.coins.filter(x=>x?.id).map(x=>[x.id,x])).values()].slice(0,1000);
+  try{localStorage.setItem("gugeeTopCoinsCache",JSON.stringify({time:Date.now(),coins:allCoins}));}catch{}
   currentPage=1;loadStatus.textContent=allCoins.length+" loaded"+(payload.partial?" · partial coverage":"");
   render();renderFavorites();
  }catch(error){
