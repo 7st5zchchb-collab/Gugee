@@ -9,7 +9,7 @@ function initCommunity(app,pool,auth){
         const jwt=require("jsonwebtoken");
         const token=decodeURIComponent(raw.slice("gugee_token=".length));
         const payload=jwt.verify(token,process.env.JWT_SECRET);
-        const row=(await pool.query("SELECT id,name,email,created_at,is_admin FROM users WHERE id=$1",[payload.sub])).rows[0];
+        const row=(await pool.query("SELECT id,name,username,email,created_at,is_admin FROM users WHERE id=$1",[payload.sub])).rows[0];
         if(row)req.user=row;
       }
     }catch(e){}
@@ -145,7 +145,7 @@ function initCommunity(app,pool,auth){
 
   app.get("/api/tournaments/:id/leaderboard",async(req,res)=>{
     try{
-      const {rows}=await pool.query(`SELECT e.user_id,u.name,e.score,e.rank,e.joined_at
+      const {rows}=await pool.query(`SELECT e.user_id,u.username,e.score,e.rank,e.joined_at
         FROM tournament_entries e JOIN users u ON u.id=e.user_id
         WHERE e.tournament_id=$1
         ORDER BY e.score DESC,e.joined_at ASC
@@ -178,7 +178,7 @@ function initCommunity(app,pool,auth){
 
   app.get("/api/tournaments/:id/live-leaderboard",async(req,res)=>{
     try{
-      const {rows}=await pool.query(`SELECT e.user_id,u.name,e.score,e.joined_at
+      const {rows}=await pool.query(`SELECT e.user_id,u.username,e.score,e.joined_at
         FROM tournament_entries e JOIN users u ON u.id=e.user_id
         WHERE e.tournament_id=$1 ORDER BY e.score DESC,e.joined_at ASC LIMIT 100`,[req.params.id]);
       res.json({leaderboard:rows.map((r,i)=>({...r,rank:i+1,score:Number(r.score)}))});
@@ -216,7 +216,7 @@ function initCommunity(app,pool,auth){
     try{
       const code=codeFor(req.user.id);
       await pool.query("INSERT INTO referral_codes(user_id,code) VALUES($1,$2) ON CONFLICT(user_id) DO NOTHING",[req.user.id,code]);
-      const {rows}=await pool.query(`SELECT r.id,u.name,r.status,r.reward_usdt,r.created_at FROM community_referrals r JOIN users u ON u.id=r.referred_id WHERE r.referrer_id=$1 ORDER BY r.created_at DESC`,[req.user.id]);
+      const {rows}=await pool.query(`SELECT r.id,u.username,r.status,r.reward_usdt,r.created_at FROM community_referrals r JOIN users u ON u.id=r.referred_id WHERE r.referrer_id=$1 ORDER BY r.created_at DESC`,[req.user.id]);
       const stats=(await pool.query("SELECT COUNT(*)::int AS invited,COUNT(*) FILTER(WHERE status IN ('qualified','rewarded'))::int AS qualified,COALESCE(SUM(reward_usdt),0) AS rewards_usdt FROM community_referrals WHERE referrer_id=$1",[req.user.id])).rows[0];
       const base=(process.env.FRONTEND_URL||"").replace(/\/$/,"");
       res.json({referral:{code,link:base+"/register.html?ref="+encodeURIComponent(code)},stats:{...stats,rewards_usdt:Number(stats.rewards_usdt)},referrals:rows});
