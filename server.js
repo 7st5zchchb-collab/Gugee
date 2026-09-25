@@ -868,8 +868,9 @@ app.post("/api/wallet/sell",auth,async(req,res)=>{
     const owned=Number(asset.rows[0]?.quantity||0);
     if(owned+1e-18<quantity){await client.query("ROLLBACK");return res.status(400).json({error:"Insufficient crypto balance."});}
     await client.query("UPDATE wallet_assets SET quantity=quantity-$1,updated_at=NOW() WHERE user_id=$2 AND coin_id=$3",[quantity,req.user.id,coin.id]);
-    const wallet=await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING; UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2 RETURNING usdt",[net,req.user.id]);
-    const row=wallet.rows[wallet.rows.length-1];
+    await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[req.user.id]);
+    const wallet=await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2 RETURNING usdt",[net,req.user.id]);
+    const row=wallet.rows[0];
     const tx=await client.query("INSERT INTO wallet_transactions(user_id,type,coin_id,symbol,quantity,price_usdt,usdt_amount,fee_usdt) VALUES($1,'sell',$2,$3,$4,$5,$6,$7) RETURNING id,created_at",[req.user.id,coin.id,coin.symbol,quantity,coin.price,net,fee]);
     await client.query("COMMIT");
     res.json({ok:true,sale:{coinId:coin.id,symbol:coin.symbol,quantity,price:coin.price,gross,fee,net},usdt:Number(row.usdt),transactionId:tx.rows[0].id,createdAt:tx.rows[0].created_at});
