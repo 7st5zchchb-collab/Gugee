@@ -74,7 +74,7 @@ const exchanges=[
 {name:"BigONE",provider:"bigone",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/bigone"},
 {name:"Bitvavo",provider:"bitvavo",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/bitvavo"},
 {name:"EXMO",provider:"exmo",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/exmo"},
-{name:"BTC Markets",provider:"btcmarkets",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/btcmarkets"}}
+{name:"BTC Markets",provider:"btcmarkets",symbol:"BTC/USDT",logo:"https://cdn.simpleicons.org/btcmarkets"}
 ];
 const $=id=>document.getElementById(id);
 const money=v=>Number.isFinite(v)?v.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:v<1?6:2}):"--";
