@@ -1004,15 +1004,24 @@ app.use((req,res,next)=>{
   if(/\.(?:html?|js|css|json|webp|png|jpg|jpeg|svg|ico)$/i.test(req.path)) res.set("Cache-Control","no-store, max-age=0");
   next();
 });
-app.use(express.static(path.join(__dirname,".")));
-app.use((req,res)=>{
+function mountPublicFiles(){
+const publicPages=new Set(["index.html","markets.html","cryptos.html","crypto.html","others.html","analysis.html","exchanges.html","exchange.html","account.html","register.html","login.html","verify-email.html","forgot-password.html","reset-password.html","referrals.html","tournaments.html","giveaways.html","community-admin.html"]);
+app.use((req,res,next)=>{
   if(req.path.startsWith("/api/"))return res.status(404).json({error:"API route not found"});
-  res.sendFile(path.join(__dirname,"index.html"));
+  if(req.path==="/")return res.sendFile(path.join(__dirname,"index.html"));
+  if(publicPages.has(req.path.slice(1)))return res.sendFile(path.join(__dirname,req.path.slice(1)));
+  if(/^\/(?:css|js|images)\/[a-zA-Z0-9_./-]+$/.test(req.path)&&!req.path.includes("..")){
+    return express.static(__dirname,{index:false,dotfiles:"deny"})(req,res,next);
+  }
+  return res.status(404).send("Not Found");
 });
+
+}
 
 initDb().then(async()=>{
   const {initCommunity}=require("./community-routes");
   await initCommunity(app,pool,auth);
+  mountPublicFiles();
   app.listen(PORT,()=>console.log(`Gugee server listening on port ${PORT}`));
 }).catch(error=>{
   console.error("Database initialization failed:",error);
