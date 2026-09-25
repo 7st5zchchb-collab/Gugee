@@ -709,6 +709,7 @@ app.post("/api/wallet/usdt",auth,async(req,res)=>{
       await client.query("ROLLBACK");
       return res.status(400).json({error:"Insufficient USDT balance."});
     }
+    await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount) VALUES($1,'usdt_adjustment',$2)",[req.user.id,amount]);
     await client.query("COMMIT");
     res.json({usdt:Number(result.rows[0].usdt)});
   }catch(e){
