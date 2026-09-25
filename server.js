@@ -873,7 +873,7 @@ function escapeHtml(value){
 
 app.get("/health",(req,res)=>res.json({ok:true,service:"Gugee",time:new Date().toISOString()}));
 app.use((req,res,next)=>{
-  if(/\\.(?:html?|js|css|json|webp|png|jpg|jpeg|svg|ico)$/i.test(req.path)) res.set("Cache-Control","no-store, max-age=0");
+  if(/\.(?:html?|js|css|json|webp|png|jpg|jpeg|svg|ico)$/i.test(req.path)) res.set("Cache-Control","no-store, max-age=0");
   next();
 });
 app.use(express.static(path.join(__dirname,".")));
