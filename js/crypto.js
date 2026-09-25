@@ -48,7 +48,7 @@ function drawChart(points,volumes){
  wrap.addEventListener("mouseleave",()=>{tip.style.display=hl.style.display=dot.style.display="none";});
 }
 
-async function api(path){let last;for(const base of API_BASES){try{const r=await fetch(base+path,{cache:"no-store",headers:{accept:"application/json"}});if(r.ok)return r.json();last=new Error("API "+r.status)}catch(e){last=e}}throw last||new Error("API unavailable")}
+async function api(path){return window.gugeeMarketData.fetch(path)}
 async function history(days){return api("/api/coingecko/coins/"+encodeURIComponent(coinId)+"/market_chart?vs_currency=usd&days="+days+"&interval="+(days==="max"?"daily":""));}
 
 function renderPeriods(prices){
