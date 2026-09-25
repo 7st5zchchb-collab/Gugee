@@ -808,29 +808,6 @@ app.get("/api/wallet/withdrawals",auth,async(req,res)=>{
   }catch(e){res.status(500).json({error:"Could not load withdrawals"});}
 });
 
-app.get("/api/referrals",auth,async(req,res)=>{
-  try{
-    const u=(await pool.query("SELECT referral_code FROM users WHERE id=$1",[req.user.id])).rows[0];
-    const {rows}=await pool.query("SELECT r.created_at,u.username,u.name FROM referrals r JOIN users u ON u.id=r.referred_user_id WHERE r.referrer_user_id=$1 ORDER BY r.created_at DESC",[req.user.id]);
-    res.json({referralCode:u?.referral_code||null,referralLink:(FRONTEND_URL||"")+"/register.html?ref="+encodeURIComponent(u?.referral_code||""),referrals:rows});
-  }catch(e){res.status(500).json({error:"Could not load referrals"});}
-});
-
-app.post("/api/referrals/claim",auth,async(req,res)=>{
-  const code=String(req.body.code||"").trim().toLowerCase();
-  if(!code)return res.status(400).json({error:"Referral code is required."});
-  try{
-    const ref=await pool.query("SELECT id FROM users WHERE LOWER(referral_code)=LOWER($1)",[code]);
-    if(!ref.rows[0])return res.status(404).json({error:"Referral code not found."});
-    if(String(ref.rows[0].id)===String(req.user.id))return res.status(400).json({error:"You cannot refer yourself."});
-    const existing=await pool.query("SELECT 1 FROM referrals WHERE referred_user_id=$1",[req.user.id]);
-    if(existing.rows[0])return res.status(409).json({error:"Referral already claimed."});
-    await pool.query("INSERT INTO referrals(referrer_user_id,referred_user_id) VALUES($1,$2)",[ref.rows[0].id,req.user.id]);
-    await pool.query("UPDATE users SET referred_by=$1 WHERE id=$2 AND referred_by IS NULL",[ref.rows[0].id,req.user.id]);
-    res.json({ok:true});
-  }catch(e){console.error(e);res.status(500).json({error:"Could not claim referral"});}
-});
-
 app.post("/api/wallet/sell",auth,async(req,res)=>{
   const coinId=String(req.body.coinId||"").trim().toLowerCase();
   const quantity=Number(req.body.quantity);
