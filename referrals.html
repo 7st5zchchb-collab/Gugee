@@ -43,7 +43,15 @@
         };
         $("#stats").innerHTML='<div class="stat-mini"><small>INVITED</small><b>'+Number(r.stats.invited||0)+'</b></div><div class="stat-mini"><small>QUALIFIED</small><b>'+Number(r.stats.qualified||0)+'</b></div><div class="stat-mini"><small>REWARDS</small><b>$'+Number(r.stats.rewards_usdt||0).toFixed(2)+'</b></div>';
         const refs=r.referrals||[];
-        $("#refs").innerHTML=refs.length?refs.map(x=>'<div class="ref-row"><span>'+esc(x.name)+'</span><span>'+esc(x.status)+'</span><b>$'+Number(x.reward_usdt||0).toFixed(2)+'</b></div>').join(""):"No referrals yet.";
+        $("#refs").innerHTML=refs.length?refs.map(x=>'<div class="ref-row"><span>@'+esc(x.username||x.name||"user")+'</span><span>'+esc(x.status)+'</span><b>).join(""):"No referrals yet.";
+        const rewards=refs.filter(x=>Number(x.reward_usdt||0)>0);
+        $("#rewardHistory").innerHTML=rewards.length?rewards.map(x=>'<div class="ref-row"><span>@'+esc(x.username||x.name||"user")+'</span><span>Qualified referral</span><b>+'+Number(x.reward_usdt||0).toFixed(2)+' USDT</b></div>').join(""):"No referral rewards yet.";
+      }catch(e){$("#refs").textContent=e.message;$("#rewardHistory").textContent="Could not load reward history."}
+    }
+    load();
+  </script>
+</body>
+</html>+Number(x.reward_usdt||0).toFixed(2)+'</b></div>').join(""):"No referrals yet.";
         const rewards=refs.filter(x=>Number(x.reward_usdt||0)>0);
         $("#rewardHistory").innerHTML=rewards.length?rewards.map(x=>'<div class="ref-row"><span>'+esc(x.name)+'</span><span>Qualified referral</span><b>+'+Number(x.reward_usdt||0).toFixed(2)+' USDT</b></div>').join(""):"No referral rewards yet.";
       }catch(e){$("#refs").textContent=e.message;$("#rewardHistory").textContent="Could not load reward history."}
