@@ -103,18 +103,14 @@ async function loadCoin(){
  try{
   let shared=null;
   try{
-   const sharedPayload=await api("/api/coingecko/top1000");
-   shared=(sharedPayload?.coins||[]).find(x=>String(x.id).toLowerCase()===coinId);
+   const cached=JSON.parse(localStorage.getItem("gugeeTopCoinsCache")||"null");
+   if(cached&&Array.isArray(cached.coins))shared=cached.coins.find(x=>String(x.id).toLowerCase()===coinId)||null;
   }catch{}
   try{coin=await fetchCoinData(coinId);}
   catch(firstError){
    try{
     const resolved=await resolveCoinId(coinId);
     coin=await fetchCoinData(resolved);
-    if(!shared)try{
-     const sharedPayload=await api("/api/coingecko/top1000");
-     shared=(sharedPayload?.coins||[]).find(x=>String(x.id).toLowerCase()===String(resolved).toLowerCase());
-    }catch{}
    }catch(secondError){
     if(!shared)throw secondError;
     coin={
@@ -148,7 +144,7 @@ async function loadCoin(){
   set(els.price,money(market.current_price?.usd));const ch=Number(market.price_change_percentage_24h);set(els.change,pct(ch),colorFor(ch));
   set(els.marketCap,money(market.market_cap?.usd));set(els.volume,money(market.total_volume?.usd));set(els.high,money(market.high_24h?.usd));set(els.low,money(market.low_24h?.usd));set(els.supply,compact(market.circulating_supply));set(els.ath,money(market.ath?.usd));set(els.athDate,market.ath_date?.usd?new Date(market.ath_date.usd).toLocaleDateString():"--");set(els.updated,new Date().toLocaleTimeString());
   const favoriteIds=JSON.parse(localStorage.getItem("gugeeFavoriteCryptos")||"[]").map(x=>typeof x==="string"?x:x?.id).filter(Boolean);if(els.favorite)els.favorite.textContent=favoriteIds.includes(coinId)?"★ In Favorites":"☆ Add to Favorites";
-  try{await loadChart("90");}catch(error){console.warn("Historical analysis unavailable:",error);}  try{await loadExchanges((coin.symbol||"").toUpperCase());}catch(error){console.warn("Exchange analysis unavailable:",error);}
+  Promise.allSettled([loadChart("90"),loadExchanges((coin.symbol||"").toUpperCase())]);
  }catch(e){console.error(e);els.name.textContent="Data unavailable";els.chart.textContent="Could not load cryptocurrency data.";}
 }
 
