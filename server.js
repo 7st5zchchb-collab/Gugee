@@ -345,6 +345,20 @@ function parseCookies(header=""){
 
 function signUser(user){return jwt.sign({sub:String(user.id),email:user.email},JWT_SECRET,{expiresIn:"7d"});}
 
+function makeReferralCode(username){
+  const base=String(username||"user").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,12)||"user";
+  return base+"_"+crypto.randomBytes(4).toString("hex");
+}
+
+function depositFee(amount){return 1;}
+function withdrawFee(amount){return Math.floor(amount/20);}
+function tradeFee(){return 0.10;}
+
+function validMoney(value,max=1000000000){
+  const n=Number(value);
+  return Number.isFinite(n)&&n>0&&n<=max;
+}
+
 function setAuthCookie(res,token){
   res.setHeader("Set-Cookie",`gugee_token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${process.env.NODE_ENV==="production" ? "; Secure" : ""}`);
 }
@@ -437,19 +451,42 @@ async function initDb(){
     CREATE TABLE IF NOT EXISTS wallet_transactions(
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      type TEXT NOT NULL CHECK(type IN ('buy','usdt_adjustment','tournament_entry','tournament_prize','giveaway_prize','referral_reward','subscription')),
+      type TEXT NOT NULL CHECK(type IN ('buy','sell','deposit','withdraw','usdt_adjustment','tournament_entry','tournament_prize','giveaway_prize','referral_reward','subscription')),
       coin_id TEXT,
       symbol TEXT,
       quantity NUMERIC(40,18),
       price_usdt NUMERIC(30,12),
       usdt_amount NUMERIC(30,10) NOT NULL,
+      fee_usdt NUMERIC(30,10) NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS referrals(
+      id BIGSERIAL PRIMARY KEY,
+      referrer_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      referred_user_id BIGINT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS withdrawal_requests(
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      amount_usdt NUMERIC(30,10) NOT NULL,
+      fee_usdt NUMERIC(30,10) NOT NULL,
+      net_usdt NUMERIC(30,10) NOT NULL,
+      method TEXT NOT NULL CHECK(method IN ('visa','mastercard','paypal')),
+      destination TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','processing','paid','rejected','cancelled')),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT");
   await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_unique ON users(LOWER(username)) WHERE username IS NOT NULL");
   await pool.query("ALTER TABLE wallet_transactions DROP CONSTRAINT IF EXISTS wallet_transactions_type_check");
-  await pool.query("ALTER TABLE wallet_transactions ADD CONSTRAINT wallet_transactions_type_check CHECK(type IN ('buy','usdt_adjustment','tournament_entry','tournament_prize','giveaway_prize','referral_reward','subscription'))");
+  await pool.query("ALTER TABLE wallet_transactions ADD CONSTRAINT wallet_transactions_type_check CHECK(type IN ('buy','sell','deposit','withdraw','usdt_adjustment','tournament_entry','tournament_prize','giveaway_prize','referral_reward','subscription'))");
+  await pool.query("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS fee_usdt NUMERIC(30,10) NOT NULL DEFAULT 0");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code TEXT");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
+  await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code_unique ON users(referral_code) WHERE referral_code IS NOT NULL");
+  await pool.query("ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS destination TEXT NOT NULL DEFAULT ''");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE");
   await pool.query("UPDATE users SET is_admin=TRUE WHERE LOWER(email)='gurgensirunyan111@gmail.com'");
   const statements=[
@@ -502,9 +539,21 @@ app.post("/api/auth/register",async(req,res)=>{
     const passwordHash=await bcrypt.hash(password,12);
     const verificationToken=createToken();
     const verificationHash=hashToken(verificationToken);
+    const referralCode=String(req.body.ref||"").trim().toLowerCase();
+    let referredBy=null;
+    if(referralCode){
+      const ref=await pool.query("SELECT id FROM users WHERE LOWER(referral_code)=LOWER($1)",[referralCode]);
+      if(ref.rows[0])referredBy=ref.rows[0].id;
+    }
+    let newReferralCode=makeReferralCode(username);
+    for(let i=0;i<5;i++){
+      const exists=await pool.query("SELECT 1 FROM users WHERE referral_code=$1",[newReferralCode]);
+      if(!exists.rows[0])break;
+      newReferralCode=makeReferralCode(username);
+    }
     const {rows}=await pool.query(
-      "INSERT INTO users(name,username,email,password_hash,verification_token_hash,verification_expires_at) VALUES($1,$2,$3,$4,$5,NOW()+INTERVAL '24 hours') RETURNING id,name,username,email,email_verified,created_at",
-      [name,username,email,passwordHash,verificationHash]
+      "INSERT INTO users(name,username,email,password_hash,verification_token_hash,verification_expires_at,referral_code,referred_by) VALUES($1,$2,$3,$4,$5,NOW()+INTERVAL '24 hours',$6,$7) RETURNING id,name,username,email,email_verified,referral_code,created_at",
+      [name,username,email,passwordHash,verificationHash,newReferralCode,referredBy]
     );
 
     const verifyUrl=FRONTEND_URL+"/verify-email.html?token="+verificationToken+"&email="+encodeURIComponent(email);
@@ -613,7 +662,12 @@ app.post("/api/auth/reset-password",async(req,res)=>{
   }
 });
 
-app.get("/api/auth/me",auth,(req,res)=>res.json({user:req.user}));
+app.get("/api/auth/me",auth,async(req,res)=>{
+  try{
+    const {rows}=await pool.query("SELECT id,name,username,email,created_at,is_admin,referral_code FROM users WHERE id=$1",[req.user.id]);
+    res.json({user:rows[0]});
+  }catch(e){res.status(500).json({error:"Could not load account"});}
+});
 
 app.post("/api/auth/logout",(req,res)=>{
   clearAuthCookie(res);
@@ -622,8 +676,8 @@ app.post("/api/auth/logout",(req,res)=>{
 
 app.get("/api/wallet/transactions",auth,async(req,res)=>{
   try{
-    const {rows}=await pool.query("SELECT id,type,coin_id,symbol,quantity,price_usdt,usdt_amount,created_at FROM wallet_transactions WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100",[req.user.id]);
-    res.json({transactions:rows.map(t=>({...t,quantity:t.quantity===null?null:Number(t.quantity),price_usdt:t.price_usdt===null?null:Number(t.price_usdt),usdt_amount:Number(t.usdt_amount)}))});
+    const {rows}=await pool.query("SELECT id,type,coin_id,symbol,quantity,price_usdt,usdt_amount,fee_usdt,created_at FROM wallet_transactions WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100",[req.user.id]);
+    res.json({transactions:rows.map(t=>({...t,quantity:t.quantity===null?null:Number(t.quantity),price_usdt:t.price_usdt===null?null:Number(t.price_usdt),usdt_amount:Number(t.usdt_amount),fee_usdt:Number(t.fee_usdt||0)}))});
   }catch(e){console.error(e);res.status(500).json({error:"Could not load transaction history"});}
 });
 
@@ -699,6 +753,8 @@ app.post("/api/wallet/buy",auth,async(req,res)=>{
   if(usdtAmount>1000000000)return res.status(400).json({error:"USDT amount is too large."});
   let coin;
   try{coin=await getPurchaseCoin(coinId);}catch(e){return res.status(400).json({error:e.message||"Could not load coin price"});}
+  const fee=tradeFee();
+  const totalDebit=usdtAmount+fee;
   const quantity=usdtAmount/coin.price;
   if(!Number.isFinite(quantity)||quantity<=0)return res.status(400).json({error:"Could not calculate crypto quantity."});
   const client=await pool.connect();
@@ -707,7 +763,7 @@ app.post("/api/wallet/buy",auth,async(req,res)=>{
     await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[req.user.id]);
     const wallet=await client.query(
       "UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",
-      [usdtAmount,req.user.id]
+      [totalDebit,req.user.id]
     );
     if(!wallet.rows[0]){
       await client.query("ROLLBACK");
@@ -718,16 +774,81 @@ app.post("/api/wallet/buy",auth,async(req,res)=>{
       [req.user.id,coin.id,coin.symbol,quantity]
     );
     const tx=await client.query(
-      "INSERT INTO wallet_transactions(user_id,type,coin_id,symbol,quantity,price_usdt,usdt_amount) VALUES($1,'buy',$2,$3,$4,$5,$6) RETURNING id,created_at",
-      [req.user.id,coin.id,coin.symbol,quantity,coin.price,usdtAmount]
+      "INSERT INTO wallet_transactions(user_id,type,coin_id,symbol,quantity,price_usdt,usdt_amount,fee_usdt) VALUES($1,'buy',$2,$3,$4,$5,$6,$7) RETURNING id,created_at",
+      [req.user.id,coin.id,coin.symbol,quantity,coin.price,usdtAmount,fee]
     );
     await client.query("COMMIT");
-    res.json({ok:true,purchase:{coinId:coin.id,symbol:coin.symbol,quantity,price:coin.price,usdtAmount},usdt:Number(wallet.rows[0].usdt),transactionId:tx.rows[0].id,createdAt:tx.rows[0].created_at});
+    res.json({ok:true,purchase:{coinId:coin.id,symbol:coin.symbol,quantity,price:coin.price,usdtAmount,fee,totalDebit},usdt:Number(wallet.rows[0].usdt),transactionId:tx.rows[0].id,createdAt:tx.rows[0].created_at});
   }catch(e){
     await client.query("ROLLBACK");
     console.error(e);
     res.status(500).json({error:"Could not complete crypto purchase"});
   }finally{client.release();}
+});
+
+app.post("/api/wallet/deposit",auth,async(req,res)=>{
+  const amount=Number(req.body.amount);
+  const method=String(req.body.method||"").toLowerCase();
+  if(!validMoney(amount))return res.status(400).json({error:"Invalid deposit amount."});
+  if(!["visa","mastercard","paypal"].includes(method))return res.status(400).json({error:"Unsupported deposit method."});
+  const fee=depositFee(amount);
+  const credit=amount-fee;
+  if(credit<=0)return res.status(400).json({error:"Deposit amount must be greater than the $1 fee."});
+  return res.status(501).json({error:"Payment provider not connected yet.",method,amount,fee,credit});
+});
+
+app.post("/api/wallet/withdraw",auth,async(req,res)=>{
+  const amount=Number(req.body.amount);
+  const method=String(req.body.method||"").toLowerCase();
+  const destination=String(req.body.destination||"").trim();
+  if(!validMoney(amount))return res.status(400).json({error:"Invalid withdrawal amount."});
+  if(amount<20)return res.status(400).json({error:"Minimum withdrawal is $20."});
+  if(!["visa","mastercard","paypal"].includes(method))return res.status(400).json({error:"Unsupported withdrawal method."});
+  if(!destination||destination.length>320)return res.status(400).json({error:"A valid payout destination is required."});
+  const fee=withdrawFee(amount);
+  const net=amount-fee;
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[req.user.id]);
+    const debit=await client.query("UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",[amount,req.user.id]);
+    if(!debit.rows[0]){await client.query("ROLLBACK");return res.status(400).json({error:"Insufficient USDT balance."});}
+    const request=await client.query("INSERT INTO withdrawal_requests(user_id,amount_usdt,fee_usdt,net_usdt,method,destination) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,created_at,status",[req.user.id,amount,fee,net,method,destination]);
+    await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount,fee_usdt) VALUES($1,'withdraw',$2,$3)",[req.user.id,-net,fee]);
+    await client.query("COMMIT");
+    res.status(201).json({ok:true,withdrawal:{id:request.rows[0].id,amount,fee,net,method,status:request.rows[0].status,createdAt:request.rows[0].created_at},usdt:Number(debit.rows[0].usdt)});
+  }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not create withdrawal request"});}
+  finally{client.release();}
+});
+
+app.get("/api/wallet/withdrawals",auth,async(req,res)=>{
+  try{
+    const {rows}=await pool.query("SELECT id,amount_usdt,fee_usdt,net_usdt,method,status,created_at FROM withdrawal_requests WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50",[req.user.id]);
+    res.json({withdrawals:rows.map(x=>({...x,amount_usdt:Number(x.amount_usdt),fee_usdt:Number(x.fee_usdt),net_usdt:Number(x.net_usdt)}))});
+  }catch(e){res.status(500).json({error:"Could not load withdrawals"});}
+});
+
+app.get("/api/referrals",auth,async(req,res)=>{
+  try{
+    const u=(await pool.query("SELECT referral_code FROM users WHERE id=$1",[req.user.id])).rows[0];
+    const {rows}=await pool.query("SELECT r.created_at,u.username,u.name FROM referrals r JOIN users u ON u.id=r.referred_user_id WHERE r.referrer_user_id=$1 ORDER BY r.created_at DESC",[req.user.id]);
+    res.json({referralCode:u?.referral_code||null,referralLink:(FRONTEND_URL||"")+"/register.html?ref="+encodeURIComponent(u?.referral_code||""),referrals:rows});
+  }catch(e){res.status(500).json({error:"Could not load referrals"});}
+});
+
+app.post("/api/referrals/claim",auth,async(req,res)=>{
+  const code=String(req.body.code||"").trim().toLowerCase();
+  if(!code)return res.status(400).json({error:"Referral code is required."});
+  try{
+    const ref=await pool.query("SELECT id FROM users WHERE LOWER(referral_code)=LOWER($1)",[code]);
+    if(!ref.rows[0])return res.status(404).json({error:"Referral code not found."});
+    if(String(ref.rows[0].id)===String(req.user.id))return res.status(400).json({error:"You cannot refer yourself."});
+    const existing=await pool.query("SELECT 1 FROM referrals WHERE referred_user_id=$1",[req.user.id]);
+    if(existing.rows[0])return res.status(409).json({error:"Referral already claimed."});
+    await pool.query("INSERT INTO referrals(referrer_user_id,referred_user_id) VALUES($1,$2)",[ref.rows[0].id,req.user.id]);
+    await pool.query("UPDATE users SET referred_by=$1 WHERE id=$2 AND referred_by IS NULL",[ref.rows[0].id,req.user.id]);
+    res.json({ok:true});
+  }catch(e){console.error(e);res.status(500).json({error:"Could not claim referral"});}
 });
 
 app.get("/api/wallet/assets",auth,async(req,res)=>{
