@@ -1,62 +1,8 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Gugee — Referrals</title>
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/community.css">
-</head>
-<body>
-  <div class="background-glow"></div>
-  <header class="site-header">
-    <a class="brand" href="./" aria-label="Gugee home"><img class="brand-logo" src="images/gugee-logo-3c.webp" alt="Gugee logo"><span>Gugee</span></a>
-    <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
-    <nav class="nav" id="siteNav"><a href="markets.html">Markets</a><a href="cryptos.html">Crypto</a><a href="analysis.html">Analysis</a><a href="exchanges.html">Exchanges</a><a href="tournaments.html">Tournaments</a><a href="giveaways.html">Giveaways</a><a class="active" href="referrals.html">Referrals</a></nav>
-    <a class="login-button" href="account.html">Account</a>
-  </header>
-  <main class="community-page">
-    <section class="hero"><span class="eyebrow">INVITE • GROW • REWARD</span><h1>Referral Program</h1><p>Invite friends with your unique code and track qualified referrals and rewards.</p></section>
-    <section class="referral-box"><div><span class="eyebrow">YOUR CODE</span><h2 id="code">—</h2><p id="link">Sign in to generate your referral link.</p></div><button class="primary-btn" id="copy" type="button">Copy link</button></section>
-    <div class="referral-stats" id="stats"></div>
-    <section class="panel"><div class="panel-head"><div><span class="eyebrow">NETWORK</span><h2>My referrals</h2><p class="muted">Referral rewards are credited when a referred user qualifies through a paid tournament entry.</p></div></div><div id="refs" class="table-wrap">Loading…</div></section>
-    <section class="panel"><div class="panel-head"><div><span class="eyebrow">REWARD HISTORY</span><h2>Referral earnings</h2></div></div><div id="rewardHistory" class="table-wrap">Loading…</div></section>
-  </main>
-  <script src="js/auth.js"></script>
-  <script>
-    const $=s=>document.querySelector(s);
-    const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-    async function load(){
-      if(!gugeeAuth.getCurrentUser()){
-        $("#refs").innerHTML='Please <a href="login.html">sign in</a> to use referrals.';
-        $("#rewardHistory").textContent="Sign in to view reward history.";
-        $("#copy").disabled=true;
-        return;
-      }
-      try{
-        const r=await gugeeAuth.api("/api/referrals");
-        $("#code").textContent=r.referral.code;
-        $("#link").textContent=r.referral.link;
-        $("#copy").onclick=async()=>{
-          try{await navigator.clipboard.writeText(r.referral.link);$("#copy").textContent="Copied!";setTimeout(()=>$("#copy").textContent="Copy link",1500)}
-          catch{$("#copy").textContent="Copy failed";}
-        };
-        $("#stats").innerHTML='<div class="stat-mini"><small>INVITED</small><b>'+Number(r.stats.invited||0)+'</b></div><div class="stat-mini"><small>QUALIFIED</small><b>'+Number(r.stats.qualified||0)+'</b></div><div class="stat-mini"><small>REWARDS</small><b>$'+Number(r.stats.rewards_usdt||0).toFixed(2)+'</b></div>';
-        const refs=r.referrals||[];
-        $("#refs").innerHTML=refs.length?refs.map(x=>'<div class="ref-row"><span>@'+esc(x.username||x.name||"user")+'</span><span>'+esc(x.status)+'</span><b>).join(""):"No referrals yet.";
-        const rewards=refs.filter(x=>Number(x.reward_usdt||0)>0);
-        $("#rewardHistory").innerHTML=rewards.length?rewards.map(x=>'<div class="ref-row"><span>@'+esc(x.username||x.name||"user")+'</span><span>Qualified referral</span><b>+'+Number(x.reward_usdt||0).toFixed(2)+' USDT</b></div>').join(""):"No referral rewards yet.";
-      }catch(e){$("#refs").textContent=e.message;$("#rewardHistory").textContent="Could not load reward history."}
-    }
-    load();
-  </script>
-</body>
-</html>+Number(x.reward_usdt||0).toFixed(2)+'</b></div>').join(""):"No referrals yet.";
-        const rewards=refs.filter(x=>Number(x.reward_usdt||0)>0);
-        $("#rewardHistory").innerHTML=rewards.length?rewards.map(x=>'<div class="ref-row"><span>'+esc(x.name)+'</span><span>Qualified referral</span><b>+'+Number(x.reward_usdt||0).toFixed(2)+' USDT</b></div>').join(""):"No referral rewards yet.";
-      }catch(e){$("#refs").textContent=e.message;$("#rewardHistory").textContent="Could not load reward history."}
-    }
-    load();
-  </script>
-</body>
-</html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Gugee — Referrals</title><link rel="icon" type="image/webp" href="images/gugee-logo-3c.webp"><link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/community.css"></head>
+<body><div class="background-glow"></div><header class="site-header"><a class="brand" href="./" aria-label="Gugee home"><img class="brand-logo" src="images/gugee-logo-3c.webp" alt="Gugee logo"><span>Gugee</span></a><button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button><nav class="nav" id="siteNav"><a href="markets.html">Markets</a><a href="cryptos.html">Crypto</a><a href="analysis.html">Analysis</a><a href="exchanges.html">Exchanges</a><a href="tournaments.html">Tournaments</a><a href="giveaways.html">Giveaways</a><a class="active" href="referrals.html">Referrals</a></nav><a class="login-button" href="account.html">Account</a></header>
+<main class="community-page"><section class="hero"><span class="eyebrow">INVITE • GROW • REWARD</span><h1>Referral Program</h1><p>Invite friends with your unique code and track qualified referrals and rewards.</p></section><section class="referral-box"><div><span class="eyebrow">YOUR CODE</span><h2 id="code">—</h2><p id="link">Sign in to generate your referral link.</p></div><button class="primary-btn" id="copy" type="button">Copy link</button></section><div class="referral-stats" id="stats"></div><section class="panel"><div class="panel-head"><div><span class="eyebrow">NETWORK</span><h2>My referrals</h2><p class="muted">Referral rewards are credited when a referred user qualifies through a paid tournament entry.</p></div></div><div id="refs" class="table-wrap">Loading…</div></section><section class="panel"><div class="panel-head"><div><span class="eyebrow">REWARD HISTORY</span><h2>Referral earnings</h2></div></div><div id="rewardHistory" class="table-wrap">Loading…</div></section></main>
+<script src="js/auth.js"></script><script>
+const $=s=>document.querySelector(s);const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+async function load(){if(!gugeeAuth.getCurrentUser()){$("#refs").innerHTML='Please <a href="login.html">sign in</a> to use referrals.';$("#rewardHistory").textContent="Sign in to view reward history.";$("#copy").disabled=true;return}try{const r=await gugeeAuth.api("/api/referrals");$("#code").textContent=r.referral.code;$("#link").textContent=r.referral.link;$("#copy").onclick=async()=>{try{await navigator.clipboard.writeText(r.referral.link);$("#copy").textContent="Copied!";setTimeout(()=>$("#copy").textContent="Copy link",1500)}catch{$("#copy").textContent="Copy failed"}};$("#stats").innerHTML='<div class="stat-mini"><small>INVITED</small><b>'+Number(r.stats.invited||0)+'</b></div><div class="stat-mini"><small>QUALIFIED</small><b>'+Number(r.stats.qualified||0)+'</b></div><div class="stat-mini"><small>REWARDS</small><b>$'+Number(r.stats.rewards_usdt||0).toFixed(2)+'</b></div>';const refs=r.referrals||[];$("#refs").innerHTML=refs.length?refs.map(x=>'<div class="ref-row"><span>@'+esc(x.username||"user")+'</span><span>'+esc(x.status)+'</span><b>'+Number(x.reward_usdt||0).toFixed(2)+' USDT</b></div>').join(""):"No referrals yet.";const rewards=refs.filter(x=>Number(x.reward_usdt||0)>0);$("#rewardHistory").innerHTML=rewards.length?rewards.map(x=>'<div class="ref-row"><span>@'+esc(x.username||"user")+'</span><span>Qualified referral</span><b>+'+Number(x.reward_usdt||0).toFixed(2)+' USDT</b></div>').join(""):"No referral rewards yet."}catch(e){$("#refs").textContent=e.message;$("#rewardHistory").textContent="Could not load reward history."}}load();
+</script></body></html>
