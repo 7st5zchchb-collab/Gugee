@@ -122,10 +122,7 @@ function renderSearchResults(coins, exchanges, query) {
 }
 
 async function searchEverything(query) {
-  const response = await fetch("/api/coingecko/search?query=" + encodeURIComponent(query));
-  if (!response.ok) throw new Error("Search request failed");
-
-  const data = await response.json();
+  const data = await window.gugeeMarketData.fetch("/api/coingecko/search?query=" + encodeURIComponent(query));
   const normalized = query.toLowerCase();
 
   const coins = (data.coins || []).slice(0, 6);
@@ -292,9 +289,7 @@ async function loadMarketSnapshot() {
   try {
     const url = "/api/coingecko/coins/markets?vs_currency=usd&ids=" +
       marketCoins.join(",") + "&order=market_cap_desc&per_page=4&page=1&sparkline=false";
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Market API request failed");
-    const coins = await response.json();
+    const coins = await window.gugeeMarketData.fetch(url);
 
     coins.forEach((coin) => {
       const index = marketCoins.indexOf(coin.id);
@@ -324,9 +319,8 @@ async function loadMarketSnapshot() {
     });
 
     try{
-      const globalResponse=await fetch("/api/coingecko/global");
-      if(globalResponse.ok){
-        const globalData=await globalResponse.json();
+      const globalData=await window.gugeeMarketData.fetch("/api/coingecko/global");
+      {
         const marketCap=globalData.data?.total_market_cap?.usd;
         const volume=globalData.data?.total_volume?.usd;
         const capEl=document.getElementById("ticker-cap");
@@ -382,8 +376,7 @@ function renderWatchlist(){
     card.className="watchlist-card"; card.href="crypto.html?coin="+encodeURIComponent(id);
     card.innerHTML='<div><b>'+coin.name+'</b><span>'+coin.symbol+'</span></div><div class="watchlist-market"><strong class="watch-price">Loading...</strong><span class="watch-change">--</span></div>';
     watchlistGrid.appendChild(card);
-    fetch("/api/coingecko/simple/price?ids="+encodeURIComponent(id)+"&vs_currencies=usd&include_24hr_change=true")
-      .then(r=>r.json()).then(data=>{
+    window.gugeeMarketData.fetch("/api/coingecko/simple/price?ids="+encodeURIComponent(id)+"&vs_currencies=usd&include_24hr_change=true").then(data=>{
         const item=data[id];
         const priceEl=card.querySelector(".watch-price"), changeEl=card.querySelector(".watch-change");
         if(!item) return;
