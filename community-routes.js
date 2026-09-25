@@ -17,7 +17,7 @@ function initCommunity(app,pool,auth){
   };
   const notify=async(client,userId,title,message,type="community")=>{await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,$2,$3,$4)",[userId,title,message,type]);};
   const codeFor=userId=>"GUG-"+crypto.createHash("sha256").update("gugee-referral:"+userId).digest("hex").slice(0,8).toUpperCase();
-  const rewardReferralIfQualified=async(client,userId)=>{const r=(await client.query("SELECT * FROM referrals WHERE referred_id=$1 AND status='registered' FOR UPDATE",[userId])).rows[0];if(!r)return;const reward=1;await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[reward,r.referrer_id]);await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount) VALUES($1,$2,$3)",[r.referrer_id,"referral_reward",reward]);await client.query("INSERT INTO referral_rewards(referral_id,user_id,amount_usdt,reason) VALUES($1,$2,$3,$4)",[r.id,r.referrer_id,reward,"Qualified referral: paid tournament entry"]);await client.query("UPDATE referrals SET status='rewarded',reward_usdt=$1,qualified_at=NOW() WHERE id=$2",[reward,r.id]);await notify(client,r.referrer_id,"Referral reward received","Your referral qualified through a paid tournament entry. +1 USDT was added to your wallet.","referral");};
+  const rewardReferralIfQualified=async(client,userId)=>{const r=(await client.query("SELECT * FROM community_referrals WHERE referred_id=$1 AND status='registered' FOR UPDATE",[userId])).rows[0];if(!r)return;const reward=1;await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[reward,r.referrer_id]);await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount) VALUES($1,$2,$3)",[r.referrer_id,"referral_reward",reward]);await client.query("INSERT INTO referral_rewards(referral_id,user_id,amount_usdt,reason) VALUES($1,$2,$3,$4)",[r.id,r.referrer_id,reward,"Qualified referral: paid tournament entry"]);await client.query("UPDATE community_referrals SET status='rewarded',reward_usdt=$1,qualified_at=NOW() WHERE id=$2",[reward,r.id]);await notify(client,r.referrer_id,"Referral reward received","Your referral qualified through a paid tournament entry. +1 USDT was added to your wallet.","referral");};
 
   return pool.query(`
     CREATE TABLE IF NOT EXISTS referral_codes(
@@ -25,7 +25,7 @@ function initCommunity(app,pool,auth){
       code TEXT UNIQUE NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-    CREATE TABLE IF NOT EXISTS referrals(
+    CREATE TABLE IF NOT EXISTS community_referrals(
       id BIGSERIAL PRIMARY KEY,
       referrer_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       referred_id BIGINT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
@@ -37,7 +37,7 @@ function initCommunity(app,pool,auth){
     );
     CREATE TABLE IF NOT EXISTS referral_rewards(
       id BIGSERIAL PRIMARY KEY,
-      referral_id BIGINT REFERENCES referrals(id) ON DELETE SET NULL,
+      referral_id BIGINT REFERENCES community_referrals(id) ON DELETE SET NULL,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       amount_usdt NUMERIC(30,10) NOT NULL,
       reason TEXT NOT NULL,
@@ -93,6 +93,11 @@ function initCommunity(app,pool,auth){
       UNIQUE(giveaway_id,user_id)
     );
   `).then(async()=>{
+    // Preserve accounts invited under the earlier referral schema without changing
+    // the original table or its constraints.
+    await pool.query(`INSERT INTO community_referrals(referrer_id,referred_id,code,created_at)
+      SELECT referrer_user_id,referred_user_id,'LEGACY-'||referrer_user_id,created_at
+      FROM referrals ON CONFLICT(referred_id) DO NOTHING`);
     const count=(await pool.query("SELECT COUNT(*)::int AS n FROM tournaments")).rows[0].n;
     if(!count){
       await pool.query(`INSERT INTO tournaments(name,description,entry_fee_usdt,prize_pool_usdt,max_players,starts_at,ends_at,status) VALUES
@@ -211,8 +216,8 @@ function initCommunity(app,pool,auth){
     try{
       const code=codeFor(req.user.id);
       await pool.query("INSERT INTO referral_codes(user_id,code) VALUES($1,$2) ON CONFLICT(user_id) DO NOTHING",[req.user.id,code]);
-      const {rows}=await pool.query(`SELECT r.id,u.name,r.status,r.reward_usdt,r.created_at FROM referrals r JOIN users u ON u.id=r.referred_id WHERE r.referrer_id=$1 ORDER BY r.created_at DESC`,[req.user.id]);
-      const stats=(await pool.query("SELECT COUNT(*)::int AS invited,COUNT(*) FILTER(WHERE status IN ('qualified','rewarded'))::int AS qualified,COALESCE(SUM(reward_usdt),0) AS rewards_usdt FROM referrals WHERE referrer_id=$1",[req.user.id])).rows[0];
+      const {rows}=await pool.query(`SELECT r.id,u.name,r.status,r.reward_usdt,r.created_at FROM community_referrals r JOIN users u ON u.id=r.referred_id WHERE r.referrer_id=$1 ORDER BY r.created_at DESC`,[req.user.id]);
+      const stats=(await pool.query("SELECT COUNT(*)::int AS invited,COUNT(*) FILTER(WHERE status IN ('qualified','rewarded'))::int AS qualified,COALESCE(SUM(reward_usdt),0) AS rewards_usdt FROM community_referrals WHERE referrer_id=$1",[req.user.id])).rows[0];
       const base=(process.env.FRONTEND_URL||"").replace(/\/$/,"");
       res.json({referral:{code,link:base+"/register.html?ref="+encodeURIComponent(code)},stats:{...stats,rewards_usdt:Number(stats.rewards_usdt)},referrals:rows});
     }catch(e){console.error(e);res.status(500).json({error:"Could not load referrals"});}
@@ -225,7 +230,7 @@ function initCommunity(app,pool,auth){
     if(!owner)return res.status(404).json({error:"Referral code not found."});
     if(Number(owner.user_id)===Number(req.user.id))return res.status(400).json({error:"You cannot refer yourself."});
     try{
-      await pool.query("INSERT INTO referrals(referrer_id,referred_id,code) VALUES($1,$2,$3)",[owner.user_id,req.user.id,code]);
+      await pool.query("INSERT INTO community_referrals(referrer_id,referred_id,code) VALUES($1,$2,$3)",[owner.user_id,req.user.id,code]);
       res.json({ok:true,message:"Referral linked to your account."});
     }catch(e){if(e.code==="23505")return res.status(409).json({error:"This account already has a referral."});console.error(e);res.status(500).json({error:"Could not claim referral"});}
   });
@@ -269,7 +274,7 @@ function initCommunity(app,pool,auth){
     try{
       const tournaments=(await pool.query("SELECT t.*,COUNT(e.id)::int AS entry_count FROM tournaments t LEFT JOIN tournament_entries e ON e.tournament_id=t.id GROUP BY t.id ORDER BY t.created_at DESC")).rows;
       const giveaways=(await pool.query("SELECT g.*,COUNT(e.id)::int AS entry_count,u.name AS winner_name FROM giveaways g LEFT JOIN giveaway_entries e ON e.giveaway_id=g.id LEFT JOIN users u ON u.id=g.winner_user_id GROUP BY g.id,u.name ORDER BY g.created_at DESC")).rows;
-      const referrals=(await pool.query("SELECT COUNT(*)::int AS total,COUNT(*) FILTER(WHERE status='qualified')::int AS qualified,COALESCE(SUM(reward_usdt),0) AS rewards FROM referrals")).rows[0];
+      const referrals=(await pool.query("SELECT COUNT(*)::int AS total,COUNT(*) FILTER(WHERE status='qualified')::int AS qualified,COALESCE(SUM(reward_usdt),0) AS rewards FROM community_referrals")).rows[0];
       res.json({tournaments,giveaways,referrals:{...referrals,rewards:Number(referrals.rewards)}});
     }catch(e){console.error(e);res.status(500).json({error:"Could not load admin data"});}
   });
