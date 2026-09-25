@@ -192,7 +192,7 @@ app.get("/api/market/fear-greed",fearGreedProxy);
 app.get("/api/coingecko/top1000",top1000Coins);
 app.use("/api/coingecko",coingeckoProxy);
 
-app.use("/api/exchanges",async(req,res)=>{
+app.use("/api/exchanges",async(req,res,next)=>{\n  if(req.path==="/candles") return next();
   try{
     const provider=String(req.query.provider||"").toLowerCase();
     const symbol=String(req.query.symbol||"").toUpperCase().replace(/\/(TICKER|SPOT)$/,"");
@@ -870,7 +870,7 @@ function escapeHtml(value){
   return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 }
 
-app.use(express.static(path.join(__dirname,".")));
+app.get("/health",(req,res)=>res.json({ok:true,service:"Gugee",time:new Date().toISOString()}));\napp.use((req,res,next)=>{\n  if(/\\.(?:html?|js|css|json|webp|png|jpg|jpeg|svg|ico)$/i.test(req.path)) res.set("Cache-Control","no-store, max-age=0");\n  next();\n});\napp.use(express.static(path.join(__dirname,".")));
 app.use((req,res)=>{
   if(req.path.startsWith("/api/"))return res.status(404).json({error:"API route not found"});
   res.sendFile(path.join(__dirname,"index.html"));
