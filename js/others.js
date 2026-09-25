@@ -58,7 +58,7 @@ function compact(value){
 }
 
 function change(value){
-  const n=Number(value);
+  const n=value==null?NaN:Number(value);
   return Number.isFinite(n)
     ?{text:(n>=0?"+":"")+n.toFixed(2)+"%",cls:n>0?"positive":n<0?"negative":"neutral"}
     :{text:"--",cls:"neutral"};
@@ -210,26 +210,10 @@ function render(){
 }
 
 async function fetchServerList(){
-  let lastError=null;
-  for(const base of API_BASES){
-    try{
-      const response=await fetch(base+"/api/coingecko/top1000",{cache:"no-store",headers:{accept:"application/json"}});
-      const body=await response.text();
-      if(!response.ok)throw new Error(body||("HTTP "+response.status));
-      const payload=JSON.parse(body);
-      if(!payload||!Array.isArray(payload.coins)||payload.coins.length<900){
-        throw new Error("Invalid server crypto list");
-      }
-      const unique=new Map();
-      payload.coins.forEach(coin=>{
-        if(coin&&coin.id)unique.set(coin.id,coin);
-      });
-      return Array.from(unique.values()).slice(0,1000);
-    }catch(error){
-      lastError=error;
-    }
-  }
-  throw lastError||new Error("Gugee API unavailable");
+ const payload=await window.gugeeMarketData.fetch("/api/coingecko/top1000");
+ if(!Array.isArray(payload?.coins)||!payload.coins.length)throw Error("No live cryptocurrencies");
+ const unique=new Map(payload.coins.filter(c=>c?.id).map(c=>[c.id,c]));
+ return {coins:[...unique.values()].slice(0,1000),partial:!!payload.partial};
 }
 
 async function load(){
@@ -237,8 +221,8 @@ async function load(){
   loading=true;
   status.textContent="Updating live market data...";
   try{
-    allCoins=await fetchServerList();
-    render();
+    const result=await fetchServerList();allCoins=result.coins;
+    render();if(result.partial)status.textContent+=" · partial coverage";
   }catch(error){
     console.error("Others crypto directory error:",error);
     status.textContent="Live data unavailable";
