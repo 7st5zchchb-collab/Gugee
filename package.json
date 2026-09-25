@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "build:engine": "g++ -O3 -std=c++17 cpp/fee_engine.cpp -o fee-engine",
-    "start": "node server.js"
+    "start": "node server.js",
+    "smoke": "node scripts/smoke.mjs"
   },
   "engines": {
     "node": ">=20"
