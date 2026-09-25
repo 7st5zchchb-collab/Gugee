@@ -82,9 +82,9 @@ function renderAuthNav(){
     button.href="login.html";
     return;
   }
-  const displayName=user.username||user.name||user.email.split("@")[0];
+  const displayName=user.username||"user";
   const avatarLetter=(displayName.trim()[0]||"U").toUpperCase();
-  button.innerHTML='<span class="user-avatar">'+avatarLetter+'</span><span class="user-handle">@'+displayName.replace(/\\s+/g,"").replace(/[^a-zA-Z0-9_.-]/g,"")+"</span>";
+  button.innerHTML='<span class="user-avatar">'+avatarLetter+'</span><span class="user-handle">@'+displayName.replace(/\s+/g,"").replace(/[^a-zA-Z0-9_.-]/g,"")+"</span>";
   button.href="account.html";
   button.classList.add("user-button");
   button.onclick=null;
