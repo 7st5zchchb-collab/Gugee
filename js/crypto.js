@@ -106,6 +106,16 @@ async function loadCoin(){
    const cached=JSON.parse(localStorage.getItem("gugeeTopCoinsCache")||"null");
    if(cached&&Array.isArray(cached.coins))shared=cached.coins.find(x=>String(x.id).toLowerCase()===coinId)||null;
   }catch{}
+  if(shared){
+   els.name.textContent=shared.name||coinId;
+   els.symbol.textContent=String(shared.symbol||"").toUpperCase();
+   if(shared.image){els.icon.src=shared.image;els.icon.style.display="block";els.fallback.style.display="none";}
+   set(els.price,money(shared.current_price));
+   const quickChange=Number(shared.price_change_percentage_24h);
+   set(els.change,pct(quickChange),colorFor(quickChange));
+   set(els.marketCap,money(shared.market_cap));set(els.volume,money(shared.total_volume));
+   set(els.high,money(shared.high_24h));set(els.low,money(shared.low_24h));
+  }
   try{coin=await fetchCoinData(coinId);}
   catch(firstError){
    try{
@@ -139,8 +149,8 @@ async function loadCoin(){
    market.price_change_percentage_24h=shared.price_change_percentage_24h;
   }
   els.name.textContent=coin.name||coinId;els.symbol.textContent=(coin.symbol||"").toUpperCase();
-  if(coin.image?.large){els.icon.src=coin.image.large;els.icon.style.display="block";els.fallback.style.display="none";}
-  else{els.fallback.textContent=(coin.symbol||"C").slice(0,3).toUpperCase();}
+  if(coin.image?.large){els.icon.onerror=()=>{els.icon.style.display="none";els.fallback.style.display="grid";els.fallback.textContent=(coin.symbol||"C").slice(0,3).toUpperCase();};els.icon.src=coin.image.large;els.icon.style.display="block";els.fallback.style.display="none";}
+  else{els.icon.style.display="none";els.fallback.style.display="grid";els.fallback.textContent=(coin.symbol||"C").slice(0,3).toUpperCase();}
   set(els.price,money(market.current_price?.usd));const ch=Number(market.price_change_percentage_24h);set(els.change,pct(ch),colorFor(ch));
   set(els.marketCap,money(market.market_cap?.usd));set(els.volume,money(market.total_volume?.usd));set(els.high,money(market.high_24h?.usd));set(els.low,money(market.low_24h?.usd));set(els.supply,compact(market.circulating_supply));set(els.ath,money(market.ath?.usd));set(els.athDate,market.ath_date?.usd?new Date(market.ath_date.usd).toLocaleDateString():"--");set(els.updated,new Date().toLocaleTimeString());
   const favoriteIds=JSON.parse(localStorage.getItem("gugeeFavoriteCryptos")||"[]").map(x=>typeof x==="string"?x:x?.id).filter(Boolean);if(els.favorite)els.favorite.textContent=favoriteIds.includes(coinId)?"★ In Favorites":"☆ Add to Favorites";
