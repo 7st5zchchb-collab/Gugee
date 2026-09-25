@@ -24,7 +24,7 @@ async function loadLiveCoins(){
    const data=Array.isArray(payload?.coins)?payload.coins:[];
    liveCoins=data.slice(0,limit);
    renderLiveCoins();
-   liveMarketStatus.textContent=liveCoins.length+" cryptocurrencies • live USD market data";
+   liveMarketStatus.textContent=liveCoins.length+" cryptocurrencies • live USD market data"+(payload.partial?" (partial coverage)":"");
    liveMarketUpdated.textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
  }catch(e){
    liveMarketStatus.textContent="Live market data unavailable";
@@ -35,7 +35,7 @@ liveCoinSearch?.addEventListener("input",renderLiveCoins);
 liveCoinLimit?.addEventListener("change",loadLiveCoins);
 
 const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,"")])].filter(Boolean);
-async function api(path){let last;for(const base of API_BASES){try{const r=await fetch(base+path,{cache:"no-store",headers:{accept:"application/json"}});if(r.ok)return r.json();last=new Error("HTTP "+r.status)}catch(e){last=e}}throw last||new Error("API unavailable")}
+async function api(path){return window.gugeeMarketData.fetch(path)}
 async function loadBitcoinFeature(){try{const d=await api("/api/coingecko/coins/bitcoin?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false"),m=d.market_data||{},price=Number(m.current_price?.usd),ch=Number(m.price_change_percentage_24h||0);if(marketBtcPrice)marketBtcPrice.textContent=Number.isFinite(price)?price.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}):"--";if(marketBtcChange){marketBtcChange.textContent=(ch>=0?"+":"")+ch.toFixed(2)+"%";marketBtcChange.className=ch>=0?"positive":"negative"}if(marketBtcCap)marketBtcCap.textContent=money(m.market_cap?.usd);if(marketBtcVolume)marketBtcVolume.textContent=money(m.total_volume?.usd)}catch{if(marketBtcPrice)marketBtcPrice.textContent="--"}}
 const GLOBAL_API="/api/coingecko/global";
 const GLOBAL_CHART_API="/api/coingecko/global/market_cap_chart?vs_currency=usd&days=";
