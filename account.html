@@ -87,6 +87,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
   const user=await window.gugeeAuth.refreshCurrentUser();
   if(!user){window.location.href="login.html";return;}
   const $=id=>document.getElementById(id);
+  const esc=v=>String(v??"").replace(/[&<>"\x27]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","\x27":"&#39;"}[c]));
   $("welcome").textContent="Welcome, "+(user.name||"User");
   $("email").textContent=user.email;
   $("logoutBtn").onclick=window.gugeeAuth.logout;
@@ -115,7 +116,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
       updateSellAssets(data.assets);
       const assets=$("assets");
       if(!data.assets.length){assets.innerHTML='<p class="muted">No crypto assets yet.</p>';return;}
-      assets.innerHTML=data.assets.map(a=>'<div class="asset"><strong>'+String(a.symbol||a.coin_id).toUpperCase()+'</strong><span>'+Number(a.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+'</span></div>').join("");
+      assets.innerHTML=data.assets.map(a=>'<div class="asset"><strong>'+esc(String(a.symbol||a.coin_id).toUpperCase())+'</strong><span>'+Number(a.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+'</span></div>').join("");
     }catch(e){$("assets").innerHTML='<p class="error">Could not load wallet.</p>';}
   }
 
@@ -166,7 +167,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
       box.innerHTML=data.transactions.map(t=>{
         const n=Number(t.usdt_amount||0);
         const sign=n>=0?"+":"-";
-        return '<div class="notice"><div class="notice-title">'+(labels[t.type]||t.type)+'</div><div class="notice-message">'+sign+Math.abs(n).toFixed(2)+' USDT'+(t.symbol?" · "+String(t.symbol).toUpperCase():"")+(t.quantity?" · "+Number(t.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+" units":"")+'</div><div class="notice-time">'+new Date(t.created_at).toLocaleString()+'</div></div>';
+        return '<div class="notice"><div class="notice-title">'+esc(labels[t.type]||t.type)+'</div><div class="notice-message">'+sign+Math.abs(n).toFixed(2)+' USDT'+(t.symbol?" · "+esc(String(t.symbol).toUpperCase()):"")+(t.quantity?" · "+Number(t.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+" units":"")+'</div><div class="notice-time">'+new Date(t.created_at).toLocaleString()+'</div></div>';
       }).join("");
     }catch(e){$("transactions").innerHTML='<p class="error">Could not load transaction history.</p>';}
   }
@@ -176,7 +177,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
       const data=await window.gugeeAuth.api("/api/notifications");
       const box=$("notifications");
       if(!data.notifications.length){box.innerHTML='<p class="muted">No notifications yet.</p>';return;}
-      box.innerHTML=data.notifications.map(n=>'<div class="notice '+(n.read_at?'':'unread')+'"><div class="notice-title">'+String(n.title)+'</div><div class="notice-message">'+String(n.message)+'</div><div class="notice-time">'+new Date(n.created_at).toLocaleString()+'</div></div>').join("");
+      box.innerHTML=data.notifications.map(n=>'<div class="notice '+(n.read_at?'':'unread')+'"><div class="notice-title">'+esc(n.title)+'</div><div class="notice-message">'+esc(n.message)+'</div><div class="notice-time">'+new Date(n.created_at).toLocaleString()+'</div></div>').join("");
       data.notifications.filter(n=>!n.read_at).slice(0,10).forEach(n=>window.gugeeAuth.api("/api/notifications/"+n.id+"/read",{method:"POST"}).catch(()=>{}));
     }catch(e){$("notifications").innerHTML='<p class="error">Could not load notifications.</p>';}
   }
