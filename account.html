@@ -13,7 +13,7 @@
 .asset-list{display:grid;gap:12px;margin-top:18px}.asset{display:flex;justify-content:space-between;padding:18px;border:1px solid rgba(255,255,255,.08);border-radius:14px}
 .muted{opacity:.65}.error{color:#ff6b6b}
 @media(max-width:650px){.account-head{align-items:flex-start;flex-direction:column}.balance{font-size:32px}}
-.subscription-ui{margin-top:20px}.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.plan-card{background:#0b0b0d;border:1px solid #242429;border-radius:15px;padding:18px}.plan-card.active{border-color:#35e08b;box-shadow:0 0 0 1px rgba(53,224,139,.12)}.plan-card h3{margin:0 0 7px}.plan-price{font-size:24px;font-weight:800;margin:10px 0}.plan-card ul{padding-left:18px;color:#888;font-size:11px;line-height:1.8;min-height:72px}.plan-btn{width:100%;border:1px solid #2d2d33;background:#111114;color:#eee;border-radius:9px;padding:11px;cursor:pointer;font-weight:700}.plan-card.active .plan-btn{background:#35e08b;color:#06120b;border-color:#35e08b}.notification-ui{margin-top:20px}.notification-list{display:grid;gap:8px;margin-top:14px}.notice{padding:13px;border:1px solid #242429;border-radius:11px;background:#0b0b0d}.notice.unread{border-color:#294a38}.notice-title{font-weight:800;font-size:12px}.notice-message{color:#888;font-size:11px;margin-top:5px;line-height:1.5}.notice-time{color:#555;font-size:9px;margin-top:7px}@media(max-width:700px){.plan-grid{grid-template-columns:1fr}.plan-card ul{min-height:0}}</style>
+.subscription-ui{margin-top:20px}.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.plan-card{background:#0b0b0d;border:1px solid #242429;border-radius:15px;padding:18px}.plan-card.active{border-color:#35e08b;box-shadow:0 0 0 1px rgba(53,224,139,.12)}.plan-card h3{margin:0 0 7px}.plan-price{font-size:24px;font-weight:800;margin:10px 0}.plan-card ul{padding-left:18px;color:#888;font-size:11px;line-height:1.8;min-height:72px}.plan-btn{width:100%;border:1px solid #2d2d33;background:#111114;color:#eee;border-radius:9px;padding:11px;cursor:pointer;font-weight:700}.plan-card.active .plan-btn{background:#35e08b;color:#06120b;border-color:#35e08b}.notification-ui{margin-top:20px}.notification-list{display:grid;gap:8px;margin-top:14px}.notice{padding:13px;border:1px solid #242429;border-radius:11px;background:#0b0b0d}.notice.unread{border-color:#294a38}.notice-title{font-weight:800;font-size:12px}.notice-message{color:#888;font-size:11px;margin-top:5px;line-height:1.5}.notice-time{color:#555;font-size:9px;margin-top:7px}@media(max-width:700px){.plan-grid{grid-template-columns:1fr}.plan-card ul{min-height:0}}.wallet-shortcuts{display:flex;gap:8px;overflow:auto;margin:18px 0}.wallet-shortcuts a{padding:10px 14px;white-space:nowrap;border:1px solid #345044;border-radius:9px;color:#35e08b;text-decoration:none}.wallet-operation{padding:20px;background:#0e1614;border:1px solid #293b33;border-radius:14px}.wallet-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.wallet-operation h3{margin:0 0 12px}.wallet-operation label{display:block;margin:12px 0 6px}.wallet-operation input,.wallet-operation select{width:100%;max-width:100%;background:#111c19;color:#fff;border:1px solid #365145;border-radius:8px;padding:11px}.wallet-operation button{margin-top:12px}.wallet-operation button:disabled{opacity:.55;cursor:not-allowed}.wallet-operation .muted{overflow-wrap:anywhere}@media(max-width:720px){.wallet-action-grid{grid-template-columns:1fr}}</style>
 </head>
 <body class="auth-page">
 <header class="site-header">
@@ -33,13 +33,23 @@
 <p class="muted">Internal Gugee wallet balance. Purchases and platform rewards are recorded in your transaction history.</p>
 </section>
 
-<section class="account-card" style="margin-top:20px">
+<section class="account-card" style="margin-top:20px" id="walletActions">
+<p class="section-label">WALLET</p><h2>Deposit · Withdraw · Buy · Sell · Referral · Transactions</h2>
+<nav class="wallet-shortcuts" aria-label="Wallet actions"><a href="#depositPanel">Deposit</a><a href="#withdrawPanel">Withdraw</a><a href="#buyPanel">Buy</a><a href="#sellPanel">Sell</a><a href="#referralPanel">Referral</a><a href="#transactionsPanel">Transactions</a></nav>
+<div class="wallet-action-grid">
+<div id="depositPanel" class="wallet-operation"><h3>Deposit</h3><label for="depositAmount">USD amount</label><input id="depositAmount" type="number" min="1.01" step="0.01" placeholder="100.00"><p id="depositQuote" class="muted">Fee: $1.00</p><p class="muted">Payment provider is not connected yet. No payment can be charged or credited.</p><button class="auth-submit" type="button" disabled>Deposit unavailable</button></div>
+<div id="withdrawPanel" class="wallet-operation"><h3>Withdraw</h3><label for="withdrawAmount">USDT amount (minimum 20)</label><input id="withdrawAmount" type="number" min="20" step="0.01" placeholder="40.00"><p id="withdrawQuote" class="muted">Fee: $1 for every complete $20.</p><p class="muted">Payout provider is not connected yet. Your balance will not be debited.</p><button class="auth-submit" type="button" disabled>Withdrawal unavailable</button></div>
+<div id="sellPanel" class="wallet-operation"><h3>Sell crypto</h3><form id="sellForm"><label for="sellCoin">Owned asset</label><select id="sellCoin" required><option value="">Select an asset</option></select><label for="sellQuantity">Quantity</label><input id="sellQuantity" type="number" min="0" step="any" required><p id="sellQuote" class="muted">Trading fee: 0.10 USDT.</p><button class="auth-submit" type="submit">Sell crypto</button><p id="sellMessage" class="muted" aria-live="polite"></p></form></div>
+<div id="referralPanel" class="wallet-operation"><h3>Referral</h3><p id="referralCode" class="muted">Loading...</p><input id="referralLink" aria-label="Your referral link" readonly><button id="copyReferral" class="auth-submit" type="button">Copy link</button><p id="referralMessage" class="muted" aria-live="polite"></p></div>
+</div></section>
+
+<section class="account-card" id="buyPanel" style="margin-top:20px">
 <p class="section-label">BUY CRYPTO</p>
 <h2>Buy with USDT</h2>
 <form id="buyForm" style="display:grid;gap:12px;max-width:520px;margin-top:16px">
 <input id="buyCoin" type="text" placeholder="Coin ID, e.g. bitcoin" required>
 <input id="buyAmount" type="number" min="0.01" step="0.01" placeholder="USDT amount" required>
-<p id="buyPrice" class="muted">Enter a coin ID to load its live price.</p>
+<p id="buyPrice" class="muted">Enter a coin ID to load its live price.</p><p class="muted">Trading fee: 0.10 USDT, added to the purchase amount.</p>
 <button class="auth-submit" type="submit">Buy crypto</button>
 <p id="buyMessage" class="muted" aria-live="polite"></p>
 </form>
@@ -66,7 +76,7 @@
 </section>
 
 <section class="account-card" style="margin-top:20px">
-<div class="account-head" style="margin-bottom:10px"><div><p class="section-label">TRANSACTIONS</p><h2>Wallet history</h2></div></div>
+<div class="account-head" style="margin-bottom:10px"><div><p class="section-label" id="transactionsPanel">TRANSACTIONS</p><h2>Wallet history</h2></div></div>
 <div id="transactions" class="notification-list"><p class="muted">Loading...</p></div>
 </section>
 </main>
@@ -102,6 +112,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
       const data=await window.gugeeAuth.api("/api/wallet");
       $("usdt").textContent=Number(data.wallet.usdt||0).toFixed(2)+" USDT";
       $("walletUpdated").textContent="Updated "+new Date(data.wallet.updated_at).toLocaleTimeString();
+      updateSellAssets(data.assets);
       const assets=$("assets");
       if(!data.assets.length){assets.innerHTML='<p class="muted">No crypto assets yet.</p>';return;}
       assets.innerHTML=data.assets.map(a=>'<div class="asset"><strong>'+String(a.symbol||a.coin_id).toUpperCase()+'</strong><span>'+Number(a.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+'</span></div>').join("");
@@ -170,7 +181,58 @@ document.addEventListener("DOMContentLoaded",async()=>{
     }catch(e){$("notifications").innerHTML='<p class="error">Could not load notifications.</p>';}
   }
 
-  await Promise.all([loadWallet(),loadSubscription(),loadTransactions(),loadNotifications()]);
+  let heldAssets=[];
+  const sellCoin=$("sellCoin"),sellQuantity=$("sellQuantity"),sellQuote=$("sellQuote"),sellMessage=$("sellMessage");
+  function updateSellAssets(assets){
+    heldAssets=assets||[];
+    const selected=sellCoin.value;
+    sellCoin.replaceChildren(new Option("Select an asset",""),...heldAssets.map(asset=>new Option(String(asset.symbol||asset.coin_id).toUpperCase()+" · "+Number(asset.quantity).toLocaleString(),asset.coin_id)));
+    if(heldAssets.some(asset=>asset.coin_id===selected))sellCoin.value=selected;
+    updateSellQuote();
+  }
+  async function updateSellQuote(){
+    const asset=heldAssets.find(x=>x.coin_id===sellCoin.value),quantity=Number(sellQuantity.value);
+    if(!asset||!sellQuantity.value||!Number.isFinite(quantity)||quantity<=0){sellQuote.textContent="Trading fee: 0.10 USDT.";return;}
+    try{
+      const quote=await window.gugeeAuth.api("/api/wallet/price?coin="+encodeURIComponent(asset.coin_id));
+      if(sellCoin.value!==asset.coin_id)return;
+      const gross=quantity*Number(quote.price);
+      sellQuote.textContent=gross>0.10?"Estimated proceeds: "+(gross-0.10).toFixed(2)+" USDT after 0.10 USDT fee. Final quote may change.":"Sale value must exceed the 0.10 USDT fee.";
+    }catch(e){sellQuote.textContent=e.message;}
+  }
+  sellCoin.addEventListener("change",updateSellQuote);
+  sellQuantity.addEventListener("input",updateSellQuote);
+  $("sellForm").addEventListener("submit",async event=>{
+    event.preventDefault();
+    const coinId=sellCoin.value,quantity=Number(sellQuantity.value);
+    const asset=heldAssets.find(x=>x.coin_id===coinId);
+    if(!asset||!Number.isFinite(quantity)||quantity<=0||quantity>Number(asset.quantity)){sellMessage.textContent="Enter a valid quantity within your holdings.";return;}
+    if(!window.confirm("Sell "+quantity+" "+asset.symbol+" at the current market price?"))return;
+    const button=event.currentTarget.querySelector('button[type="submit"]');button.disabled=true;sellMessage.textContent="Processing...";
+    try{
+      const result=await window.gugeeAuth.api("/api/wallet/sell",{method:"POST",body:JSON.stringify({coinId,quantity})});
+      sellMessage.textContent="Sold "+result.sale.quantity+" "+result.sale.symbol+" · credited "+Number(result.sale.net).toFixed(2)+" USDT.";
+      sellQuantity.value="";await Promise.all([loadWallet(),loadTransactions()]);
+    }catch(e){sellMessage.textContent=e.message;}finally{button.disabled=false;}
+  });
+  function previewFee(kind){
+    const input=$(kind+"Amount"),amount=Number(input.value),el=$(kind+"Quote");
+    if(!input.value||!Number.isFinite(amount)||amount<=0){el.textContent=kind==="deposit"?"Fee: $1.00":"Minimum withdrawal: $20.00.";return;}
+    const fee=kind==="deposit"?1:Math.floor(amount/20);
+    el.textContent=kind==="deposit"?(amount>fee?"Fee $1.00 · Estimated credit "+(amount-fee).toFixed(2)+" USDT":"Amount must exceed $1.00"):(amount>=20?"Fee "+fee.toFixed(2)+" USDT · Estimated payout $"+(amount-fee).toFixed(2):"Minimum withdrawal: $20.00");
+  }
+  ["deposit","withdraw"].forEach(kind=>$(kind+"Amount").addEventListener("input",()=>previewFee(kind)));
+  async function loadReferral(){
+    try{
+      const result=await window.gugeeAuth.api("/api/referrals");
+      const code=result.referral?.code||result.referralCode||user.referral_code||"";
+      const link=result.referral?.link||result.referralLink||(code?new URL("register.html?ref="+encodeURIComponent(code),location.href).href:"");
+      $("referralCode").textContent=code?"Your code: "+code:"No referral code available.";
+      $("referralLink").value=link;
+    }catch(e){$("referralMessage").textContent=e.message;}
+  }
+  $("copyReferral").onclick=async()=>{try{if(!$("referralLink").value)throw Error("No referral link available.");await navigator.clipboard.writeText($("referralLink").value);$("referralMessage").textContent="Copied!";}catch(e){$("referralMessage").textContent=e.message;}};
+  await Promise.all([loadWallet(),loadSubscription(),loadTransactions(),loadNotifications(),loadReferral()]);
 });
 </script>
 </body>
