@@ -2026,3 +2026,6 @@ footer{width:100%;box-sizing:border-box}
 /* Live crypto directory card values */
 .crypto-directory-extra{display:block!important;width:100%;margin-top:7px;color:#66666d!important;font-size:8px!important;line-height:1.45;white-space:normal!important;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:700px){.crypto-directory-main{flex-wrap:wrap}.crypto-directory-main .crypto-directory-info{min-width:calc(100% - 80px)}.crypto-directory-main strong{margin-left:auto}.crypto-directory-main>.crypto-directory-extra{flex-basis:100%}}
+
+/* Crypto detail identity alignment */
+.crypto-head .coin-title{min-width:0;align-items:center}.crypto-head .coin-icon{flex:0 0 52px;overflow:hidden}.crypto-head .coin-icon img{width:38px;height:38px;object-fit:contain;display:block}.crypto-head .coin-icon #coinIconFallback{width:100%;height:100%;place-items:center}.crypto-head .coin-title>div:last-child{min-width:0}.crypto-head .coin-title h1{margin:0;line-height:1.08;overflow-wrap:anywhere}.crypto-head .coin-title p{margin:6px 0 0}.crypto-head-actions{display:flex;align-items:center;gap:18px;flex:0 0 auto}@media(max-width:800px){.crypto-head-actions{width:100%;justify-content:space-between}}
