@@ -1,4 +1,4 @@
-const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,""),"https://gugee.onrender.com"])].filter(Boolean);
+const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,"")])].filter(Boolean);
 const params=new URLSearchParams(location.search);
 const requestedCoin=params.get("coin")||"bitcoin";
 const aliases={btc:"bitcoin",eth:"ethereum",sol:"solana",bnb:"binancecoin",xrp:"ripple",doge:"dogecoin"};
