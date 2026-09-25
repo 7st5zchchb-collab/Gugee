@@ -29,7 +29,7 @@ async function openDetail(id){
     document.querySelector("#tournamentDetail").scrollIntoView({behavior:"smooth",block:"start"});
   }catch(e){alert(e.message)}
 }
-async function leaderboard(id){try{const r=await gugeeAuth.api("/api/tournaments/"+id+"/live-leaderboard");document.querySelector("#leaderboard").innerHTML=(r.leaderboard||[]).slice(0,20).map(x=>"<div class=\"ref-row\"><span>#"+x.rank+" "+esc(x.name)+"</span><span>LIVE</span><b>"+Number(x.score).toFixed(2)+"%</b></div>").join("")||"No entries yet."}catch(e){document.querySelector("#leaderboard").textContent=e.message}}
+async function leaderboard(id){try{const r=await gugeeAuth.api("/api/tournaments/"+id+"/live-leaderboard");document.querySelector("#leaderboard").innerHTML=(r.leaderboard||[]).slice(0,20).map(x=>"<div class=\"ref-row\"><span>#"+x.rank+" "+"@"+esc(x.username||"user")+"</span><span>LIVE</span><b>"+Number(x.score).toFixed(2)+"%</b></div>").join("")||"No entries yet."}catch(e){document.querySelector("#leaderboard").textContent=e.message}}
 async function syncScore(id){if(!gugeeAuth.getCurrentUser()){location.href="login.html";return}try{const r=await gugeeAuth.api("/api/tournaments/"+id+"/sync-score",{method:"POST"});alert("Score synced: "+Number(r.score||0).toFixed(2)+"%");await leaderboard(id)}catch(e){alert(e.message)}}
 async function join(id){if(!gugeeAuth.getCurrentUser()){location.href="login.html";return}try{const r=await gugeeAuth.api("/api/tournaments/"+id+"/join",{method:"POST"});alert(r.message||"Joined successfully");load()}catch(e){alert(e.message)}}
 load();
