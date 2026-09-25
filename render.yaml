@@ -3,7 +3,7 @@ services:
     name: gugee
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && npm run build:engine
     startCommand: npm start
     autoDeploy: true
     healthCheckPath: /health
