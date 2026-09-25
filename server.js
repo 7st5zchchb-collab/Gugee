@@ -526,12 +526,10 @@ app.get("/api/health",async(req,res)=>{
 app.post("/api/auth/register",async(req,res)=>{
   if(!rateLimit("register:"+clientKey(req),5,15*60*1000))return res.status(429).json({error:"Too many registration attempts. Try again later."});
   try{
-    const name=String(req.body.name||"").trim();
     const username=String(req.body.username||"").trim().toLowerCase();
+    const name=username;
     const email=String(req.body.email||"").trim().toLowerCase();
     const password=String(req.body.password||"");
-    if(name.length<2)return res.status(400).json({error:"Name must contain at least 2 characters."});
-    if(name.length>80)return res.status(400).json({error:"Name is too long."});
     if(!/^[a-z0-9_][a-z0-9_.-]{2,19}$/.test(username))return res.status(400).json({error:"Username must be 3-20 characters and use letters, numbers, _, ., or -."});
     if(!/^\S+@\S+\.\S+$/.test(email)||email.length>254)return res.status(400).json({error:"Enter a valid email address."});
     if(password.length<8)return res.status(400).json({error:"Password must be at least 8 characters."});
@@ -567,7 +565,7 @@ app.post("/api/auth/register",async(req,res)=>{
     setAuthCookie(res,signUser(rows[0]));
     res.status(201).json({user:rows[0],verificationSent});
   }catch(e){
-    if(e.code==="23505")return res.status(409).json({error:"An account with this email already exists."});
+    if(e.code==="23505")return res.status(409).json({error:String(e.constraint||"").includes("username")?"That @username is already taken.":"An account with this email already exists."});
     console.error(e);
     res.status(500).json({error:"Could not create account"});
   }
