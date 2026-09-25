@@ -851,6 +851,32 @@ app.post("/api/referrals/claim",auth,async(req,res)=>{
   }catch(e){console.error(e);res.status(500).json({error:"Could not claim referral"});}
 });
 
+app.post("/api/wallet/sell",auth,async(req,res)=>{
+  const coinId=String(req.body.coinId||"").trim().toLowerCase();
+  const quantity=Number(req.body.quantity);
+  if(!coinId||!Number.isFinite(quantity)||quantity<=0)return res.status(400).json({error:"Invalid coin or quantity."});
+  let coin;
+  try{coin=await getPurchaseCoin(coinId);}catch(e){return res.status(400).json({error:e.message||"Could not load coin price"});}
+  const gross=quantity*coin.price;
+  const fee=tradeFee();
+  if(!Number.isFinite(gross)||gross<=fee)return res.status(400).json({error:"Sale value must be greater than the $0.10 fee."});
+  const net=gross-fee;
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    const asset=await client.query("SELECT quantity FROM wallet_assets WHERE user_id=$1 AND coin_id=$2 FOR UPDATE",[req.user.id,coin.id]);
+    const owned=Number(asset.rows[0]?.quantity||0);
+    if(owned+1e-18<quantity){await client.query("ROLLBACK");return res.status(400).json({error:"Insufficient crypto balance."});}
+    await client.query("UPDATE wallet_assets SET quantity=quantity-$1,updated_at=NOW() WHERE user_id=$2 AND coin_id=$3",[quantity,req.user.id,coin.id]);
+    const wallet=await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING; UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2 RETURNING usdt",[net,req.user.id]);
+    const row=wallet.rows[wallet.rows.length-1];
+    const tx=await client.query("INSERT INTO wallet_transactions(user_id,type,coin_id,symbol,quantity,price_usdt,usdt_amount,fee_usdt) VALUES($1,'sell',$2,$3,$4,$5,$6,$7) RETURNING id,created_at",[req.user.id,coin.id,coin.symbol,quantity,coin.price,net,fee]);
+    await client.query("COMMIT");
+    res.json({ok:true,sale:{coinId:coin.id,symbol:coin.symbol,quantity,price:coin.price,gross,fee,net},usdt:Number(row.usdt),transactionId:tx.rows[0].id,createdAt:tx.rows[0].created_at});
+  }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not complete crypto sale"});}
+  finally{client.release();}
+});
+
 app.get("/api/wallet/assets",auth,async(req,res)=>{
   try{
     const {rows}=await pool.query("SELECT coin_id,symbol,quantity,updated_at FROM wallet_assets WHERE user_id=$1 AND quantity<>0 ORDER BY updated_at DESC",[req.user.id]);
