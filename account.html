@@ -24,7 +24,7 @@
 <main class="account-shell">
 <div id="adminLink"></div>
 <div class="account-head">
-<div><p class="section-label">GUGEE ACCOUNT</p><h1 id="welcome">Your Account</h1><p class="muted" id="email"></p></div>
+<div><p class="section-label">GUGEE ACCOUNT</p><h1 id="welcome">Your Account</h1><p class="muted">Your public Gugee identity</p></div>
 </div>
 
 <section class="account-card">
@@ -88,8 +88,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
   if(!user){window.location.href="login.html";return;}
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??"").replace(/[&<>"\x27]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","\x27":"&#39;"}[c]));
-  $("welcome").textContent="Welcome, "+(user.name||"User");
-  $("email").textContent=user.email;
+  $("welcome").textContent="@"+(user.username||"user");
   $("logoutBtn").onclick=window.gugeeAuth.logout;
   if(user.is_admin)$("adminLink").innerHTML='<a class="auth-submit" style="display:inline-block;text-decoration:none;margin-bottom:20px" href="community-admin.html">Community Admin</a>';
 
