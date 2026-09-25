@@ -798,27 +798,7 @@ app.post("/api/wallet/deposit",auth,async(req,res)=>{
 });
 
 app.post("/api/wallet/withdraw",auth,async(req,res)=>{
-  const amount=Number(req.body.amount);
-  const method=String(req.body.method||"").toLowerCase();
-  const destination=String(req.body.destination||"").trim();
-  if(!validMoney(amount))return res.status(400).json({error:"Invalid withdrawal amount."});
-  if(amount<20)return res.status(400).json({error:"Minimum withdrawal is $20."});
-  if(!["visa","mastercard","paypal"].includes(method))return res.status(400).json({error:"Unsupported withdrawal method."});
-  if(!destination||destination.length>320)return res.status(400).json({error:"A valid payout destination is required."});
-  const fee=withdrawFee(amount);
-  const net=amount-fee;
-  const client=await pool.connect();
-  try{
-    await client.query("BEGIN");
-    await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[req.user.id]);
-    const debit=await client.query("UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",[amount,req.user.id]);
-    if(!debit.rows[0]){await client.query("ROLLBACK");return res.status(400).json({error:"Insufficient USDT balance."});}
-    const request=await client.query("INSERT INTO withdrawal_requests(user_id,amount_usdt,fee_usdt,net_usdt,method,destination) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,created_at,status",[req.user.id,amount,fee,net,method,destination]);
-    await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount,fee_usdt) VALUES($1,'withdraw',$2,$3)",[req.user.id,-net,fee]);
-    await client.query("COMMIT");
-    res.status(201).json({ok:true,withdrawal:{id:request.rows[0].id,amount,fee,net,method,status:request.rows[0].status,createdAt:request.rows[0].created_at},usdt:Number(debit.rows[0].usdt)});
-  }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not create withdrawal request"});}
-  finally{client.release();}
+  return res.status(501).json({error:"Payout provider not connected yet. Your balance has not been changed."});
 });
 
 app.get("/api/wallet/withdrawals",auth,async(req,res)=>{
