@@ -34,7 +34,7 @@ async function loadLiveCoins(){
 liveCoinSearch?.addEventListener("input",renderLiveCoins);
 liveCoinLimit?.addEventListener("change",loadLiveCoins);
 
-const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,""),"https://gugee.onrender.com"])].filter(Boolean);
+const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,"")])].filter(Boolean);
 async function api(path){let last;for(const base of API_BASES){try{const r=await fetch(base+path,{cache:"no-store",headers:{accept:"application/json"}});if(r.ok)return r.json();last=new Error("HTTP "+r.status)}catch(e){last=e}}throw last||new Error("API unavailable")}
 async function loadBitcoinFeature(){try{const d=await api("/api/coingecko/coins/bitcoin?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false"),m=d.market_data||{},price=Number(m.current_price?.usd),ch=Number(m.price_change_percentage_24h||0);if(marketBtcPrice)marketBtcPrice.textContent=Number.isFinite(price)?price.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}):"--";if(marketBtcChange){marketBtcChange.textContent=(ch>=0?"+":"")+ch.toFixed(2)+"%";marketBtcChange.className=ch>=0?"positive":"negative"}if(marketBtcCap)marketBtcCap.textContent=money(m.market_cap?.usd);if(marketBtcVolume)marketBtcVolume.textContent=money(m.total_volume?.usd)}catch{if(marketBtcPrice)marketBtcPrice.textContent="--"}}
 const GLOBAL_API="/api/coingecko/global";
