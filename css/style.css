@@ -2090,3 +2090,60 @@ footer{width:100%;box-sizing:border-box}
   .hero{padding-top:36px}
   .hero h1{font-size:34px}
 }
+
+
+/* Gugee mobile directories + analysis pass 2026-09-26 */
+@media(max-width:700px){
+  .cryptos-directory,.exchanges-directory,.crypto-page,.analysis-page{width:calc(100% - 24px)!important;margin:22px auto 60px!important;box-sizing:border-box}
+  .cryptos-directory-hero,.exchanges-directory-hero{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:14px!important;padding:18px 0!important}
+  .cryptos-directory-hero h1,.exchanges-directory-hero h1,.analysis-hero h1{font-size:28px!important;line-height:1.08!important;letter-spacing:-1px!important}
+  .cryptos-directory-hero p:not(.section-label),.exchanges-directory-hero p:not(.section-label),.analysis-hero>p:last-child{font-size:10px!important;line-height:1.65!important}
+  .crypto-directory-search,.exchange-directory-search{width:100%!important;max-width:none!important;box-sizing:border-box!important}
+  .crypto-favorites-heading,.crypto-directory-toolbar{gap:8px!important;align-items:flex-start!important}
+  .crypto-favorites-grid,.crypto-directory-grid,.exchange-directory-grid{grid-template-columns:1fr!important;gap:8px!important}
+  .crypto-directory-card,.exchange-directory-card{width:100%!important;min-width:0!important;box-sizing:border-box!important}
+  .crypto-directory-main{width:100%;min-width:0}
+  .crypto-directory-info{min-width:0!important}
+  .crypto-directory-info b,.crypto-directory-info span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .crypto-others-more{width:100%;box-sizing:border-box;text-align:center}
+
+  .crypto-page .back-link{display:inline-flex;margin-bottom:14px}
+  .crypto-head{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:16px!important;padding:14px!important}
+  .crypto-head .coin-title{width:100%;min-width:0}
+  .crypto-head .coin-icon{width:44px!important;height:44px!important;flex:0 0 44px!important}
+  .crypto-head .coin-title h1{font-size:24px!important}
+  .crypto-head-actions{width:100%!important;display:grid!important;grid-template-columns:1fr!important;gap:9px!important}
+  .favorite-button{width:100%!important;box-sizing:border-box}
+  .price-box{text-align:left!important}
+  .price-box strong{font-size:28px!important}
+  .stats-grid{grid-template-columns:1fr 1fr!important;gap:7px!important}
+  .stat-card{min-width:0!important;padding:11px!important}
+  .stat-card strong{font-size:12px!important;overflow-wrap:anywhere}
+  .chart-card,.crypto-analysis-section,.signal-card,.analysis-card,.analysis-note{padding:12px!important;box-sizing:border-box}
+  .chart-head{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:10px!important}
+  .ranges{width:100%;display:flex!important;overflow-x:auto!important;gap:5px!important;scrollbar-width:none}
+  .ranges::-webkit-scrollbar{display:none}
+  .range{flex:0 0 auto!important}
+  .chart-placeholder{min-height:260px!important}
+  .crypto-period-grid,.signal-grid,.metric-grid{grid-template-columns:1fr 1fr!important;gap:7px!important}
+  .daily-moves{overflow-x:auto!important;max-width:100%!important}
+  .analysis-dashboard{grid-template-columns:1fr!important;gap:9px!important}
+  .exchange-analysis-table{max-width:100%;overflow-x:auto}
+  .analysis-card .row{gap:10px}
+  .analysis-card .row b{text-align:right;overflow-wrap:anywhere}
+
+  .analysis-hero{padding:18px 0 20px!important}
+  .analysis-live-grid{grid-template-columns:1fr!important;gap:8px!important}
+  .analysis-live-card{padding:13px!important}
+  .analysis-learning-grid{grid-template-columns:1fr!important;gap:9px!important}
+  .analysis-lesson{padding:14px!important}
+  .analysis-lesson h2{font-size:18px!important}
+  .analysis-indicator-grid{grid-template-columns:1fr!important;gap:8px!important}
+  .analysis-indicator-grid article{padding:12px!important}
+  .analysis-rules{grid-template-columns:1fr!important;gap:9px!important}
+}
+@media(max-width:430px){
+  .stats-grid,.crypto-period-grid,.signal-grid,.metric-grid{grid-template-columns:1fr!important}
+  .crypto-favorites-heading,.crypto-directory-toolbar{flex-direction:column!important}
+  .chart-placeholder{min-height:220px!important}
+}
