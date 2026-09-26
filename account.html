@@ -281,6 +281,8 @@ document.addEventListener("DOMContentLoaded",async()=>{
   async function loadSubscription(){
     try{
       const limits=await window.gugeeAuth.api("/api/account/limits");
+      currentTradeFee=Number(limits.tradeFee||0);
+      $("sellQuote").textContent="Trading fee: "+currentTradeFee.toFixed(2)+" USDT.";
       $("planLimits").textContent=limits.plan.toUpperCase()+" limits · "+limits.favorites+" favorites · "+Number(limits.dailyWithdrawal).toLocaleString()+" USDT daily withdrawal";
       const data=await window.gugeeAuth.api("/api/subscriptions");
       const sub=data.subscription||{plan:"free",status:"active"};
@@ -349,7 +351,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
     }catch(e){$("notifications").innerHTML='<p class="error">Could not load notifications.</p>';}
   }
 
-  let heldAssets=[];
+  let heldAssets=[],currentTradeFee=0.10;
   const sellCoin=$("sellCoin"),sellQuantity=$("sellQuantity"),sellQuote=$("sellQuote"),sellMessage=$("sellMessage");
   function updateSellAssets(assets){
     heldAssets=assets||[];
@@ -360,12 +362,12 @@ document.addEventListener("DOMContentLoaded",async()=>{
   }
   async function updateSellQuote(){
     const asset=heldAssets.find(x=>x.coin_id===sellCoin.value),quantity=Number(sellQuantity.value);
-    if(!asset||!sellQuantity.value||!Number.isFinite(quantity)||quantity<=0){sellQuote.textContent="Trading fee: 0.10 USDT.";return;}
+    if(!asset||!sellQuantity.value||!Number.isFinite(quantity)||quantity<=0){sellQuote.textContent="Trading fee: "+currentTradeFee.toFixed(2)+" USDT.";return;}
     try{
       const quote=await window.gugeeAuth.api("/api/wallet/price?coin="+encodeURIComponent(asset.coin_id));
       if(sellCoin.value!==asset.coin_id)return;
       const gross=quantity*Number(quote.price);
-      sellQuote.textContent=gross>0.10?"Estimated proceeds: "+(gross-0.10).toFixed(2)+" USDT after 0.10 USDT fee. Final quote may change.":"Sale value must exceed the 0.10 USDT fee.";
+      sellQuote.textContent=gross>currentTradeFee?"Estimated proceeds: "+(gross-currentTradeFee).toFixed(2)+" USDT after "+currentTradeFee.toFixed(2)+" USDT fee. Final quote may change.":"Sale value must exceed the "+currentTradeFee.toFixed(2)+" USDT fee.";
     }catch(e){sellQuote.textContent=e.message;}
   }
   sellCoin.addEventListener("change",updateSellQuote);
