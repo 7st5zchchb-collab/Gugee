@@ -52,7 +52,7 @@ function initGlobalNavigation(){
     '<div class="mobile-nav-separator"></div>'+
     '<a href="account.html#walletActions"><span class="nav-icon">▣</span>Wallet</a>'+
     '<a href="account.html#profileSettings"><span class="nav-icon">♙</span>Profile</a>'+
-    '<a href="account.html#notificationsPanel"><span class="nav-icon">♧</span>Notifications</a>'+
+    '<a href="account.html#notificationsPanel"><span class="nav-icon">♧</span>Notifications <span class="drawer-notification-badge" hidden>0</span></a>'+
     '<a href="account.html#tasksPanel"><span class="nav-icon">☑</span>Tasks</a>'+
     '<a href="referrals.html"><span class="nav-icon">♧</span>Referral</a>'+
     '<div class="mobile-nav-separator"></div>'+
@@ -90,6 +90,18 @@ function initGlobalNavigation(){
   const closeMenu=()=>{nav.classList.remove("mobile-open");toggle.classList.remove("active");toggle.setAttribute("aria-expanded","false");document.body.classList.remove("nav-drawer-open");};
   nav.querySelector(".mobile-drawer-close")?.addEventListener("click",closeMenu);
   nav.querySelector(".mobile-drawer-logout")?.addEventListener("click",()=>window.gugeeAuth.logout());
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&nav.classList.contains("mobile-open"))closeMenu();});
+  document.addEventListener("click",e=>{if(nav.classList.contains("mobile-open")&&!nav.contains(e.target)&&!toggle.contains(e.target))closeMenu();});
+  if(signedIn){
+    api("/api/notifications").then(data=>{
+      const unread=(data.notifications||[]).filter(n=>!n.read_at).length,badge=nav.querySelector(".drawer-notification-badge");
+      if(badge){badge.textContent=unread>99?"99+":String(unread);badge.hidden=unread===0;}
+    }).catch(()=>{});
+  }
+  const hash=location.hash;
+  if(current==="account.html"&&hash){
+    nav.querySelectorAll('a[href^="account.html#"]').forEach(a=>a.classList.toggle("active",a.getAttribute("href").endsWith(hash)));
+  }
   nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>{
     nav.classList.remove("mobile-open");
     toggle.classList.remove("active");
