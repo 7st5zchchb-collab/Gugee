@@ -222,9 +222,17 @@ document.addEventListener("DOMContentLoaded",async()=>{
     $("profileEmail").textContent=u.email||"Not connected";
   };
   if(user)paintIdentity(user);
-  const freshUser=await window.gugeeAuth.refreshCurrentUser();
-  if(freshUser){user=freshUser;paintIdentity(user);}
-  if(!user){window.location.href="login.html";return;}
+  // Do not block Profile controls on a network/session refresh.
+  // Cached signed-in users can interact immediately while the secure session refreshes.
+  if(!user){
+    const freshUser=await window.gugeeAuth.refreshCurrentUser();
+    if(freshUser){user=freshUser;paintIdentity(user);}
+    if(!user){window.location.href="login.html";return;}
+  }else{
+    window.gugeeAuth.refreshCurrentUser().then(freshUser=>{
+      if(freshUser){user=freshUser;paintIdentity(user);renderProfileAvatar(user.avatar_data);}
+    }).catch(()=>{});
+  }
   if(subscriptionReturn==="success")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Payment confirmed. Activating your plan…";},0);
   if(subscriptionReturn==="cancelled")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Subscription checkout was cancelled.";},0);
 
