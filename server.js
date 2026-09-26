@@ -1308,8 +1308,8 @@ app.post("/api/wallet/sell",auth,async(req,res)=>{
   let coin;
   try{coin=await getPurchaseCoin(coinId);}catch(e){return res.status(400).json({error:e.message||"Could not load coin price"});}
   const gross=quantity*coin.price;
-  const fee=tradeFee();
-  if(!Number.isFinite(gross)||gross<=fee)return res.status(400).json({error:"Sale value must be greater than the $0.10 fee."});
+  const limits=await getPlanLimits(req.user.id),fee=limits.tradeFee;
+  if(!Number.isFinite(gross)||gross<=fee)return res.status(400).json({error:"Sale value must be greater than the "+fee.toFixed(2)+" USDT trading fee."});
   const net=gross-fee;
   const client=await pool.connect();
   try{
