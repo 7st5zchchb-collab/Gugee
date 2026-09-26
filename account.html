@@ -83,6 +83,15 @@
 <div id="referralPanel" class="wallet-operation"><h3>Referral</h3><p id="referralCode" class="muted">Loading...</p><input id="referralLink" aria-label="Your referral link" readonly><button id="copyReferral" class="auth-submit" type="button">Copy link</button><p id="referralMessage" class="muted" aria-live="polite"></p></div>
 </div></section>
 
+<section class="account-card" id="cardCryptoPanel" style="margin-top:20px">
+<p class="section-label">CARD → CRYPTO</p><h2>Buy crypto directly by card</h2>
+<form id="cardCryptoForm" style="display:grid;gap:12px;max-width:520px;margin-top:16px">
+<input id="cardCryptoCoin" type="text" placeholder="Coin ID, e.g. bitcoin" required>
+<input id="cardCryptoAmount" type="number" min="5" max="100000" step="0.01" placeholder="Crypto value in USD" required>
+<p class="muted">Gugee card purchase fee: $1.50 per transaction. Card details are entered securely on Stripe Checkout and are not stored by Gugee.</p>
+<button class="auth-submit" type="submit">Continue to card payment</button><p id="cardCryptoMessage" class="muted" aria-live="polite"></p>
+</form></section>
+
 <section class="account-card" id="buyPanel" style="margin-top:20px">
 <p class="section-label">BUY CRYPTO</p>
 <h2>Buy with USDT</h2>
@@ -163,6 +172,21 @@ document.addEventListener("DOMContentLoaded",async()=>{
       assets.innerHTML=data.assets.map(a=>'<div class="asset"><strong>'+esc(String(a.symbol||a.coin_id).toUpperCase())+'</strong><span>'+Number(a.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+'</span></div>').join("");
     }catch(e){$("assets").innerHTML='<p class="error">Could not load wallet.</p>';}
   }
+
+  const cardCryptoForm=$("cardCryptoForm"),cardCryptoMessage=$("cardCryptoMessage");
+  cardCryptoForm.addEventListener("submit",async e=>{
+    e.preventDefault();cardCryptoMessage.textContent="Preparing secure checkout...";
+    const coinId=$("cardCryptoCoin").value.trim().toLowerCase(),usdAmount=Number($("cardCryptoAmount").value);
+    if(!coinId||!Number.isFinite(usdAmount)||usdAmount<5){cardCryptoMessage.textContent="Enter a coin and at least $5.";return;}
+    try{
+      const r=await window.gugeeAuth.api("/api/stripe/card-crypto-checkout",{method:"POST",body:JSON.stringify({coinId,usdAmount})});
+      if(!r.url)throw new Error("Checkout URL was not returned.");
+      window.location.href=r.url;
+    }catch(err){cardCryptoMessage.textContent=err.message;}
+  });
+  const cardCryptoReturn=new URLSearchParams(location.search).get("cardcrypto");
+  if(cardCryptoReturn==="success")cardCryptoMessage.textContent="Card payment received. Crypto will appear after Stripe webhook confirmation.";
+  if(cardCryptoReturn==="cancelled")cardCryptoMessage.textContent="Card crypto checkout was cancelled.";
 
   buyForm.addEventListener("submit",async e=>{
     e.preventDefault();buyMessage.textContent="";
