@@ -91,7 +91,13 @@ function initGlobalNavigation(){
   nav.querySelector(".mobile-drawer-close")?.addEventListener("click",closeMenu);
   nav.querySelector(".mobile-drawer-logout")?.addEventListener("click",()=>window.gugeeAuth.logout());
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&nav.classList.contains("mobile-open"))closeMenu();});
-  document.addEventListener("click",e=>{if(nav.classList.contains("mobile-open")&&!nav.contains(e.target)&&!toggle.contains(e.target))closeMenu();});
+  document.addEventListener("click",e=>{
+    if(!nav.classList.contains("mobile-open"))return;
+    // The dark backdrop is drawn with body::after, so its click target is body.
+    // Never let that global handler swallow real links inside the drawer.
+    if(nav.contains(e.target)||toggle.contains(e.target))return;
+    closeMenu();
+  });
   if(signedIn){
     api("/api/notifications").then(data=>{
       const unread=(data.notifications||[]).filter(n=>!n.read_at).length,badge=nav.querySelector(".drawer-notification-badge");
@@ -102,11 +108,14 @@ function initGlobalNavigation(){
   if(current==="account.html"&&hash){
     nav.querySelectorAll('a[href^="account.html#"]').forEach(a=>a.classList.toggle("active",a.getAttribute("href").endsWith(hash)));
   }
-  nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>{
-    nav.classList.remove("mobile-open");
-    toggle.classList.remove("active");
-    toggle.setAttribute("aria-expanded","false");
-    document.body.classList.remove("nav-drawer-open");
+  nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",e=>{
+    const href=link.getAttribute("href");
+    closeMenu();
+    if(href){
+      e.preventDefault();
+      if(href.startsWith("#"))location.hash=href;
+      else window.location.assign(new URL(href,location.href).href);
+    }
   }));
 }
 function renderAuthNav(){
