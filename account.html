@@ -122,7 +122,7 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 <div class="profile-info">
 <div><small class="muted">Username</small><div id="profileUsername" class="readonly-field">@user</div></div>
 <div><small class="muted">Connected email</small><div id="profileEmail" class="readonly-field">0</div></div>
-<div class="settings-actions"><input id="avatarInput" type="file" accept="image/jpeg,image/png,image/webp" hidden><button id="changeAvatarBtn" type="button">Change avatar</button><button id="removeAvatarBtn" type="button">Remove avatar</button></div>
+<div class="settings-actions"><input id="avatarInput" type="file" accept="image/*" hidden><button id="changeAvatarBtn" type="button">Change avatar</button><button id="removeAvatarBtn" type="button">Remove avatar</button></div>
 <p id="profileMessage" class="muted" aria-live="polite"></p>
 </div></div>
 <form id="passwordSettingsForm" class="password-settings" data-settings-target="true">
@@ -250,28 +250,35 @@ document.addEventListener("DOMContentLoaded",async()=>{
   $("avatarInput").onchange=async()=>{
     const input=$("avatarInput"),file=input.files?.[0],msg=$("profileMessage");
     if(!file)return;
-    if(!["image/jpeg","image/png","image/webp"].includes(String(file.type||"").toLowerCase())){msg.textContent="Choose a JPEG, PNG or WebP photo.";input.value="";return;}
+    if(file.type&&!String(file.type).toLowerCase().startsWith("image/")){msg.textContent="Choose a photo.";input.value="";return;}
     const changeBtn=$("changeAvatarBtn"),cameraBtn=$("avatarCameraBtn");
     changeBtn.disabled=true;cameraBtn.disabled=true;msg.textContent="Updating avatar...";
     let img=null;
     try{
-      // FileReader is more reliable than blob/object URLs for iPhone Photos/Safari.
-      const source=await new Promise((resolve,reject)=>{
-        const reader=new FileReader();
-        reader.onload=()=>resolve(String(reader.result||""));
-        reader.onerror=()=>reject(new Error("Could not read this photo."));
-        reader.readAsDataURL(file);
-      });
-      img=new Image();
-      await new Promise((resolve,reject)=>{
-        img.onload=resolve;
-        img.onerror=()=>reject(new Error("Could not decode this photo. Choose JPEG, PNG or WebP."));
-        img.src=source;
-      });
-      const side=Math.min(img.naturalWidth,img.naturalHeight),sx=(img.naturalWidth-side)/2,sy=(img.naturalHeight-side)/2;
+      let width=0,height=0,drawable=null;
+      if(typeof createImageBitmap==="function"){
+        try{drawable=await createImageBitmap(file);width=drawable.width;height=drawable.height;}catch{}
+      }
+      if(!drawable){
+        const source=await new Promise((resolve,reject)=>{
+          const reader=new FileReader();
+          reader.onload=()=>resolve(String(reader.result||""));
+          reader.onerror=()=>reject(new Error("Could not read this photo."));
+          reader.readAsDataURL(file);
+        });
+        img=new Image();
+        await new Promise((resolve,reject)=>{
+          img.onload=resolve;
+          img.onerror=()=>reject(new Error("This iPhone photo format could not be decoded. In Photos choose Share → Save to Files as JPEG/PNG, then try again."));
+          img.src=source;
+        });
+        drawable=img;width=img.naturalWidth;height=img.naturalHeight;
+      }
+      if(!width||!height)throw new Error("Could not read photo dimensions.");
+      const side=Math.min(width,height),sx=(width-side)/2,sy=(height-side)/2;
       const canvas=document.createElement("canvas");canvas.width=384;canvas.height=384;
       const ctx=canvas.getContext("2d");if(!ctx)throw new Error("Could not prepare image.");
-      ctx.drawImage(img,sx,sy,side,side,0,0,384,384);
+      ctx.drawImage(drawable,sx,sy,side,side,0,0,384,384);if(drawable&&typeof drawable.close==="function")drawable.close();
       let quality=.86,avatar=canvas.toDataURL("image/jpeg",quality);
       while(avatar.length>620000&&quality>.45){quality-=.1;avatar=canvas.toDataURL("image/jpeg",quality);}
       if(avatar.length>680000)throw new Error("Photo is too large.");
