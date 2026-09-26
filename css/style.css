@@ -2287,3 +2287,24 @@ button,.auth-submit,.login-button{border-radius:10px}
  .site-header .nav a{color:#d7dde8}
  .site-header .nav a:hover,.site-header .nav a.active{background:#111b28}
 }
+
+
+/* Reference-style mobile side drawer */
+.mobile-drawer-head,.mobile-nav-separator,.mobile-drawer-logout{display:none}
+@media(max-width:700px){
+ body.nav-drawer-open{overflow:hidden}
+ .site-header .nav{display:flex!important;position:fixed!important;z-index:5000!important;top:0!important;bottom:0!important;left:0!important;right:auto!important;width:min(320px,86vw)!important;height:100dvh!important;box-sizing:border-box;padding:18px!important;border:0!important;border-right:1px solid #263244!important;border-radius:0 18px 18px 0!important;background:#07101a!important;box-shadow:24px 0 70px rgba(0,0,0,.72)!important;flex-direction:column!important;gap:5px!important;transform:translateX(-105%);transition:transform .22s ease;overflow-y:auto}
+ .site-header .nav.mobile-open{transform:translateX(0)}
+ body.nav-drawer-open:after{content:"";position:fixed;inset:0;z-index:4990;background:rgba(0,0,0,.66)}
+ .mobile-drawer-head{display:flex;align-items:center;justify-content:space-between;padding:2px 3px 16px;margin-bottom:4px}
+ .mobile-drawer-brand{display:flex!important;align-items:center!important;gap:10px!important;padding:0!important;width:auto!important;color:#fff!important;font-size:19px!important}
+ .mobile-drawer-brand .brand-mark{width:34px;height:34px;border-radius:10px}
+ .mobile-drawer-close{display:grid;width:38px;height:38px;place-items:center;border:0;background:transparent;color:#aeb9c9;font-size:31px;cursor:pointer}
+ .site-header .nav>a,.mobile-drawer-logout{display:flex!important;align-items:center!important;gap:13px;width:100%!important;min-height:48px!important;box-sizing:border-box;padding:0 14px!important;border:1px solid transparent!important;border-radius:11px!important;background:transparent!important;color:#e4e9f1!important;text-decoration:none;font-size:14px!important;font-weight:600;text-align:left;cursor:pointer}
+ .site-header .nav>a:hover,.site-header .nav>a.active{background:linear-gradient(135deg,#0a77df,#087cf0)!important;border-color:#1495ff!important;color:#fff!important}
+ .nav-icon{display:inline-grid;width:25px;place-items:center;color:#d6deea;font-size:19px}
+ .mobile-nav-separator{display:block;height:1px;background:#273343;margin:8px 2px}
+ .mobile-drawer-logout{display:flex;border:0!important}
+ .mobile-drawer-logout:hover{background:#111b28!important}
+ .site-header .nav .nav-menu{display:none!important}
+}
