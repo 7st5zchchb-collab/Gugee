@@ -37,3 +37,14 @@
   .event-stats,.referral-stats{grid-template-columns:1fr!important}
   .ref-row{flex-direction:column!important;align-items:flex-start!important}
 }
+
+
+/* Admin mobile completion 2026-09-26 */
+@media(max-width:700px){
+  .admin-form{grid-template-columns:1fr!important;gap:8px!important}
+  .admin-form input,.admin-form select,.admin-form textarea{width:100%!important;min-width:0!important;box-sizing:border-box!important;font-size:16px}
+  .admin-form .primary-btn{width:100%!important;box-sizing:border-box}
+  #adminStats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #message{overflow-wrap:anywhere;margin-bottom:10px}
+}
+@media(max-width:430px){#adminStats{grid-template-columns:1fr!important}}
