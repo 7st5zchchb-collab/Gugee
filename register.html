@@ -16,16 +16,16 @@
 <a class="login-button" href="login.html">Log in</a>
 </header>
 <main class="auth-shell">
-<section class="auth-card">
+<section class="auth-card auth-card-final"><div class="auth-logo-lockup"><img src="images/gugee-logo-3c.webp" alt=""><span>Create your Gugee ID</span></div>
 <p class="section-label">GUGEE ACCOUNT</p>
 <h1>Create your account.</h1>
 <p class="auth-subtitle">Save your crypto favorites and build a personal research workspace.</p>
 <form id="registerForm" class="auth-form">
 <label>Username<input name="username" type="text" autocomplete="username" placeholder="@gugo" minlength="3" maxlength="20" pattern="[a-zA-Z0-9_][a-zA-Z0-9_.-]{2,19}" required></label>
 <label>Email<input name="email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
-<label>Password<input name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required></label>
-<label>Confirm password<input name="confirmPassword" type="password" autocomplete="new-password" placeholder="Repeat password" minlength="8" required></label>
-<button type="submit" class="auth-submit">Create account</button>
+<label>Password<div class="password-field"><input id="registerPassword" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required><button class="password-toggle" type="button" data-password-toggle="registerPassword">Show</button></div></label>
+<label>Confirm password<div class="password-field"><input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" placeholder="Repeat password" minlength="8" required><button class="password-toggle" type="button" data-password-toggle="confirmPassword">Show</button></div></label>
+<button type="submit" class="auth-submit"><span>Create account</span><span aria-hidden="true">→</span></button>
 <div id="authMessage" class="auth-message" aria-live="polite"></div>
 </form>
 <p class="auth-switch">Already have an account? <a href="login.html">Log in</a></p>
