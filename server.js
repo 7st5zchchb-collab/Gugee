@@ -980,19 +980,19 @@ app.get("/api/wallet/transactions",auth,async(req,res)=>{
 app.get("/api/account/limits",auth,async(req,res)=>{try{const limits=await getPlanLimits(req.user.id);res.json(limits)}catch(e){res.status(500).json({error:"Could not load account limits"})}});
 
 const TASK_DEFS=[
-  {id:"first_deposit",title:"Make your first deposit",description:"Complete 1 confirmed deposit of at least 20 USDT.",target:1,reward:0.50},
-  {id:"deposit_100",title:"Deposit 100 USDT",description:"Reach at least 100 USDT in confirmed lifetime deposits.",target:100,reward:1.00},
-  {id:"first_crypto_buy",title:"Buy your first crypto",description:"Complete your first crypto purchase with Gugee wallet funds.",target:1,reward:0.50},
-  {id:"three_crypto_buys",title:"Buy crypto 3 times",description:"Complete 3 crypto purchases.",target:3,reward:1.00},
-  {id:"trade_volume_100",title:"Trade 100 USDT",description:"Reach 100 USDT in total completed buy and sell volume.",target:100,reward:1.50},
-  {id:"invite_one",title:"Invite 1 qualified user",description:"Invite 1 person through your referral link and have them qualify.",target:1,reward:0.50},
-  {id:"five_referrals",title:"Invite 5 qualified users",description:"5 users must join through your referral link and qualify to unlock the 10 USDT referral milestone.",target:5,reward:0}
+  {id:"deposit_100",title:"Deposit 100 USDT",description:"Reach 100 USDT in confirmed lifetime deposits.",target:100,reward:0.50},
+  {id:"deposit_500",title:"Deposit 500 USDT",description:"Reach 500 USDT in confirmed lifetime deposits.",target:500,reward:1.50},
+  {id:"ten_crypto_buys",title:"Complete 10 crypto buys",description:"Complete 10 successful crypto purchases.",target:10,reward:0.75},
+  {id:"trade_volume_1000",title:"Trade 1,000 USDT",description:"Reach 1,000 USDT in completed buy and sell volume.",target:1000,reward:2.00},
+  {id:"trade_volume_5000",title:"Trade 5,000 USDT",description:"Reach 5,000 USDT in completed buy and sell volume.",target:5000,reward:5.00},
+  {id:"invite_three",title:"Invite 3 qualified users",description:"3 people must join through your referral link and qualify.",target:3,reward:1.00},
+  {id:"five_referrals",title:"Invite 5 qualified users",description:"5 qualified referrals unlock the separate 10 USDT referral milestone.",target:5,reward:0}
 ];
 async function taskProgress(userId){
   const u=(await pool.query("SELECT email_verified,avatar_data FROM users WHERE id=$1",[userId])).rows[0]||{};
   const tx=(await pool.query("SELECT COUNT(*) FILTER(WHERE type='deposit')::int AS deposits,COALESCE(SUM(usdt_amount) FILTER(WHERE type='deposit'),0) AS deposit_volume,COUNT(*) FILTER(WHERE type='buy')::int AS buys,COALESCE(SUM(ABS(usdt_amount)) FILTER(WHERE type IN ('buy','sell')),0) AS trade_volume FROM wallet_transactions WHERE user_id=$1",[userId])).rows[0];
   let refs=0;try{refs=Number((await pool.query("SELECT COUNT(*)::int AS n FROM community_referrals WHERE referrer_id=$1 AND status IN ('qualified','rewarded')",[userId])).rows[0].n||0)}catch{}
-  return {first_deposit:Number(tx.deposits||0),deposit_100:Number(tx.deposit_volume||0),first_crypto_buy:Number(tx.buys||0),three_crypto_buys:Number(tx.buys||0),trade_volume_100:Number(tx.trade_volume||0),invite_one:refs,five_referrals:refs};
+  return {deposit_100:Number(tx.deposit_volume||0),deposit_500:Number(tx.deposit_volume||0),ten_crypto_buys:Number(tx.buys||0),trade_volume_1000:Number(tx.trade_volume||0),trade_volume_5000:Number(tx.trade_volume||0),invite_three:refs,five_referrals:refs};
 }
 app.get("/api/tasks",auth,async(req,res)=>{
   try{
