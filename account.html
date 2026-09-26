@@ -222,12 +222,11 @@ document.addEventListener("DOMContentLoaded",async()=>{
     $("profileEmail").textContent=u.email||"Not connected";
   };
   if(user)paintIdentity(user);
-  // Do not block Profile controls on a network/session refresh.
-  // Cached signed-in users can interact immediately while the secure session refreshes.
+  // Never block Profile controls on the session request.
+  // auth.js already refreshes the session in the background; this page stays interactive immediately.
   if(!user){
-    const freshUser=await window.gugeeAuth.refreshCurrentUser();
-    if(freshUser){user=freshUser;paintIdentity(user);}
-    if(!user){window.location.href="login.html";return;}
+    user={username:"user",email:"",avatar_data:null};
+    paintIdentity(user);
   }
   if(subscriptionReturn==="success")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Payment confirmed. Activating your plan…";},0);
   if(subscriptionReturn==="cancelled")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Subscription checkout was cancelled.";},0);
@@ -242,11 +241,10 @@ document.addEventListener("DOMContentLoaded",async()=>{
   }
   renderProfileAvatar(user.avatar_data);
   // Start the non-blocking session refresh only after avatar rendering is initialized.
-  if(user){
-    window.gugeeAuth.refreshCurrentUser().then(freshUser=>{
-      if(freshUser){user=freshUser;paintIdentity(user);renderProfileAvatar(user.avatar_data);}
-    }).catch(()=>{});
-  }
+  window.gugeeAuth.refreshCurrentUser().then(freshUser=>{
+    if(freshUser){user=freshUser;paintIdentity(user);renderProfileAvatar(user.avatar_data);}
+    else if(!window.gugeeAuth.getCurrentUser())window.location.href="login.html";
+  }).catch(()=>{});
   const openAvatarPicker=()=>{const input=$("avatarInput");if(!input)return;input.value="";try{if(typeof input.showPicker==="function"){input.showPicker();return;}}catch{}input.click();};
   ["changeAvatarBtn","avatarCameraBtn"].forEach(id=>{const btn=$(id);if(!btn)return;btn.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();openAvatarPicker();},{passive:false});});
   $("avatarInput").onchange=async()=>{
