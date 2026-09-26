@@ -990,8 +990,10 @@ const TASK_DEFS=[
 ];
 async function userPlatformRevenue(userId){
   const tx=(await pool.query("SELECT COALESCE(SUM(fee_usdt),0) AS fees FROM wallet_transactions WHERE user_id=$1",[userId])).rows[0];
-  const sub=(await pool.query("SELECT COALESCE(SUM(price_usdt),0) AS subscriptions FROM subscriptions WHERE user_id=$1 AND status='active'",[userId])).rows[0];
-  return Number(tx.fees||0)+Number(sub.subscriptions||0);
+  const sub=(await pool.query("SELECT COALESCE(SUM(usdt_amount),0) AS subscriptions FROM wallet_transactions WHERE user_id=$1 AND type='subscription' AND usdt_amount>0",[userId])).rows[0];
+  const earned=Number(tx.fees||0)+Number(sub.subscriptions||0);
+  const paid=(await pool.query("SELECT COALESCE(SUM(reward_usdt),0) AS rewards FROM task_claims WHERE user_id=$1",[userId])).rows[0];
+  return Math.max(0,earned-Number(paid.rewards||0));
 }
 async function taskProgress(userId){
   const u=(await pool.query("SELECT email_verified,avatar_data FROM users WHERE id=$1",[userId])).rows[0]||{};
@@ -1005,7 +1007,7 @@ app.get("/api/tasks",auth,async(req,res)=>{
     const {rows}=await pool.query("SELECT task_id,reward_usdt,claimed_at FROM task_claims WHERE user_id=$1",[req.user.id]);
     const claimed=new Map(rows.map(x=>[x.task_id,x]));
     const platformRevenue=await userPlatformRevenue(req.user.id);
-    res.json({platformRevenue,tasks:TASK_DEFS.map(t=>({...t,progress:Math.min(t.target,Number(progress[t.id]||0)),completed:Number(progress[t.id]||0)>=t.target,revenueReady:platformRevenue>=Number(t.minRevenue||0),claimed:claimed.has(t.id),claimed_at:claimed.get(t.id)?.claimed_at||null}))});
+    res.json({rewardBudget:platformRevenue,tasks:TASK_DEFS.map(t=>({...t,progress:Math.min(t.target,Number(progress[t.id]||0)),completed:Number(progress[t.id]||0)>=t.target,revenueReady:platformRevenue>=Number(t.minRevenue||0)&&platformRevenue>=Number(t.reward||0),claimed:claimed.has(t.id),claimed_at:claimed.get(t.id)?.claimed_at||null}))});
   }catch(e){console.error(e);res.status(500).json({error:"Could not load tasks"});}
 });
 app.post("/api/tasks/:id/claim",auth,async(req,res)=>{
@@ -1018,7 +1020,7 @@ app.post("/api/tasks/:id/claim",auth,async(req,res)=>{
     const progress=await taskProgress(req.user.id);
     if(Number(progress[def.id]||0)<def.target){await client.query("ROLLBACK");return res.status(400).json({error:"Complete the task before claiming the reward."});}
     const platformRevenue=await userPlatformRevenue(req.user.id);
-    if(platformRevenue<Number(def.minRevenue||0)){await client.query("ROLLBACK");return res.status(400).json({error:"Reward unlock requires more completed fee/subscription activity."});}
+    if(platformRevenue<Number(def.minRevenue||0)||platformRevenue<Number(def.reward||0)){await client.query("ROLLBACK");return res.status(400).json({error:"Reward unlock requires more eligible Gugee fee/subscription revenue."});}
     const claim=await client.query("INSERT INTO task_claims(user_id,task_id,reward_usdt) VALUES($1,$2,$3) ON CONFLICT(user_id,task_id) DO NOTHING RETURNING id",[req.user.id,def.id,def.reward]);
     if(!claim.rows[0]){await client.query("ROLLBACK");return res.status(409).json({error:"Reward already claimed."});}
     await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[req.user.id]);
