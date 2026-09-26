@@ -131,24 +131,20 @@ function initGlobalNavigation(){
     nav.querySelectorAll('a[href^="account.html#"]').forEach(a=>a.classList.toggle("active",a.getAttribute("href").endsWith(hash)));
   }
   const accountHashLinks=nav.querySelectorAll('a[href^="account.html#"]');
-  nav.querySelectorAll("a[href]").forEach(link=>link.addEventListener("click",e=>{
-    const href=link.getAttribute("href");
-    if(!href)return;
-    const url=new URL(href,location.href);
+  // Keep ordinary links native. iPhone Safari handles real anchor navigation more reliably
+  // than cancelling every tap and rebuilding it with JavaScript.
+  accountHashLinks.forEach(link=>link.addEventListener("click",e=>{
+    if(current!=="account.html")return;
+    const url=new URL(link.href,location.href);
+    const target=document.getElementById(url.hash.slice(1));
+    if(!target)return;
     e.preventDefault();
     closeMenu();
-    // Same-page Account shortcuts scroll directly; every other menu item performs a normal navigation.
-    if(current==="account.html"&&url.pathname.endsWith("/account.html")&&url.hash){
-      const target=document.getElementById(url.hash.slice(1));
-      if(target){
-        history.replaceState(null,"",url.hash);
-        requestAnimationFrame(()=>target.scrollIntoView({behavior:"smooth",block:"start"}));
-        accountHashLinks.forEach(a=>a.classList.toggle("active",a===link));
-        return;
-      }
-    }
-    window.location.href=url.href;
+    history.replaceState(null,"",url.hash);
+    requestAnimationFrame(()=>target.scrollIntoView({behavior:"smooth",block:"start"}));
+    accountHashLinks.forEach(a=>a.classList.toggle("active",a===link));
   }));
+  nav.querySelectorAll('a[href]:not([href^="account.html#"])').forEach(link=>link.addEventListener("click",()=>closeMenu()));
 }
 function renderAuthNav(){
   const button=document.querySelector(".login-button");
