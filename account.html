@@ -245,9 +245,21 @@ document.addEventListener("DOMContentLoaded",async()=>{
     if(!["image/jpeg","image/png","image/webp"].includes(String(file.type||"").toLowerCase())){msg.textContent="Choose a JPEG, PNG or WebP photo.";input.value="";return;}
     const changeBtn=$("changeAvatarBtn"),cameraBtn=$("avatarCameraBtn");
     changeBtn.disabled=true;cameraBtn.disabled=true;msg.textContent="Updating avatar...";
-    const url=URL.createObjectURL(file),img=new Image();
+    let img=null;
     try{
-      await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url;});
+      // FileReader is more reliable than blob/object URLs for iPhone Photos/Safari.
+      const source=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(String(reader.result||""));
+        reader.onerror=()=>reject(new Error("Could not read this photo."));
+        reader.readAsDataURL(file);
+      });
+      img=new Image();
+      await new Promise((resolve,reject)=>{
+        img.onload=resolve;
+        img.onerror=()=>reject(new Error("Could not decode this photo. Choose JPEG, PNG or WebP."));
+        img.src=source;
+      });
       const side=Math.min(img.naturalWidth,img.naturalHeight),sx=(img.naturalWidth-side)/2,sy=(img.naturalHeight-side)/2;
       const canvas=document.createElement("canvas");canvas.width=384;canvas.height=384;
       const ctx=canvas.getContext("2d");if(!ctx)throw new Error("Could not prepare image.");
@@ -260,7 +272,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
       window.dispatchEvent(new CustomEvent("gugee:user-updated",{detail:{user}}));
       msg.textContent="Avatar updated.";
     }catch(e){msg.textContent=e?.message||"Could not update avatar. Try another JPEG, PNG or WebP photo.";}
-    finally{URL.revokeObjectURL(url);input.value="";changeBtn.disabled=false;cameraBtn.disabled=false;}
+    finally{input.value="";changeBtn.disabled=false;cameraBtn.disabled=false;}
   };
   $("removeAvatarBtn").onclick=async()=>{
     const btn=$("removeAvatarBtn"),msg=$("profileMessage");btn.disabled=true;msg.textContent="Removing avatar...";
