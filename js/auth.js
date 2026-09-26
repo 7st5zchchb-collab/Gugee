@@ -101,7 +101,10 @@ function initGlobalNavigation(){
 
   const closeMenu=()=>{nav.classList.remove("mobile-open");toggle.classList.remove("active");toggle.setAttribute("aria-expanded","false");document.body.classList.remove("nav-drawer-open");};
   nav.querySelector(".mobile-drawer-close")?.addEventListener("click",closeMenu);
-  nav.querySelector(".mobile-drawer-logout")?.addEventListener("click",()=>window.gugeeAuth.logout());
+  nav.querySelector(".mobile-drawer-logout")?.addEventListener("click",async e=>{
+    const btn=e.currentTarget;btn.disabled=true;btn.classList.add("busy");
+    try{await logout();}finally{btn.disabled=false;btn.classList.remove("busy");}
+  });
   const themeToggle=nav.querySelector(".drawer-theme-toggle");
   const applyTheme=theme=>{
     const light=theme==="light";document.documentElement.classList.toggle("gugee-light",light);
