@@ -133,7 +133,12 @@ app.post("/api/stripe/webhook",express.raw({type:"application/json",limit:"256kb
       else await creditStripeDeposit(session,event.id);
     }
     if(event.type==="checkout.session.async_payment_failed"||event.type==="checkout.session.expired"){
+      const session=event.data?.object;
       await pool.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING",[event.id,event.type]);
+      if(session?.metadata?.gugee_kind==="card_crypto"){
+        const status=event.type==="checkout.session.expired"?"expired":"failed";
+        await pool.query("UPDATE card_crypto_orders SET status=$1 WHERE id=$2 AND user_id=$3 AND status='pending'",[status,Number(session.metadata?.gugee_order_id),Number(session.metadata?.gugee_user_id)]);
+      }
     }
     res.json({received:true});
   }catch(e){
@@ -940,6 +945,25 @@ app.get("/api/wallet/price",auth,async(req,res)=>{
   }catch(e){
     res.status(400).json({error:e.message||"Could not load coin price"});
   }
+});
+
+app.post("/api/stripe/setup-card",auth,async(req,res)=>{
+  if(!STRIPE_SECRET_KEY)return res.status(503).json({error:"Stripe is not configured."});
+  try{
+    const origin=FRONTEND_URL||(`${req.protocol}://${req.get("host")}`),body=new URLSearchParams();
+    body.set("mode","setup");body.set("success_url",origin+"/account.html?card=added");body.set("cancel_url",origin+"/account.html?card=cancelled");body.set("customer_email",req.user.email);
+    body.set("metadata[gugee_kind]","card_setup");body.set("metadata[gugee_user_id]",String(req.user.id));
+    const sr=await fetch("https://api.stripe.com/v1/checkout/sessions",{method:"POST",headers:{Authorization:"Bearer "+STRIPE_SECRET_KEY,"Content-Type":"application/x-www-form-urlencoded"},body}),session=await sr.json();
+    if(!sr.ok||!session.url)throw new Error(session?.error?.message||"Could not create card setup");
+    res.json({url:session.url});
+  }catch(e){console.error("Card setup:",e.message);res.status(502).json({error:"Could not start secure card setup."});}
+});
+
+app.get("/api/card-crypto/orders",auth,async(req,res)=>{
+  try{
+    const {rows}=await pool.query("SELECT id,coin_id,symbol,crypto_usd,fee_usd,price_usd,quantity,status,created_at,completed_at FROM card_crypto_orders WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50",[req.user.id]);
+    res.json({orders:rows.map(o=>({...o,crypto_usd:Number(o.crypto_usd),fee_usd:Number(o.fee_usd),price_usd:o.price_usd===null?null:Number(o.price_usd),quantity:o.quantity===null?null:Number(o.quantity)}))});
+  }catch(e){res.status(500).json({error:"Could not load card purchase history"});}
 });
 
 app.post("/api/stripe/card-crypto-checkout",auth,async(req,res)=>{
