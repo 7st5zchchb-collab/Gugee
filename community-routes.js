@@ -218,15 +218,22 @@ function initCommunity(app,pool,auth){
   });
 
   app.post("/api/giveaways/:id/enter",auth,async(req,res)=>{
+    const client=await pool.connect();
     try{
-      const g=(await pool.query("SELECT * FROM giveaways WHERE id=$1",[req.params.id])).rows[0];
-      if(!g||!["upcoming","live"].includes(g.status))return res.status(400).json({error:"Giveaway is not open."});
-      if(new Date(g.ends_at)<=new Date())return res.status(400).json({error:"Giveaway has ended."});
-      const n=Number((await pool.query("SELECT COUNT(*)::int AS n FROM giveaway_entries WHERE giveaway_id=$1",[g.id])).rows[0].n);
-      if(n>=g.max_entries)return res.status(400).json({error:"Giveaway is full."});
-      await pool.query("INSERT INTO giveaway_entries(giveaway_id,user_id) VALUES($1,$2)",[g.id,req.user.id]);await pool.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,$2,$3,$4)",[req.user.id,"Giveaway entry confirmed","You entered \""+g.name+"\". Good luck!","giveaway"]);
+      await client.query("BEGIN");
+      const g=(await client.query("SELECT * FROM giveaways WHERE id=$1 FOR UPDATE",[req.params.id])).rows[0];
+      if(!g||!["upcoming","live"].includes(g.status))return rollback(client,res,400,"Giveaway is not open.");
+      if(new Date(g.ends_at)<=new Date())return rollback(client,res,400,"Giveaway has ended.");
+      const exists=await client.query("SELECT 1 FROM giveaway_entries WHERE giveaway_id=$1 AND user_id=$2",[g.id,req.user.id]);
+      if(exists.rowCount)return rollback(client,res,409,"You already entered this giveaway.");
+      const n=Number((await client.query("SELECT COUNT(*)::int AS n FROM giveaway_entries WHERE giveaway_id=$1",[g.id])).rows[0].n);
+      if(n>=g.max_entries)return rollback(client,res,400,"Giveaway is full.");
+      await client.query("INSERT INTO giveaway_entries(giveaway_id,user_id) VALUES($1,$2)",[g.id,req.user.id]);
+      await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,$2,$3,$4)",[req.user.id,"Giveaway entry confirmed","You entered \""+g.name+"\". Good luck!","giveaway"]);
+      await client.query("COMMIT");
       res.json({ok:true,message:"Giveaway entry confirmed."});
-    }catch(e){if(e.code==="23505")return res.status(409).json({error:"You already entered this giveaway."});console.error(e);res.status(500).json({error:"Could not enter giveaway"});}
+    }catch(e){await client.query("ROLLBACK");if(e.code==="23505")return res.status(409).json({error:"You already entered this giveaway."});console.error(e);res.status(500).json({error:"Could not enter giveaway"});}
+    finally{client.release();}
   });
 
   app.get("/api/referrals",auth,async(req,res)=>{
