@@ -145,6 +145,43 @@ async function activateStripeSubscription(session,eventId,eventType){
     await client.query("COMMIT");
   }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
 }
+async function syncStripeSubscription(subscription,eventId,eventType){
+  const stripeId=String(subscription?.id||"");if(!stripeId)return;
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",[eventId,eventType]);
+    if(!inserted.rows[0]){await client.query("ROLLBACK");return;}
+    const q=await client.query("SELECT user_id,plan FROM subscriptions WHERE stripe_subscription_id=$1 FOR UPDATE",[stripeId]),current=q.rows[0];
+    if(!current){await client.query("ROLLBACK");return;}
+    const active=["active","trialing"].includes(String(subscription.status));
+    if(active){
+      const end=Number(subscription.current_period_end);
+      await client.query("UPDATE subscriptions SET status='active',expires_at=CASE WHEN $1::bigint>0 THEN to_timestamp($1) ELSE expires_at END WHERE user_id=$2",[end,current.user_id]);
+    }else{
+      await client.query("UPDATE subscriptions SET plan='free',price_usdt=0,status='active',expires_at=NULL,stripe_subscription_id=NULL WHERE user_id=$1",[current.user_id]);
+      await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Plan changed to Free',$2,'subscription')",[current.user_id,"Your paid subscription is no longer active. Your Gugee account is now on the Free plan."]);
+    }
+    await client.query("COMMIT");
+  }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
+}
+async function handleStripeInvoice(invoice,eventId,eventType){
+  const stripeId=String(invoice?.subscription||"");if(!stripeId)return;
+  const client=await pool.connect();try{
+    await client.query("BEGIN");
+    const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",[eventId,eventType]);
+    if(!inserted.rows[0]){await client.query("ROLLBACK");return;}
+    const q=await client.query("SELECT user_id,plan FROM subscriptions WHERE stripe_subscription_id=$1 FOR UPDATE",[stripeId]),s=q.rows[0];
+    if(!s){await client.query("ROLLBACK");return;}
+    if(eventType==="invoice.paid"){
+      await client.query("UPDATE subscriptions SET status='active',expires_at=NOW()+INTERVAL '31 days' WHERE user_id=$1",[s.user_id]);
+      await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Subscription renewed',$2,'subscription')",[s.user_id,s.plan.toUpperCase()+" renewed successfully."]);
+    }else{
+      await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Subscription payment failed',$2,'subscription')",[s.user_id,"Stripe could not renew your "+s.plan.toUpperCase()+" subscription. Update your payment method to avoid losing paid-plan access."]);
+    }
+    await client.query("COMMIT");
+  }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
+}
 app.post("/api/stripe/webhook",express.raw({type:"application/json",limit:"256kb"}),async(req,res)=>{
   try{
     verifyStripeSignature(req.body,req.headers["stripe-signature"]);
@@ -156,6 +193,8 @@ app.post("/api/stripe/webhook",express.raw({type:"application/json",limit:"256kb
       else if(session?.metadata?.gugee_kind==="card_crypto")await fulfillCardCryptoOrder(session,event.id,event.type);
       else await creditStripeDeposit(session,event.id);
     }
+    if(event.type==="customer.subscription.updated"||event.type==="customer.subscription.deleted")await syncStripeSubscription(event.data?.object,event.id,event.type);
+    if(event.type==="invoice.paid"||event.type==="invoice.payment_failed")await handleStripeInvoice(event.data?.object,event.id,event.type);
     if(event.type==="checkout.session.async_payment_failed"||event.type==="checkout.session.expired"){
       const session=event.data?.object;
       await pool.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING",[event.id,event.type]);
