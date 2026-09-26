@@ -2230,3 +2230,28 @@ footer{width:100%;box-sizing:border-box}
   .site-header .login-button{max-width:82px}
   .site-header .nav{left:8px!important;right:8px!important}
 }
+
+/* Final authentication experience */
+.auth-page{background:#070708;position:relative;overflow-x:hidden}
+.auth-page:before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 18%,rgba(53,224,139,.10),transparent 34%),radial-gradient(circle at 80% 70%,rgba(65,90,255,.055),transparent 30%)}
+.auth-shell{position:relative;z-index:1}
+.auth-card-final{position:relative;overflow:hidden;border-color:#28282e;background:linear-gradient(155deg,rgba(18,18,21,.97),rgba(8,8,10,.99));box-shadow:0 28px 90px rgba(0,0,0,.48)}
+.auth-card-final:before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,#35e08b,transparent);opacity:.7}
+.auth-logo-lockup{display:flex;align-items:center;gap:9px;color:#7f8087;font-size:9px;text-transform:uppercase;letter-spacing:1.25px;margin-bottom:19px}
+.auth-logo-lockup img{width:27px;height:27px;border-radius:8px;object-fit:cover}
+.auth-card-final h1{font-size:34px;line-height:1.05;margin-bottom:10px}
+.auth-card-final .auth-subtitle{max-width:350px;margin-bottom:25px}
+.auth-card-final .auth-form{gap:15px}
+.auth-card-final .auth-form label{font-size:10px;font-weight:600;letter-spacing:.2px}
+.auth-card-final .auth-form input{height:46px;border-radius:10px;background:#09090b;border-color:#2b2b31;padding:0 14px;font-size:13px;transition:border-color .2s,box-shadow .2s}
+.auth-card-final .auth-form input:focus{border-color:#35e08b;box-shadow:0 0 0 3px rgba(53,224,139,.08)}
+.password-field{position:relative}
+.password-field input{padding-right:62px!important}
+.password-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:#777b80;font-size:9px;font-weight:700;cursor:pointer;padding:8px}
+.password-toggle:hover{color:#35e08b}
+.auth-card-final .auth-submit{height:47px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:10px;font-size:11px;letter-spacing:.2px;margin-top:4px;transition:transform .18s,filter .18s,box-shadow .18s}
+.auth-card-final .auth-submit:hover{transform:translateY(-1px)}
+.auth-card-final .auth-submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.auth-card-final .auth-switch a{font-weight:700}
+.auth-card-final .auth-note{text-align:center;color:#575860}
+@media(max-width:520px){.auth-card-final{padding:20px!important}.auth-card-final h1{font-size:29px!important}.auth-logo-lockup{margin-bottom:16px}.auth-card-final .auth-form input{height:48px}.auth-card-final .auth-submit{height:49px}}
