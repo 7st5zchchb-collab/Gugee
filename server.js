@@ -141,6 +141,7 @@ async function activateStripeSubscription(session,eventId,eventType){
     const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",[eventId,eventType]);
     if(!inserted.rows[0]){await client.query("ROLLBACK");return;}
     await client.query("INSERT INTO subscriptions(user_id,plan,price_usdt,status,started_at,expires_at,stripe_subscription_id,stripe_customer_id) VALUES($1,$2,$3,'active',NOW(),NOW()+INTERVAL '31 days',$4,$5) ON CONFLICT(user_id) DO UPDATE SET plan=EXCLUDED.plan,price_usdt=EXCLUDED.price_usdt,status='active',started_at=NOW(),expires_at=EXCLUDED.expires_at,stripe_subscription_id=EXCLUDED.stripe_subscription_id,stripe_customer_id=EXCLUDED.stripe_customer_id",[userId,plan,price,session.subscription||null,session.customer||null]);
+    await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount,fee_usdt) VALUES($1,'subscription',$2,0)",[userId,price]);
     await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Subscription activated',$2,'subscription')",[userId,plan.toUpperCase()+" is now active."]);
     await client.query("COMMIT");
   }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
@@ -171,10 +172,11 @@ async function handleStripeInvoice(invoice,eventId,eventType){
     await client.query("BEGIN");
     const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",[eventId,eventType]);
     if(!inserted.rows[0]){await client.query("ROLLBACK");return;}
-    const q=await client.query("SELECT user_id,plan FROM subscriptions WHERE stripe_subscription_id=$1 FOR UPDATE",[stripeId]),s=q.rows[0];
+    const q=await client.query("SELECT user_id,plan,price_usdt FROM subscriptions WHERE stripe_subscription_id=$1 FOR UPDATE",[stripeId]),s=q.rows[0];
     if(!s){await client.query("ROLLBACK");return;}
     if(eventType==="invoice.paid"){
       await client.query("UPDATE subscriptions SET status='active',expires_at=NOW()+INTERVAL '31 days' WHERE user_id=$1",[s.user_id]);
+      await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount,fee_usdt) VALUES($1,'subscription',$2,0)",[s.user_id,Number(s.price_usdt||0)]);
       await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Subscription renewed',$2,'subscription')",[s.user_id,s.plan.toUpperCase()+" renewed successfully."]);
     }else{
       await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Subscription payment failed',$2,'subscription')",[s.user_id,"Stripe could not renew your "+s.plan.toUpperCase()+" subscription. Update your payment method to avoid losing paid-plan access."]);
