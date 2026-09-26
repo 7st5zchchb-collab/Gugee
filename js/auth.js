@@ -8,7 +8,7 @@ async function api(path,options={}){
   const url=/^https?:\/\//.test(path)?path:API_BASE+path;
   const response=await fetch(url,{credentials:"include",headers:{"Content-Type":"application/json",...(options.headers||{})},...options});
   const data=await response.json().catch(()=>({}));
-  if(!response.ok)throw new Error(data.error||"Request failed");
+  if(!response.ok){const error=new Error(data.error||"Request failed");error.status=response.status;throw error;}
   return data;
 }
 async function refreshCurrentUser(){
@@ -17,7 +17,8 @@ async function refreshCurrentUser(){
     const data=await api("/api/auth/me");
     setCurrentUser(data.user);
     return data.user;
-  }catch{
+  }catch(error){
+    if(error.status===401){setCurrentUser(null);return null;}
     // Keep the freshly authenticated UI visible if the API is briefly waking/deploying.
     // Protected API calls still require the secure server cookie.
     return cached||null;
