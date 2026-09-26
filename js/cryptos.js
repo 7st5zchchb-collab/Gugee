@@ -68,7 +68,7 @@ function coinCard(c){
  '<a class="crypto-directory-main" href="crypto.html?coin='+id+'">'+
  '<img src="'+esc(logoFor(c))+'" alt="'+name+' logo" loading="lazy">'+
  '<span class="crypto-directory-info"><b>'+name+'</b><small>'+symbol+'</small></span>'+
- '<strong>'+(Number.isFinite(price)&&price>0?"$"+price.toLocaleString("en-US",{maximumFractionDigits:price>=1?2:8}):"--")+'</strong>'+
+ '<strong>'+(Number.isFinite(price)&&price>0?"$"+price.toLocaleString("en-US",{maximumFractionDigits:price>=1?2:8}): "$0.00")+'</strong>'+
  '<span class="'+changeClass(d24)+'">'+changeValue(d24)+'</span>'+
  '<small class="crypto-directory-extra">24H '+changeValue(d24)+' · 7D '+changeValue(d7)+' · 30D '+changeValue(d30)+' · MC '+compactValue(c.market_cap)+' · Vol '+compactValue(c.total_volume)+'</small>'+
  '</a></div>';
@@ -157,7 +157,7 @@ function renderFavorites(){
 
 async function load(){
  if(loading)return;
- loading=true;loadStatus.textContent="Loading live cryptocurrencies...";
+ loading=true;if(!allCoins.length)loadStatus.textContent="Updating cryptocurrencies...";else loadStatus.textContent=allCoins.length+" cached · updating live...";
  try{
   const payload=await window.gugeeMarketData.fetch("/api/coingecko/top1000");
   if(!Array.isArray(payload?.coins)||!payload.coins.length)throw Error("No live coins returned");
