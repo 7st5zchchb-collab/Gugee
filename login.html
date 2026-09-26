@@ -16,14 +16,14 @@
 <a class="login-button" href="login.html">Log in</a>
 </header>
 <main class="auth-shell">
-<section class="auth-card">
+<section class="auth-card auth-card-final"><div class="auth-logo-lockup"><img src="images/gugee-logo-3c.webp" alt=""><span>Secure access</span></div>
 <p class="section-label">GUGEE ACCOUNT</p>
 <h1>Welcome back.</h1>
 <p class="auth-subtitle">Log in to keep your favorites and research workspace connected to your account.</p>
 <form id="loginForm" class="auth-form">
 <label>Email<input name="email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
-<label>Password<input name="password" type="password" autocomplete="current-password" placeholder="••••••••" required></label>
-<button type="submit" class="auth-submit">Log in</button>
+<label>Password<div class="password-field"><input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required><button class="password-toggle" type="button" data-password-toggle="loginPassword">Show</button></div></label>
+<button type="submit" class="auth-submit"><span>Log in</span><span aria-hidden="true">→</span></button>
 <div id="authMessage" class="auth-message" aria-live="polite"></div>
 </form>
 <p class="auth-switch"><a href="forgot-password.html">Forgot password?</a></p>
