@@ -170,17 +170,25 @@
 document.addEventListener("DOMContentLoaded",async()=>{
   const subscriptionReturn=new URLSearchParams(location.search).get("subscription");
 
-  const user=await window.gugeeAuth.refreshCurrentUser();
-  if(!user){window.location.href="login.html";return;}
   const $=id=>document.getElementById(id);
+  // Paint cached identity immediately; refresh the secure session in parallel.
+  let user=window.gugeeAuth.getCurrentUser();
+  const paintIdentity=u=>{
+    if(!u)return;
+    $("welcome").textContent="@"+(u.username||"user");
+    $("accountHeaderHandle").textContent="@"+(u.username||"user");
+    $("profileUsername").textContent="@"+(u.username||"user");
+    $("profileEmail").textContent=u.email||"—";
+  };
+  if(user)paintIdentity(user);
+  const freshUser=await window.gugeeAuth.refreshCurrentUser();
+  if(freshUser){user=freshUser;paintIdentity(user);}
+  if(!user){window.location.href="login.html";return;}
   if(subscriptionReturn==="success")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Payment confirmed. Activating your plan…";},0);
   if(subscriptionReturn==="cancelled")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Subscription checkout was cancelled.";},0);
 
   const esc=v=>String(v??"").replace(/[&<>"\x27]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","\x27":"&#39;"}[c]));
-  $("welcome").textContent="@"+(user.username||"user");
-  $("accountHeaderHandle").textContent="@"+(user.username||"user");
-  $("profileUsername").textContent="@"+(user.username||"user");
-  $("profileEmail").textContent=user.email||"—";
+  paintIdentity(user);
   function renderProfileAvatar(value){
     const box=$("profileAvatar"),letter=String(user.username||"U").charAt(0).toUpperCase();
     box.innerHTML=value?'<img src="'+esc(value)+'" alt="Profile avatar">':esc(letter);
