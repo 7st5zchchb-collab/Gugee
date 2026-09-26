@@ -253,6 +253,7 @@ app.use((req,res,next)=>{
   next();
 });
 
+const marketCache=new Map();
 const COINGECKO_BASE="https://api.coingecko.com/api/v3";
 let top1000Cache={data:null,expires:0};
 
@@ -442,6 +443,7 @@ app.use("/api/exchanges",async(req,res,next)=>{
       const ticker=await ex.fetchTicker(unified);
       const data={lastPrice:String(ticker.last??ticker.close??0),quoteVolume:String(ticker.quoteVolume??0),priceChangePercent:String(ticker.percentage??0),symbol:unified,source:"ccxt"};
       marketCache.set("exchange:"+cacheKey,{time:now,data});
+      if(marketCache.size>500)marketCache.delete(marketCache.keys().next().value);
       return res.json(data);
     }
     const endpoints={
@@ -463,6 +465,7 @@ app.use("/api/exchanges",async(req,res,next)=>{
     let data;
     try{data=JSON.parse(body);}catch{return res.status(502).json({error:"Invalid exchange response"});}
     marketCache.set("exchange:"+cacheKey,{time:now,data});
+    if(marketCache.size>500)marketCache.delete(marketCache.keys().next().value);
     res.set("X-Gugee-Cache","MISS");
     res.json(data);
   }catch(e){
