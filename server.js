@@ -999,7 +999,7 @@ async function userPlatformRevenue(userId,client=pool){
 }
 async function taskProgress(userId){
   const u=(await pool.query("SELECT email_verified,avatar_data FROM users WHERE id=$1",[userId])).rows[0]||{};
-  const tx=(await pool.query("SELECT COUNT(*) FILTER(WHERE type='deposit')::int AS deposits,COALESCE(SUM(usdt_amount) FILTER(WHERE type='deposit'),0) AS deposit_volume,COUNT(*) FILTER(WHERE type='buy')::int AS buys,COALESCE(SUM(ABS(usdt_amount)) FILTER(WHERE type IN ('buy','sell')),0) AS trade_volume FROM wallet_transactions WHERE user_id=$1",[userId])).rows[0];
+  const tx=(await pool.query("SELECT COUNT(*) FILTER(WHERE type='deposit')::int AS deposits,COALESCE(SUM(usdt_amount+fee_usdt) FILTER(WHERE type='deposit'),0) AS deposit_volume,COUNT(*) FILTER(WHERE type='buy')::int AS buys,COALESCE(SUM(ABS(usdt_amount)) FILTER(WHERE type IN ('buy','sell')),0) AS trade_volume FROM wallet_transactions WHERE user_id=$1",[userId])).rows[0];
   let refs=0;try{refs=Number((await pool.query("SELECT COUNT(*)::int AS n FROM community_referrals WHERE referrer_id=$1 AND status IN ('qualified','rewarded')",[userId])).rows[0].n||0)}catch{}
   return {deposit_100:Number(tx.deposit_volume||0),deposit_500:Number(tx.deposit_volume||0),ten_crypto_buys:Number(tx.buys||0),trade_volume_1000:Number(tx.trade_volume||0),trade_volume_5000:Number(tx.trade_volume||0),invite_three:refs,five_referrals:refs};
 }
@@ -1112,6 +1112,7 @@ app.post("/api/stripe/create-checkout-session",auth,async(req,res)=>{
     body.set("metadata[gugee_kind]","deposit");
     body.set("metadata[gugee_user_id]",String(req.user.id));
     body.set("metadata[gugee_fee_cents]",String(feeCents));
+    body.set("metadata[gugee_gross_cents]",String(grossCents));
     const stripeResponse=await fetch("https://api.stripe.com/v1/checkout/sessions",{
       method:"POST",
       headers:{Authorization:"Bearer "+STRIPE_SECRET_KEY,"Content-Type":"application/x-www-form-urlencoded","Idempotency-Key":"gugee-deposit-"+req.user.id+"-"+grossCents+"-"+Date.now()},
