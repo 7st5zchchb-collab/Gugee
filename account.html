@@ -101,7 +101,7 @@
 </section>
 
 <section class="account-card subscription-ui">
-<div class="account-head" style="margin-bottom:10px"><div><p class="section-label">SUBSCRIPTION</p><h2>Your plan</h2></div><span id="subscriptionStatus" class="muted">Loading...</span></div>
+<div class="account-head" style="margin-bottom:10px"><div><p class="section-label">SUBSCRIPTION</p><h2>Your plan</h2></div><span id="subscriptionStatus" class="muted">Loading...</span></div><div id="planLimits" class="muted" style="margin:8px 0 14px">Loading plan limits...</div><div style="display:none"></div>
 <div class="plan-grid">
 <div class="plan-card" data-plan="free"><h3>Free</h3><div class="plan-price">$0</div><ul><li>5 favorites</li><li>Basic market analytics</li><li>Up to 500 USDT/day crypto withdrawal</li></ul><button class="plan-btn" type="button">Select</button></div>
 <div class="plan-card" data-plan="plus"><h3>Plus</h3><div class="plan-price">$4.99 / month</div><ul><li>25 favorites</li><li>Advanced analysis & alerts</li><li>Higher withdrawal limits</li><li>Portfolio analytics</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
@@ -180,6 +180,8 @@ document.addEventListener("DOMContentLoaded",async()=>{
 
   async function loadSubscription(){
     try{
+      const limits=await window.gugeeAuth.api("/api/account/limits");
+      $("planLimits").textContent=limits.plan.toUpperCase()+" limits · "+limits.favorites+" favorites · "+Number(limits.dailyWithdrawal).toLocaleString()+" USDT daily withdrawal";
       const data=await window.gugeeAuth.api("/api/subscriptions");
       const sub=data.subscription||{plan:"free",status:"active"};
       const plan=sub.plan||"free";
