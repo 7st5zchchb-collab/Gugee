@@ -640,7 +640,7 @@ async function initDb(){
     CREATE TABLE IF NOT EXISTS wallet_transactions(
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      type TEXT NOT NULL CHECK(type IN ('buy','sell','deposit','withdraw','usdt_adjustment','tournament_entry','tournament_prize','giveaway_prize','referral_reward','subscription')),
+      type TEXT NOT NULL CHECK(type IN ('buy','sell','deposit','withdraw','usdt_adjustment','tournament_entry','tournament_prize','giveaway_prize','referral_reward','task_reward','subscription')),
       coin_id TEXT,
       symbol TEXT,
       quantity NUMERIC(40,18),
@@ -648,6 +648,14 @@ async function initDb(){
       usdt_amount NUMERIC(30,10) NOT NULL,
       fee_usdt NUMERIC(30,10) NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS task_claims(
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      task_id TEXT NOT NULL,
+      reward_usdt NUMERIC(30,10) NOT NULL DEFAULT 0,
+      claimed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id,task_id)
     );
     CREATE TABLE IF NOT EXISTS referrals(
       id BIGSERIAL PRIMARY KEY,
@@ -705,7 +713,7 @@ async function initDb(){
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_data TEXT");
   await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_unique ON users(LOWER(username)) WHERE username IS NOT NULL");
   await pool.query("ALTER TABLE wallet_transactions DROP CONSTRAINT IF EXISTS wallet_transactions_type_check");
-  await pool.query("ALTER TABLE wallet_transactions ADD CONSTRAINT wallet_transactions_type_check CHECK(type IN ('buy','sell','deposit','withdraw','usdt_adjustment','tournament_entry','tournament_prize','giveaway_prize','referral_reward','subscription'))");
+  await pool.query("ALTER TABLE wallet_transactions ADD CONSTRAINT wallet_transactions_type_check CHECK(type IN ('buy','sell','deposit','withdraw','usdt_adjustment','tournament_entry','tournament_prize','giveaway_prize','referral_reward','task_reward','subscription'))");
   await pool.query("ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS fee_usdt NUMERIC(30,10) NOT NULL DEFAULT 0");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code TEXT");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
@@ -970,6 +978,47 @@ app.get("/api/wallet/transactions",auth,async(req,res)=>{
 });
 
 app.get("/api/account/limits",auth,async(req,res)=>{try{const limits=await getPlanLimits(req.user.id);res.json(limits)}catch(e){res.status(500).json({error:"Could not load account limits"})}});
+
+const TASK_DEFS=[
+  {id:"verify_email",title:"Verify your email",description:"Confirm your Gugee email address.",target:1,reward:0.25},
+  {id:"set_avatar",title:"Add a profile avatar",description:"Personalize your Gugee account.",target:1,reward:0.25},
+  {id:"first_deposit",title:"Make your first deposit",description:"Complete one confirmed wallet deposit.",target:1,reward:0.50},
+  {id:"first_trade",title:"Complete your first trade",description:"Buy or sell crypto once.",target:1,reward:0.50},
+  {id:"three_trades",title:"Complete 3 trades",description:"Complete any 3 crypto buy or sell operations.",target:3,reward:1.00},
+  {id:"five_referrals",title:"Invite 5 qualified users",description:"5 users must join through your referral link and qualify.",target:5,reward:0}
+];
+async function taskProgress(userId){
+  const u=(await pool.query("SELECT email_verified,avatar_data FROM users WHERE id=$1",[userId])).rows[0]||{};
+  const tx=(await pool.query("SELECT COUNT(*) FILTER(WHERE type='deposit')::int AS deposits,COUNT(*) FILTER(WHERE type IN ('buy','sell'))::int AS trades FROM wallet_transactions WHERE user_id=$1",[userId])).rows[0];
+  let refs=0;try{refs=Number((await pool.query("SELECT COUNT(*)::int AS n FROM community_referrals WHERE referrer_id=$1 AND status IN ('qualified','rewarded')",[userId])).rows[0].n||0)}catch{}
+  return {verify_email:u.email_verified?1:0,set_avatar:u.avatar_data?1:0,first_deposit:Number(tx.deposits||0),first_trade:Number(tx.trades||0),three_trades:Number(tx.trades||0),five_referrals:refs};
+}
+app.get("/api/tasks",auth,async(req,res)=>{
+  try{
+    const progress=await taskProgress(req.user.id);
+    const {rows}=await pool.query("SELECT task_id,reward_usdt,claimed_at FROM task_claims WHERE user_id=$1",[req.user.id]);
+    const claimed=new Map(rows.map(x=>[x.task_id,x]));
+    res.json({tasks:TASK_DEFS.map(t=>({...t,progress:Math.min(t.target,Number(progress[t.id]||0)),completed:Number(progress[t.id]||0)>=t.target,claimed:claimed.has(t.id),claimed_at:claimed.get(t.id)?.claimed_at||null}))});
+  }catch(e){console.error(e);res.status(500).json({error:"Could not load tasks"});}
+});
+app.post("/api/tasks/:id/claim",auth,async(req,res)=>{
+  const def=TASK_DEFS.find(t=>t.id===req.params.id);
+  if(!def)return res.status(404).json({error:"Task not found."});
+  if(def.reward<=0)return res.status(400).json({error:"This task reward is credited by its own milestone system."});
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    const progress=await taskProgress(req.user.id);
+    if(Number(progress[def.id]||0)<def.target){await client.query("ROLLBACK");return res.status(400).json({error:"Complete the task before claiming the reward."});}
+    const claim=await client.query("INSERT INTO task_claims(user_id,task_id,reward_usdt) VALUES($1,$2,$3) ON CONFLICT(user_id,task_id) DO NOTHING RETURNING id",[req.user.id,def.id,def.reward]);
+    if(!claim.rows[0]){await client.query("ROLLBACK");return res.status(409).json({error:"Reward already claimed."});}
+    await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[req.user.id]);
+    await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[def.reward,req.user.id]);
+    await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount) VALUES($1,'task_reward',$2)",[req.user.id,def.reward]);
+    await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Task reward claimed',$2,'task')",[req.user.id,def.title+" · +"+def.reward.toFixed(2)+" USDT"]);
+    await client.query("COMMIT");res.json({ok:true,reward:def.reward});
+  }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not claim task reward"});}finally{client.release();}
+});
 
 app.get("/api/wallet",auth,async(req,res)=>{
   try{
