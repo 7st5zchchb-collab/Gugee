@@ -67,7 +67,7 @@ function initGlobalNavigation(){
     '<a href="account.html#tasksPanel"><span class="nav-icon">☑</span>Tasks</a>'+
     '<a href="referrals.html"><span class="nav-icon">♧</span>Referral</a>'+
     '<div class="mobile-nav-separator"></div>'+
-    '<a href="account.html#profileSettings"><span class="nav-icon">⚙</span>Settings</a>'+
+    '<a href="account.html#passwordSettings"><span class="nav-icon">⚙</span>Settings</a>'+
     (signedIn?'<button class="mobile-drawer-logout" type="button"><span class="nav-icon">↪</span>Log out</button>':'<a href="login.html"><span class="nav-icon">↪</span>Log in</a>')+
     '<div class="drawer-theme-switch" aria-label="Theme"><span>☾</span><button class="drawer-theme-toggle" type="button" role="switch" aria-checked="false"><span></span></button><span>☀</span></div>';
   const current=(window.location.pathname.split("/").pop()||"index.html").toLowerCase();
@@ -130,6 +130,13 @@ function initGlobalNavigation(){
   if(current==="account.html"&&hash){
     nav.querySelectorAll('a[href^="account.html#"]').forEach(a=>a.classList.toggle("active",a.getAttribute("href").endsWith(hash)));
   }
+  const accountHashLinks=nav.querySelectorAll('a[href^="account.html#"]');
+  if(current==="account.html")accountHashLinks.forEach(link=>link.addEventListener("click",e=>{
+    const targetHash=new URL(link.href,location.href).hash,target=document.querySelector(targetHash);
+    if(!target)return;
+    e.preventDefault();closeMenu();history.replaceState(null,"",targetHash);target.scrollIntoView({behavior:"smooth",block:"start"});
+    accountHashLinks.forEach(a=>a.classList.toggle("active",a===link));
+  }));
   nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",e=>{
     const href=link.getAttribute("href");
     closeMenu();
