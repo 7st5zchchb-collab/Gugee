@@ -42,7 +42,22 @@ function initGlobalNavigation(){
     header.insertBefore(nav,login||null);
   }
 
-  nav.innerHTML='<a data-nav="markets" href="markets.html">Markets</a><a data-nav="crypto" href="cryptos.html">Crypto</a><a data-nav="analysis" href="analysis.html">Analysis</a><a data-nav="exchanges" href="exchanges.html">Exchanges</a><details class="nav-menu"><summary>Community</summary><div class="nav-menu-panel"><a href="tournaments.html">Tournaments</a><a href="giveaways.html">Giveaways</a><a href="referrals.html">Referrals</a></div></details>';
+  const signedIn=Boolean(getCurrentUser());
+  nav.innerHTML='<div class="mobile-drawer-head"><a class="mobile-drawer-brand" href="index.html"><span class="brand-mark">G</span><strong>Gugee</strong></a><button class="mobile-drawer-close" type="button" aria-label="Close navigation">×</button></div>'+
+    '<a data-nav="home" href="index.html"><span class="nav-icon">⌂</span>Home</a>'+
+    '<a data-nav="markets" href="markets.html"><span class="nav-icon">▥</span>Markets</a>'+
+    '<a data-nav="crypto" href="cryptos.html"><span class="nav-icon">₿</span>Crypto</a>'+
+    '<a data-nav="analysis" href="analysis.html"><span class="nav-icon">↗</span>Analysis</a>'+
+    '<a data-nav="exchanges" href="exchanges.html"><span class="nav-icon">▦</span>Exchanges</a>'+
+    '<div class="mobile-nav-separator"></div>'+
+    '<a href="account.html#walletActions"><span class="nav-icon">▣</span>Wallet</a>'+
+    '<a href="account.html#profileSettings"><span class="nav-icon">♙</span>Profile</a>'+
+    '<a href="account.html#notificationsPanel"><span class="nav-icon">♧</span>Notifications</a>'+
+    '<a href="account.html#tasksPanel"><span class="nav-icon">☑</span>Tasks</a>'+
+    '<a href="referrals.html"><span class="nav-icon">♧</span>Referral</a>'+
+    '<div class="mobile-nav-separator"></div>'+
+    '<a href="account.html#profileSettings"><span class="nav-icon">⚙</span>Settings</a>'+
+    (signedIn?'<button class="mobile-drawer-logout" type="button"><span class="nav-icon">↪</span>Log out</button>':'<a href="login.html"><span class="nav-icon">↪</span>Log in</a>');
   const current=(window.location.pathname.split("/").pop()||"index.html").toLowerCase();
   nav.querySelectorAll("[data-nav]").forEach(link=>{
     const key=link.dataset.nav;
@@ -68,13 +83,18 @@ function initGlobalNavigation(){
       const open=nav.classList.toggle("mobile-open");
       toggle.classList.toggle("active",open);
       toggle.setAttribute("aria-expanded",String(open));
+      document.body.classList.toggle("nav-drawer-open",open);
     };
   }
 
+  const closeMenu=()=>{nav.classList.remove("mobile-open");toggle.classList.remove("active");toggle.setAttribute("aria-expanded","false");document.body.classList.remove("nav-drawer-open");};
+  nav.querySelector(".mobile-drawer-close")?.addEventListener("click",closeMenu);
+  nav.querySelector(".mobile-drawer-logout")?.addEventListener("click",()=>window.gugeeAuth.logout());
   nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>{
     nav.classList.remove("mobile-open");
     toggle.classList.remove("active");
     toggle.setAttribute("aria-expanded","false");
+    document.body.classList.remove("nav-drawer-open");
   }));
 }
 function renderAuthNav(){
