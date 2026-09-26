@@ -84,6 +84,29 @@ async function creditStripeDeposit(session,eventId){
     await client.query("COMMIT");
   }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
 }
+async function stripeGet(pathname){
+  const r=await fetch("https://api.stripe.com/v1/"+pathname,{headers:{Authorization:"Bearer "+STRIPE_SECRET_KEY}});
+  const data=await r.json();if(!r.ok)throw new Error(data?.error?.message||"Stripe request failed");return data;
+}
+async function saveCardSetup(session,eventId,eventType){
+  if(!session||session.status!=="complete")return;
+  const userId=Number(session.metadata?.gugee_user_id);
+  if(session.metadata?.gugee_kind!=="card_setup"||!Number.isSafeInteger(userId))throw new Error("Invalid card setup metadata");
+  const setup=await stripeGet("setup_intents/"+encodeURIComponent(session.setup_intent));
+  const pmId=String(setup.payment_method||"");if(!pmId)throw new Error("Missing payment method");
+  const pm=await stripeGet("payment_methods/"+encodeURIComponent(pmId)),card=pm.card;
+  if(!card?.last4)throw new Error("Card details unavailable");
+  const customer=String(session.customer||setup.customer||pm.customer||"");
+  if(!customer)throw new Error("Stripe customer unavailable");
+  const client=await pool.connect();try{
+    await client.query("BEGIN");
+    const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",[eventId,eventType]);
+    if(!inserted.rows[0]){await client.query("ROLLBACK");return;}
+    await client.query("UPDATE saved_payment_methods SET is_default=FALSE WHERE user_id=$1",[userId]);
+    await client.query("INSERT INTO saved_payment_methods(user_id,stripe_customer_id,stripe_payment_method_id,brand,last4,exp_month,exp_year,is_default) VALUES($1,$2,$3,$4,$5,$6,$7,TRUE) ON CONFLICT(stripe_payment_method_id) DO UPDATE SET brand=EXCLUDED.brand,last4=EXCLUDED.last4,exp_month=EXCLUDED.exp_month,exp_year=EXCLUDED.exp_year,is_default=TRUE",[userId,customer,pmId,String(card.brand||"card"),String(card.last4),Number(card.exp_month)||null,Number(card.exp_year)||null]);
+    await client.query("COMMIT");
+  }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
+}
 async function fulfillCardCryptoOrder(session,eventId,eventType){
   if(!session||session.payment_status!=="paid")return;
   const userId=Number(session.metadata?.gugee_user_id),orderId=Number(session.metadata?.gugee_order_id);
@@ -129,6 +152,7 @@ app.post("/api/stripe/webhook",express.raw({type:"application/json",limit:"256kb
     if(event.type==="checkout.session.completed"||event.type==="checkout.session.async_payment_succeeded"){
       const session=event.data?.object;
       if(session?.metadata?.gugee_kind==="subscription")await activateStripeSubscription(session,event.id,event.type);
+      else if(session?.metadata?.gugee_kind==="card_setup")await saveCardSetup(session,event.id,event.type);
       else if(session?.metadata?.gugee_kind==="card_crypto")await fulfillCardCryptoOrder(session,event.id,event.type);
       else await creditStripeDeposit(session,event.id);
     }
@@ -584,6 +608,18 @@ async function initDb(){
       event_type TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS saved_payment_methods(
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      stripe_customer_id TEXT NOT NULL,
+      stripe_payment_method_id TEXT NOT NULL UNIQUE,
+      brand TEXT NOT NULL DEFAULT 'card',
+      last4 TEXT NOT NULL,
+      exp_month INTEGER,
+      exp_year INTEGER,
+      is_default BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS card_crypto_orders(
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -947,11 +983,13 @@ app.get("/api/wallet/price",auth,async(req,res)=>{
   }
 });
 
+app.get("/api/payment-methods",auth,async(req,res)=>{try{const {rows}=await pool.query("SELECT id,brand,last4,exp_month,exp_year,is_default,created_at FROM saved_payment_methods WHERE user_id=$1 ORDER BY is_default DESC,created_at DESC",[req.user.id]);res.json({cards:rows})}catch(e){res.status(500).json({error:"Could not load payment methods"})}});
+app.delete("/api/payment-methods/:id",auth,async(req,res)=>{try{const {rows}=await pool.query("DELETE FROM saved_payment_methods WHERE id=$1 AND user_id=$2 RETURNING stripe_payment_method_id",[req.params.id,req.user.id]);if(!rows[0])return res.status(404).json({error:"Card not found"});res.json({ok:true})}catch(e){res.status(500).json({error:"Could not remove card"})}});
 app.post("/api/stripe/setup-card",auth,async(req,res)=>{
   if(!STRIPE_SECRET_KEY)return res.status(503).json({error:"Stripe is not configured."});
   try{
     const origin=FRONTEND_URL||(`${req.protocol}://${req.get("host")}`),body=new URLSearchParams();
-    body.set("mode","setup");body.set("success_url",origin+"/account.html?card=added");body.set("cancel_url",origin+"/account.html?card=cancelled");body.set("customer_email",req.user.email);
+    body.set("mode","setup");body.set("customer_creation","always");body.set("success_url",origin+"/account.html?card=added");body.set("cancel_url",origin+"/account.html?card=cancelled");body.set("customer_email",req.user.email);
     body.set("metadata[gugee_kind]","card_setup");body.set("metadata[gugee_user_id]",String(req.user.id));
     const sr=await fetch("https://api.stripe.com/v1/checkout/sessions",{method:"POST",headers:{Authorization:"Bearer "+STRIPE_SECRET_KEY,"Content-Type":"application/x-www-form-urlencoded"},body}),session=await sr.json();
     if(!sr.ok||!session.url)throw new Error(session?.error?.message||"Could not create card setup");
