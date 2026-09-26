@@ -159,6 +159,21 @@ async function loadNotificationsBell(){
     box.querySelectorAll(".notification-item").forEach(item=>item.onclick=async()=>{await api("/api/notifications/"+encodeURIComponent(item.dataset.notificationId)+"/read",{method:"POST"}).catch(()=>{});await loadNotificationsBell()});
   }catch(e){box.innerHTML='<span class="notification-empty">Notifications unavailable.</span>'}
 }
+function initPasswordToggles(){
+  document.querySelectorAll("[data-password-toggle]").forEach(button=>{
+    button.onclick=()=>{
+      const input=document.getElementById(button.dataset.passwordToggle);if(!input)return;
+      const showing=input.type==="text";input.type=showing?"password":"text";button.textContent=showing?"Show":"Hide";
+    };
+  });
+}
+function initAuthSubmitState(){
+  document.querySelectorAll(".auth-form").forEach(form=>form.addEventListener("submit",()=>{
+    const button=form.querySelector(".auth-submit");if(!button)return;button.disabled=true;
+    const label=button.querySelector("span");if(label)label.textContent="Please wait…";
+    setTimeout(()=>{button.disabled=false;if(label)label.textContent=form.id==="registerForm"?"Create account":"Log in"},7000);
+  }));
+}
 document.addEventListener("DOMContentLoaded",async()=>{
-  await refreshCurrentUser();initGlobalNavigation();renderAuthNav();initLogin();initRegister();if(getCurrentUser())initNotificationsBell();
+  await refreshCurrentUser();initGlobalNavigation();renderAuthNav();initPasswordToggles();initAuthSubmitState();initLogin();initRegister();if(getCurrentUser())initNotificationsBell();
 });
