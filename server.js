@@ -561,7 +561,7 @@ async function auth(req,res,next){
     const token=parseCookies(req.headers.cookie||"").gugee_token;
     if(!token)return res.status(401).json({error:"Authentication required"});
     const payload=jwt.verify(token,JWT_SECRET);
-    const {rows}=await pool.query("SELECT id,name,username,email,created_at,is_admin FROM users WHERE id=$1",[payload.sub]);
+    const {rows}=await pool.query("SELECT id,name,username,email,avatar_data,created_at,is_admin FROM users WHERE id=$1",[payload.sub]);
     if(!rows[0])return res.status(401).json({error:"User not found"});
     req.user=rows[0];
     next();
@@ -702,6 +702,7 @@ async function initDb(){
     );
   `);
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_data TEXT");
   await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_unique ON users(LOWER(username)) WHERE username IS NOT NULL");
   await pool.query("ALTER TABLE wallet_transactions DROP CONSTRAINT IF EXISTS wallet_transactions_type_check");
   await pool.query("ALTER TABLE wallet_transactions ADD CONSTRAINT wallet_transactions_type_check CHECK(type IN ('buy','sell','deposit','withdraw','usdt_adjustment','tournament_entry','tournament_prize','giveaway_prize','referral_reward','subscription'))");
@@ -928,9 +929,32 @@ app.post("/api/auth/reset-password",async(req,res)=>{
 
 app.get("/api/auth/me",auth,async(req,res)=>{
   try{
-    const {rows}=await pool.query("SELECT id,name,username,email,created_at,is_admin,referral_code FROM users WHERE id=$1",[req.user.id]);
+    const {rows}=await pool.query("SELECT id,name,username,email,avatar_data,created_at,is_admin,referral_code FROM users WHERE id=$1",[req.user.id]);
     res.json({user:rows[0]});
   }catch(e){res.status(500).json({error:"Could not load account"});}
+});
+
+app.post("/api/account/avatar",auth,async(req,res)=>{
+  try{
+    const avatar=String(req.body.avatar||"");
+    if(avatar&&!/^data:image\/(png|jpeg|webp);base64,/i.test(avatar))return res.status(400).json({error:"Use a PNG, JPEG or WebP image."});
+    if(avatar.length>700000)return res.status(413).json({error:"Avatar is too large. Maximum size is about 500 KB."});
+    await pool.query("UPDATE users SET avatar_data=$1 WHERE id=$2",[avatar||null,req.user.id]);
+    res.json({ok:true,avatar:avatar||null});
+  }catch(e){res.status(500).json({error:"Could not update avatar"});}
+});
+
+app.post("/api/account/change-password",auth,async(req,res)=>{
+  if(!rateLimit("password:"+clientKey(req),5,15*60*1000))return res.status(429).json({error:"Too many password attempts. Try again later."});
+  try{
+    const currentPassword=String(req.body.currentPassword||""),newPassword=String(req.body.newPassword||"");
+    if(newPassword.length<8)return res.status(400).json({error:"New password must be at least 8 characters."});
+    const {rows}=await pool.query("SELECT password_hash FROM users WHERE id=$1",[req.user.id]);
+    if(!rows[0]||!await bcrypt.compare(currentPassword,rows[0].password_hash))return res.status(401).json({error:"Current password is incorrect."});
+    const hash=await bcrypt.hash(newPassword,12);
+    await pool.query("UPDATE users SET password_hash=$1 WHERE id=$2",[hash,req.user.id]);
+    res.json({ok:true});
+  }catch(e){res.status(500).json({error:"Could not change password"});}
 });
 
 app.post("/api/auth/logout",(req,res)=>{
