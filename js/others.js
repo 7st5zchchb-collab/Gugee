@@ -12,7 +12,7 @@ const API_BASES=[...new Set([
 ])].filter(Boolean);
 
 const FAVORITES_KEY="gugeeFavoriteCryptos";
-const MAX_FAVORITES=5;
+let MAX_FAVORITES=5;
 const PER_PAGE=100;
 let allCoins=[];
 let currentPage=1;
@@ -77,7 +77,7 @@ function toggleFavorite(id){
     favorites=favorites.filter(item=>item.id!==id);
   }else{
     if(favorites.length>=MAX_FAVORITES){
-      alert("You can select up to 5 favorite cryptocurrencies.");
+      alert("You can select up to "+MAX_FAVORITES+" favorite cryptocurrencies.");
       return;
     }
     favorites.push({
@@ -253,3 +253,5 @@ load();
 setInterval(load,60000);
 
 window.addEventListener("gugee-market-update",event=>{if(event.detail?.path!=="/api/coingecko/top1000")return;const coins=event.detail.value?.coins;if(!Array.isArray(coins)||!coins.length)return;allCoins=coins;render();if(event.detail.value.partial)status.textContent+=" · partial coverage";});
+
+if(window.gugeeAuth?.getCurrentUser())window.gugeeAuth.api("/api/account/limits").then(data=>{MAX_FAVORITES=Math.max(1,Number(data.favorites)||5);render();}).catch(()=>{});

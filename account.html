@@ -143,10 +143,11 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 
 <section class="account-card" style="margin-top:20px" id="walletActions">
 <p class="section-label">WALLET</p><h2>Deposit · Withdraw · Buy · Sell · Referral · Transactions</h2>
+<p class="muted">Buy and sell update your internal Gugee portfolio at a market reference price. They do not place an order on an external exchange or deliver on-chain crypto.</p>
 <nav class="wallet-shortcuts" aria-label="Wallet actions"><a href="#depositPanel">Deposit</a><a href="#withdrawPanel">Withdraw</a><a href="#buyPanel">Buy</a><a href="#sellPanel">Sell</a><a href="#referralPanel">Referral</a><a href="#transactionsPanel">Transactions</a></nav>
 <div class="wallet-action-grid">
 <div id="depositPanel" class="wallet-operation"><h3>Deposit</h3><label for="depositAmount">USD amount</label><input id="depositAmount" type="number" min="20" max="100000" step="0.01" placeholder="100.00"><p id="depositQuote" class="muted">Minimum deposit: $20.00 · Fee: $1.00</p><p class="muted">Secure card payment is completed on Stripe Checkout. Wallet credit happens only after Stripe confirms payment.</p><button id="depositButton" class="auth-submit" type="button">Continue to secure checkout</button><p id="depositMessage" class="muted" aria-live="polite"></p></div>
-<div id="withdrawPanel" class="wallet-operation"><h3>Withdraw</h3><form id="withdrawForm"><label for="withdrawAmount">USDT amount (minimum 20)</label><input id="withdrawAmount" type="number" min="20" max="100000" step="0.01" placeholder="40.00" required><label for="withdrawMethod">Payout method</label><select id="withdrawMethod" required><option value="">Select method</option><option value="visa">Visa</option><option value="mastercard">Mastercard</option><option value="paypal">PayPal</option></select><label for="withdrawDestination">Card / payout destination</label><input id="withdrawDestination" type="text" maxlength="160" autocomplete="off" placeholder="Payout destination" required><p id="withdrawQuote" class="muted">Fee: $1 for each started $20. Requests are reviewed within 12 hours.</p><p class="muted">Never enter CVV. Your requested amount is held while the withdrawal is pending. Rejected requests are returned to your wallet.</p><button class="auth-submit" type="submit">Request withdrawal</button><p id="withdrawMessage" class="muted" aria-live="polite"></p></form></div>
+<div id="withdrawPanel" class="wallet-operation"><h3>Withdraw</h3><form id="withdrawForm"><label for="withdrawAmount">USDT amount (minimum 20)</label><input id="withdrawAmount" type="number" min="20" max="100000" step="0.01" placeholder="40.00" required><label for="withdrawMethod">Payout method</label><select id="withdrawMethod" required><option value="">Select method</option><option value="paypal">PayPal (manual review)</option></select><label for="withdrawDestination">PayPal email</label><input id="withdrawDestination" type="email" maxlength="160" autocomplete="email" placeholder="you@example.com" required><p id="withdrawQuote" class="muted">Fee: $1 for each started $20. Payout requests are reviewed manually.</p><p class="muted">Card payouts are unavailable. Your requested amount is held while the withdrawal is pending. Rejected requests are returned to your wallet.</p><button class="auth-submit" type="submit">Request withdrawal</button><p id="withdrawMessage" class="muted" aria-live="polite"></p></form></div>
 <div id="sellPanel" class="wallet-operation"><h3>Sell crypto</h3><form id="sellForm"><label for="sellCoin">Owned asset</label><select id="sellCoin" required><option value="">Select an asset</option></select><label for="sellQuantity">Quantity</label><input id="sellQuantity" type="number" min="0" step="any" required><p id="sellQuote" class="muted">Trading fee: 0.10 USDT.</p><button class="auth-submit" type="submit">Sell crypto</button><p id="sellMessage" class="muted" aria-live="polite"></p></form></div>
 <div id="referralPanel" class="wallet-operation"><h3>Referral</h3><p id="referralCode" class="muted">Updating...</p><input id="referralLink" aria-label="Your referral link" readonly><button id="copyReferral" class="auth-submit" type="button">Copy link</button><p id="referralMessage" class="muted" aria-live="polite"></p></div>
 </div></section>
@@ -182,9 +183,9 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 <section class="account-card subscription-ui">
 <div class="account-head" style="margin-bottom:10px"><div><p class="section-label">SUBSCRIPTION</p><h2>Your plan</h2></div><span id="subscriptionStatus" class="muted">Updating...</span></div><div id="planLimits" class="muted" style="margin:8px 0 14px">Loading plan limits...</div>
 <div class="plan-grid">
-<div class="plan-card" data-plan="free"><h3>Free</h3><div class="plan-price">$0</div><ul><li>5 favorites</li><li>Basic market analytics</li><li>Up to 500 USDT/day crypto withdrawal</li></ul><button class="plan-btn" type="button">Select</button></div>
-<div class="plan-card" data-plan="plus"><h3>Plus</h3><div class="plan-price">$4.99 / month</div><ul><li>25 favorites</li><li>Advanced analysis & alerts</li><li>Higher withdrawal limits</li><li>Portfolio analytics</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
-<div class="plan-card" data-plan="pro"><h3>Pro</h3><div class="plan-price">$9.99 / month</div><ul><li>100 favorites</li><li>Full advanced analytics</li><li>Highest account limits</li><li>Priority features & exports</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
+<div class="plan-card" data-plan="free"><h3>Free</h3><div class="plan-price">$0</div><ul><li>5 favorites</li><li>Basic market analytics</li><li>500 USDT/day withdrawal request limit</li></ul><button class="plan-btn" type="button">Select</button></div>
+<div class="plan-card" data-plan="plus"><h3>Plus</h3><div class="plan-price">$4.99 / month</div><ul><li>25 favorites</li><li>0.05 USDT internal trade fee</li><li>Higher withdrawal limits</li><li>5,000 USDT/day withdrawal request limit</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
+<div class="plan-card" data-plan="pro"><h3>Pro</h3><div class="plan-price">$9.99 / month</div><ul><li>100 favorites</li><li>No internal trade fee</li><li>Highest account limits</li><li>25,000 USDT/day withdrawal request limit</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
 </div>
 <p id="subscriptionMessage" class="muted" aria-live="polite"></p>
 </section>
@@ -206,7 +207,7 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 </section>
 </main>
 
-<script src="js/auth.js?v=20260927-auth3"></script>
+<script src="js/auth.js?v=20260927-security4"></script>
 <script>
 document.addEventListener("DOMContentLoaded",async()=>{
   const subscriptionReturn=new URLSearchParams(location.search).get("subscription");
@@ -308,7 +309,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
   $("passwordSettingsForm").onsubmit=async e=>{
     e.preventDefault();const currentPassword=$("currentPassword").value,newPassword=$("newPassword").value,confirm=$("confirmNewPassword").value,msg=$("passwordSettingsMessage");
     if(newPassword!==confirm){msg.textContent="New passwords do not match.";return;}
-    try{await window.gugeeAuth.api("/api/account/change-password",{method:"POST",body:JSON.stringify({currentPassword,newPassword})});e.currentTarget.reset();msg.textContent="Password changed successfully.";}catch(err){msg.textContent=err.message;}
+    try{await window.gugeeAuth.api("/api/account/change-password",{method:"POST",body:JSON.stringify({currentPassword,newPassword})});e.currentTarget.reset();window.gugeeAuth.setCurrentUser(null);msg.textContent="Password changed. Sign in again.";setTimeout(()=>{location.href="login.html"},900);}catch(err){msg.textContent=err.message;}
   };
   if(user.is_admin)$("adminLink").innerHTML='<a class="auth-submit" style="display:inline-block;text-decoration:none;margin-bottom:20px" href="community-admin.html">Community Admin</a>';
 
@@ -502,7 +503,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
     button.disabled=true;message.textContent="Submitting withdrawal for review...";
     try{
       const result=await window.gugeeAuth.api("/api/wallet/withdraw",{method:"POST",body:JSON.stringify({amount,method,destination})});
-      message.textContent="Withdrawal #"+result.withdrawal.id+" is pending review. Target: within 12 hours.";
+      message.textContent="Withdrawal #"+result.withdrawal.id+" is pending manual review.";
       $("withdrawForm").reset();previewFee("withdraw");await loadWallet();await loadTransactions();
     }catch(err){message.textContent=err.message;}finally{button.disabled=false;}
   });

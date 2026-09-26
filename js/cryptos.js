@@ -7,7 +7,7 @@ const othersPreview=document.getElementById("cryptoOthersPreview");
 
 const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,"")])].filter(Boolean);
 const FAVORITES_KEY="gugeeFavoriteCryptos";
-const MAX_FAVORITES=5;
+let MAX_FAVORITES=5;
 const PAGE_SIZE=100;
 let allCoins=[],loading=false,currentPage=1;
 try{
@@ -40,7 +40,7 @@ function toggleFavorite(id){
   const exists=favorites.some(x=>x.id===id);
   if(exists) favorites=favorites.filter(x=>x.id!==id);
   else{
-    if(favorites.length>=MAX_FAVORITES){alert("You can select up to 5 favorite cryptocurrencies.");return;}
+    if(favorites.length>=MAX_FAVORITES){alert("You can select up to "+MAX_FAVORITES+" favorite cryptocurrencies.");return;}
     favorites.push({id:coin.id,name:coin.name,symbol:coin.symbol,image:coin.image,current_price:coin.current_price,price_change_percentage_24h:coin.price_change_percentage_24h,price_change_percentage_7d_in_currency:coin.price_change_percentage_7d_in_currency,price_change_percentage_30d_in_currency:coin.price_change_percentage_30d_in_currency,market_cap:coin.market_cap,total_volume:coin.total_volume});
   }
   saveFavorites(favorites);
@@ -139,7 +139,7 @@ function renderFavorites(){
   const favorites=getFavorites();
   favoritesCount.textContent=favorites.length+" / "+MAX_FAVORITES;
   if(!favorites.length){
-    favoritesGrid.innerHTML='<div class="crypto-favorites-empty">Choose up to 5 cryptocurrencies below. Your selections stay saved in this browser.</div>';
+    favoritesGrid.innerHTML='<div class="crypto-favorites-empty">Choose favorites below. Your selections stay saved in this browser.</div>';
     return;
   }
   favoritesGrid.innerHTML=favorites.map(c=>{
@@ -187,3 +187,5 @@ load();
 
 setInterval(()=>{load();},60000);
 window.addEventListener("gugee-market-update",event=>{if(event.detail?.path!=="/api/coingecko/top1000")return;const coins=event.detail.value?.coins;if(!Array.isArray(coins)||!coins.length)return;allCoins=coins;try{localStorage.setItem("gugeeTopCoinsCache",JSON.stringify({time:Date.now(),coins}));}catch{}loadStatus.textContent=allCoins.length+" loaded"+(event.detail.value.partial?" · partial coverage":"");render();renderFavorites();});
+
+if(window.gugeeAuth?.getCurrentUser())window.gugeeAuth.api("/api/account/limits").then(data=>{MAX_FAVORITES=Math.max(1,Number(data.favorites)||5);render();renderFavorites();}).catch(()=>{});

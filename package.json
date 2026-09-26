@@ -5,7 +5,7 @@
   "description": "Gugee crypto analytics platform",
   "main": "server.js",
   "scripts": {
-    "build:engine": "g++ -O3 -std=c++17 cpp/fee_engine.cpp -o fee-engine",
+    "build:engine": "node --check server.js && node --check community-routes.js",
     "start": "node server.js",
     "smoke": "node scripts/smoke.mjs"
   },

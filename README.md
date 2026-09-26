@@ -9,7 +9,7 @@ Gugee is a dark crypto analytics platform with live market data, research tools,
 - Database: PostgreSQL
 - Authentication: bcrypt + JWT HttpOnly cookie
 - Account email: Resend
-- Market data: CoinGecko and exchange APIs
+- Market data: CoinGecko, CoinPaprika fallback, and exchange APIs
 
 ## Run locally
 
@@ -41,7 +41,11 @@ Required environment variables on the Gugee Web Service:
 
 Resend must have the sending domain verified before email delivery from `noreply@gugee.com` can work.
 
-The server initializes the `users` and `watchlist` tables automatically on startup.
+The server initializes its account, wallet, and community tables on startup.
+
+## Financial flow status
+
+Gugee records internal USDT and crypto balances in PostgreSQL. Those balances are not on-chain custody and the in-app buy/sell buttons are not exchange order matching. Card deposits and purchases need a configured Stripe account and verified webhook before balances are credited. Withdrawal requests use PayPal email for manual review; no card payout provider is connected. Do not present internal balances as externally held crypto or advertise automated withdrawals.
 
 ## Account email flows
 

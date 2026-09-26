@@ -2,6 +2,8 @@ const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),windo
 const params=new URLSearchParams(location.search);
 const requestedCoin=params.get("coin")||"bitcoin";
 const aliases={btc:"bitcoin",eth:"ethereum",sol:"solana",bnb:"binancecoin",xrp:"ripple",doge:"dogecoin"};
+let maxFavorites=5;
+if(window.gugeeAuth?.getCurrentUser())window.gugeeAuth.api("/api/account/limits").then(data=>{maxFavorites=Math.max(1,Number(data.favorites)||5)}).catch(()=>{});
 const coinId=aliases[requestedCoin.toLowerCase()]||requestedCoin.toLowerCase().trim().replace(/\s+/g,"-");
 const $=id=>document.getElementById(id);
 const els={
@@ -163,7 +165,7 @@ const pairMap={BTC:["BTCUSDT","BTC-USD","XXBTZUSD"],ETH:["ETHUSDT","ETH-USD","XE
 const major=[["binance","Binance"],["coinbase","Coinbase"],["kraken","Kraken"],["bybit","Bybit"],["okx","OKX"],["kucoin","KuCoin"],["bitget","Bitget"],["gate","Gate.io"],["mexc","MEXC"],["cryptocom","Crypto.com"]];
 
 async function exchangeQuote(provider,symbol){
- const r=await fetch("/api/exchanges?provider="+encodeURIComponent(provider)+"&symbol="+encodeURIComponent(symbol));if(!r.ok)throw new Error();return r.json();
+ const r=await fetch((window.GUGEE_API_BASE||"")+"/api/exchanges?provider="+encodeURIComponent(provider)+"&symbol="+encodeURIComponent(symbol));if(!r.ok)throw new Error();return r.json();
 }
 async function loadExchanges(symbol){
  const pair=pairMap[symbol]||[symbol+"USDT",symbol+"-USD",symbol+"USD"];
@@ -178,6 +180,6 @@ async function loadExchanges(symbol){
 }
 
 document.querySelectorAll(".range").forEach(btn=>btn.addEventListener("click",async()=>{document.querySelectorAll(".range").forEach(x=>x.classList.remove("active"));btn.classList.add("active");await loadChart(btn.dataset.range);}));
-if(els.favorite)els.favorite.addEventListener("click",async()=>{try{const key="gugeeFavoriteCryptos";let current=JSON.parse(localStorage.getItem(key)||"[]");if(!Array.isArray(current))current=[];const ids=current.map(x=>typeof x==="string"?x:x?.id).filter(Boolean);const i=ids.indexOf(coinId);if(i>=0){current.splice(i,1);els.favorite.textContent="☆ Add to Favorites";}else{if(current.length>=5){alert("You can select up to 5 favorite cryptocurrencies.");return;}current.push({id:coinId,name:coin?.name||coinId,symbol:coin?.symbol||"",image:coin?.image?.large||""});els.favorite.textContent="★ In Favorites";}localStorage.setItem(key,JSON.stringify(current.slice(0,5)));}catch{}});
+if(els.favorite)els.favorite.addEventListener("click",async()=>{try{const key="gugeeFavoriteCryptos";let current=JSON.parse(localStorage.getItem(key)||"[]");if(!Array.isArray(current))current=[];const ids=current.map(x=>typeof x==="string"?x:x?.id).filter(Boolean);const i=ids.indexOf(coinId);if(i>=0){current.splice(i,1);els.favorite.textContent="☆ Add to Favorites";}else{if(current.length>=maxFavorites){alert("You can select up to "+maxFavorites+" favorite cryptocurrencies.");return;}current.push({id:coinId,name:coin?.name||coinId,symbol:coin?.symbol||"",image:coin?.image?.large||""});els.favorite.textContent="★ In Favorites";}localStorage.setItem(key,JSON.stringify(current.slice(0,maxFavorites)));}catch{}});
 loadCoin();
 setInterval(()=>{loadCoin().catch(()=>{});},60000);

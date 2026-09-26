@@ -8,6 +8,7 @@ const fs=require("fs");
 const {Resend}=require("resend");
 
 const app=express();
+app.set("trust proxy",1);
 const PORT=process.env.PORT||3000;
 const JWT_SECRET=process.env.JWT_SECRET;
 const DATABASE_URL=process.env.DATABASE_URL;
@@ -36,7 +37,7 @@ function rateLimit(key,max,windowMs){
 }
 
 function clientKey(req){
-  return String(req.headers["x-forwarded-for"]||req.socket.remoteAddress||"unknown").split(",")[0].trim();
+  return req.ip||req.socket.remoteAddress||"unknown";
 }
 
 setInterval(()=>{
@@ -69,13 +70,17 @@ async function creditStripeDeposit(session,eventId){
   if(!session||session.payment_status!=="paid")return;
   const userId=Number(session.metadata?.gugee_user_id);
   const grossCents=Number(session.amount_total);
-  const feeCents=Number(session.metadata?.gugee_fee_cents||100);
+  const feeCents=Number(session.metadata?.gugee_fee_cents);
   const creditCents=grossCents-feeCents;
-  if(!Number.isSafeInteger(userId)||userId<=0||!Number.isSafeInteger(grossCents)||grossCents<2000||creditCents<=0)throw new Error("Invalid Stripe deposit metadata");
+  if(!/^cs_[a-zA-Z0-9_]+$/.test(String(session.id||""))||session.metadata?.gugee_kind!=="deposit"||session.currency!=="usd"||!Number.isSafeInteger(userId)||userId<=0||
+     !Number.isSafeInteger(grossCents)||grossCents<2000||!Number.isSafeInteger(feeCents)||
+     Number(session.metadata?.gugee_gross_cents)!==grossCents||
+     feeCents!==Math.max(100,Math.ceil(grossCents/2000)*100)||creditCents<=0)
+    throw new Error("Invalid Stripe deposit metadata");
   const client=await pool.connect();
   try{
     await client.query("BEGIN");
-    const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",[eventId,"checkout.session.completed"]);
+    const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",["deposit:"+String(session.id||""),"checkout.session.completed"]);
     if(!inserted.rows[0]){await client.query("ROLLBACK");return;}
     await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[userId]);
     await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[creditCents/100,userId]);
@@ -111,21 +116,28 @@ async function fulfillCardCryptoOrder(session,eventId,eventType){
   if(!session||session.payment_status!=="paid")return;
   const userId=Number(session.metadata?.gugee_user_id),orderId=Number(session.metadata?.gugee_order_id);
   if(session.metadata?.gugee_kind!=="card_crypto"||!Number.isSafeInteger(userId)||!Number.isSafeInteger(orderId))throw new Error("Invalid card crypto metadata");
+  // Fetch the quote before locking rows; a failed quote leaves the event retryable.
+  const pending=(await pool.query("SELECT coin_id FROM card_crypto_orders WHERE id=$1 AND user_id=$2",[orderId,userId])).rows[0];
+  if(!pending)throw new Error("Card crypto order not found");
+  const coin=await getPurchaseCoin(pending.coin_id);
   const client=await pool.connect();
   try{
     await client.query("BEGIN");
     const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",[eventId,eventType]);
     if(!inserted.rows[0]){await client.query("ROLLBACK");return;}
-    const orderQ=await client.query("SELECT * FROM card_crypto_orders WHERE id=$1 AND user_id=$2 FOR UPDATE",[orderId,userId]),order=orderQ.rows[0];
-    if(!order||order.status==="paid"){await client.query("ROLLBACK");return;}
-    await client.query("COMMIT");
-    const coin=await getPurchaseCoin(order.coin_id);
-    const cryptoUsd=Number(order.crypto_usd),quantity=cryptoUsd/coin.price;
+    const order=(await client.query("SELECT * FROM card_crypto_orders WHERE id=$1 AND user_id=$2 FOR UPDATE",[orderId,userId])).rows[0];
+    if(!order)throw new Error("Card crypto order not found");
+    if(order.status==="paid"){await client.query("COMMIT");return;}
+    if(order.status!=="pending")throw new Error("Card crypto order is not pending");
+    const cryptoCents=Math.round(Number(order.crypto_usd)*100);
+    const feeCents=Math.round(Number(order.fee_usd)*100);
+    if(order.stripe_session_id!==session.id||session.currency!=="usd"||Number(session.amount_total)!==cryptoCents+feeCents)
+      throw new Error("Stripe session does not match card crypto order");
+    const quantity=Number(order.crypto_usd)/coin.price;
     if(!Number.isFinite(quantity)||quantity<=0)throw new Error("Invalid crypto quantity");
-    await client.query("BEGIN");
     await client.query("INSERT INTO wallet_assets(user_id,coin_id,symbol,quantity,updated_at) VALUES($1,$2,$3,$4,NOW()) ON CONFLICT(user_id,coin_id) DO UPDATE SET quantity=wallet_assets.quantity+EXCLUDED.quantity,symbol=EXCLUDED.symbol,updated_at=NOW()",[userId,coin.id,coin.symbol,quantity]);
     await client.query("UPDATE card_crypto_orders SET status='paid',symbol=$1,price_usd=$2,quantity=$3,completed_at=NOW() WHERE id=$4",[coin.symbol,coin.price,quantity,orderId]);
-    await client.query("INSERT INTO wallet_transactions(user_id,type,coin_id,symbol,quantity,price_usdt,usdt_amount,fee_usdt) VALUES($1,'buy',$2,$3,$4,$5,$6,$7)",[userId,coin.id,coin.symbol,quantity,coin.price,cryptoUsd,Number(order.fee_usd)]);
+    await client.query("INSERT INTO wallet_transactions(user_id,type,coin_id,symbol,quantity,price_usdt,usdt_amount,fee_usdt) VALUES($1,'buy',$2,$3,$4,$5,$6,$7)",[userId,coin.id,coin.symbol,quantity,coin.price,Number(order.crypto_usd),Number(order.fee_usd)]);
     await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Card crypto purchase completed',$2,'buy')",[userId,"Your "+coin.symbol+" purchase was credited after Stripe confirmed the card payment."]);
     await client.query("COMMIT");
   }catch(e){try{await client.query("ROLLBACK")}catch{}throw e;}finally{client.release();}
@@ -218,7 +230,7 @@ app.use(express.json({limit:"20kb"}));
 app.disable("x-powered-by");
 app.use((req,res,next)=>{
   const origin=String(req.headers.origin||"");
-  const allowed=new Set(["https://gugee.onrender.com","https://gugees.onrender.com"]);
+  const allowed=new Set(["https://gugee.onrender.com","https://gugees.onrender.com","https://gugee.com","https://www.gugee.com"]);
   if(FRONTEND_URL)allowed.add(FRONTEND_URL);
   if(origin&&allowed.has(origin)){
     res.setHeader("Access-Control-Allow-Origin",origin);
@@ -227,7 +239,10 @@ app.use((req,res,next)=>{
     res.setHeader("Access-Control-Allow-Headers","Content-Type");
     res.setHeader("Access-Control-Allow-Methods","GET,POST,PUT,DELETE,OPTIONS");
   }
-  if(req.method==="OPTIONS")return res.sendStatus(204);
+  if(req.method==="OPTIONS")return res.sendStatus(origin&&!allowed.has(origin)?403:204);
+  if(!["GET","HEAD"].includes(req.method)&&((origin&&!allowed.has(origin))||
+      (!origin&&req.headers["sec-fetch-site"]==="cross-site")))
+    return res.status(403).json({error:"Untrusted request origin"});
   next();
 });
 app.use((req,res,next)=>{
@@ -237,8 +252,6 @@ app.use((req,res,next)=>{
   res.setHeader("Permissions-Policy","camera=(),microphone=(),geolocation=()");
   next();
 });
-
-const marketCache=new Map();
 
 const COINGECKO_BASE="https://api.coingecko.com/api/v3";
 let top1000Cache={data:null,expires:0};
@@ -271,7 +284,7 @@ async function fetchCoinGeckoPage(page){
   let lastError=null;
   for(let attempt=0;attempt<3;attempt++){
     try{
-      const r=await fetch(url,{headers:{accept:"application/json","user-agent":"Gugee/1.0"}});
+      const r=await fetch(url,{headers:{accept:"application/json","user-agent":"Gugee/1.0"},signal:AbortSignal.timeout(8000)});
       const body=await r.text();
       if(r.ok){
         const rows=JSON.parse(body);
@@ -290,7 +303,7 @@ async function fetchCoinGeckoPage(page){
 
 async function fetchCoinCapTop1000(){
   const url="https://api.coincap.io/v2/assets?limit=1000";
-  const r=await fetch(url,{headers:{accept:"application/json","user-agent":"Gugee/1.0"}});
+  const r=await fetch(url,{headers:{accept:"application/json","user-agent":"Gugee/1.0"},signal:AbortSignal.timeout(8000)});
   const body=await r.text();
   if(!r.ok) throw new Error(body||("CoinCap HTTP "+r.status));
   const payload=JSON.parse(body);
@@ -382,7 +395,7 @@ async function coingeckoProxy(req,res,next){
     target=COINGECKO_BASE+"/coins/"+encodeURIComponent(id)+"?"+new URLSearchParams(req.query).toString();
   } else return next();
   try{
-    const r=await fetch(target,{headers:{accept:"application/json","user-agent":"Gugee/1.0"}});
+    const r=await fetch(target,{headers:{accept:"application/json","user-agent":"Gugee/1.0"},signal:AbortSignal.timeout(8000)});
     const body=await r.text();
     res.status(r.status).type("application/json").send(body);
   }catch(e){
@@ -391,7 +404,7 @@ async function coingeckoProxy(req,res,next){
 }
 async function fearGreedProxy(req,res){
   try{
-    const r=await fetch("https://api.alternative.me/fng/?limit=1",{headers:{accept:"application/json","user-agent":"Gugee/1.0"}});
+    const r=await fetch("https://api.alternative.me/fng/?limit=1",{headers:{accept:"application/json","user-agent":"Gugee/1.0"},signal:AbortSignal.timeout(8000)});
     const body=await r.text();
     res.status(r.status).type("application/json").send(body);
   }catch(e){res.status(502).json({error:"Fear & Greed service unavailable"});}
@@ -552,7 +565,7 @@ function parseCookies(header=""){
   return Object.fromEntries(header.split(";").map(v=>v.trim().split("=")).filter(v=>v.length===2).map(([k,...rest])=>[k,decodeURIComponent(rest.join("="))]));
 }
 
-function signUser(user){return jwt.sign({sub:String(user.id),email:user.email},JWT_SECRET,{expiresIn:"7d"});}
+function signUser(user){return jwt.sign({sub:String(user.id),ver:Number(user.session_version||0)},JWT_SECRET,{expiresIn:"7d"});}
 
 function makeReferralCode(username){
   const base=String(username||"user").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,12)||"user";
@@ -593,8 +606,8 @@ async function auth(req,res,next){
     const token=parseCookies(req.headers.cookie||"").gugee_token;
     if(!token)return res.status(401).json({error:"Authentication required"});
     const payload=jwt.verify(token,JWT_SECRET);
-    const {rows}=await pool.query("SELECT id,name,username,email,avatar_data,created_at,is_admin FROM users WHERE id=$1",[payload.sub]);
-    if(!rows[0])return res.status(401).json({error:"User not found"});
+    const {rows}=await pool.query("SELECT id,name,username,email,avatar_data,created_at,is_admin,session_version FROM users WHERE id=$1",[payload.sub]);
+    if(!rows[0]||Number(payload.ver||0)!==Number(rows[0].session_version))return res.status(401).json({error:"Session expired"});
     req.user=rows[0];
     next();
   }catch(e){
@@ -769,7 +782,7 @@ async function initDb(){
   await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT");
   await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE");
-  await pool.query("UPDATE users SET is_admin=TRUE WHERE LOWER(email)='gurgensirunyan111@gmail.com'");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 0");
   const statements=[
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_hash TEXT",
@@ -893,11 +906,11 @@ app.post("/api/auth/login",async(req,res)=>{
   try{
     const email=String(req.body.email||"").trim().toLowerCase();
     const password=String(req.body.password||"");
-    const {rows}=await pool.query("SELECT id,name,username,email,password_hash,created_at FROM users WHERE email=$1",[email]);
+    const {rows}=await pool.query("SELECT id,name,username,email,password_hash,created_at,session_version FROM users WHERE email=$1",[email]);
     if(!rows[0])return res.status(401).json({error:"Incorrect email or password."});
     const valid=await bcrypt.compare(password,rows[0].password_hash);
     if(!valid)return res.status(401).json({error:"Incorrect email or password."});
-    const user={id:rows[0].id,name:rows[0].name,username:rows[0].username,email:rows[0].email,created_at:rows[0].created_at};
+    const user={id:rows[0].id,name:rows[0].name,username:rows[0].username,email:rows[0].email,created_at:rows[0].created_at,session_version:rows[0].session_version};
     setAuthCookie(res,signUser(user));
     res.json({user});
   }catch(e){
@@ -966,7 +979,7 @@ app.post("/api/auth/reset-password",async(req,res)=>{
     if(!rows[0])return res.status(400).json({error:"Reset link is invalid or expired."});
     const passwordHash=await bcrypt.hash(password,12);
     await pool.query(
-      "UPDATE users SET password_hash=$1,reset_token_hash=NULL,reset_expires_at=NULL WHERE id=$2",
+      "UPDATE users SET password_hash=$1,reset_token_hash=NULL,reset_expires_at=NULL,session_version=session_version+1 WHERE id=$2",
       [passwordHash,rows[0].id]
     );
     clearAuthCookie(res);
@@ -1002,7 +1015,8 @@ app.post("/api/account/change-password",auth,async(req,res)=>{
     const {rows}=await pool.query("SELECT password_hash FROM users WHERE id=$1",[req.user.id]);
     if(!rows[0]||!await bcrypt.compare(currentPassword,rows[0].password_hash))return res.status(401).json({error:"Current password is incorrect."});
     const hash=await bcrypt.hash(newPassword,12);
-    await pool.query("UPDATE users SET password_hash=$1 WHERE id=$2",[hash,req.user.id]);
+    await pool.query("UPDATE users SET password_hash=$1,session_version=session_version+1 WHERE id=$2",[hash,req.user.id]);
+    clearAuthCookie(res);
     res.json({ok:true});
   }catch(e){res.status(500).json({error:"Could not change password"});}
 });
@@ -1129,7 +1143,7 @@ async function getPurchaseCoin(coinId){
     }
   }catch{}
   const target=COINGECKO_BASE+"/simple/price?ids="+encodeURIComponent(id)+"&vs_currencies=usd";
-  const response=await fetch(target,{headers:{accept:"application/json","user-agent":"Gugee/1.0"}});
+  const response=await fetch(target,{headers:{accept:"application/json","user-agent":"Gugee/1.0"},signal:AbortSignal.timeout(8000)});
   if(!response.ok)throw new Error("Live price unavailable");
   const data=await response.json();
   const price=Number(data?.[id]?.usd);
@@ -1241,6 +1255,7 @@ app.post("/api/stripe/card-crypto-checkout",auth,async(req,res)=>{
 });
 
 app.post("/api/wallet/buy",auth,async(req,res)=>{
+  if(!rateLimit("trade:"+req.user.id,30,60*1000))return res.status(429).json({error:"Too many trade requests."});
   const coinId=String(req.body.coinId||"").trim().toLowerCase();
   const usdtAmount=Number(req.body.usdtAmount);
   if(!Number.isFinite(usdtAmount)||usdtAmount<=0)return res.status(400).json({error:"USDT amount must be greater than 0."});
@@ -1283,16 +1298,14 @@ app.post("/api/wallet/buy",auth,async(req,res)=>{
 // Wallet deposits are created through /api/stripe/create-checkout-session and credited only by verified Stripe webhooks.
 
 app.post("/api/wallet/withdraw",auth,async(req,res)=>{
+  if(!rateLimit("withdraw:"+req.user.id,5,15*60*1000))return res.status(429).json({error:"Too many withdrawal requests."});
   const amount=Number(req.body.amount);
   const limits=await getPlanLimits(req.user.id);
-  const today=await pool.query("SELECT COALESCE(SUM(amount_usdt),0) AS total FROM withdrawal_requests WHERE user_id=$1 AND created_at>=date_trunc('day',NOW()) AND status NOT IN ('rejected','cancelled')",[req.user.id]);
-  const usedToday=Number(today.rows[0]?.total||0);
-  if(Number.isFinite(amount)&&usedToday+amount>limits.dailyWithdrawal)return res.status(403).json({error:limits.plan.toUpperCase()+" daily withdrawal limit is "+limits.dailyWithdrawal+" USDT.",plan:limits.plan,limit:limits.dailyWithdrawal,usedToday});
   const method=String(req.body.method||"").toLowerCase();
   const destination=String(req.body.destination||"").trim();
   if(!Number.isFinite(amount)||amount<20||amount>100000)return res.status(400).json({error:"Withdrawal must be between 20 and 100,000 USDT."});
-  if(!["visa","mastercard","paypal"].includes(method))return res.status(400).json({error:"Select a payout method."});
-  if(destination.length<4||destination.length>160)return res.status(400).json({error:"Enter valid payout details."});
+  if(method!=="paypal")return res.status(400).json({error:"Card payouts are unavailable. Select PayPal for manual review."});
+  if(destination.length>160||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destination))return res.status(400).json({error:"Enter a valid PayPal email address."});
   const fee=withdrawFee(amount),net=amount-fee;
   if(net<=0)return res.status(400).json({error:"Withdrawal amount is too small after fees."});
   const client=await pool.connect();
@@ -1302,7 +1315,7 @@ app.post("/api/wallet/withdraw",auth,async(req,res)=>{
     const held=await client.query("UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",[amount,req.user.id]);
     if(!held.rows[0]){await client.query("ROLLBACK");return res.status(400).json({error:"Insufficient USDT balance."});}
     const row=await client.query("INSERT INTO withdrawal_requests(user_id,amount_usdt,fee_usdt,net_usdt,method,destination,status) VALUES($1,$2,$3,$4,$5,$6,'pending') RETURNING id,status,created_at",[req.user.id,amount,fee,net,method,destination]);
-    await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Withdrawal pending',$2,'withdrawal')",[req.user.id,"Your withdrawal is under review. Review target: within 12 hours."]);
+    await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Withdrawal pending',$2,'withdrawal')",[req.user.id,"Your withdrawal is awaiting manual review."]);
     await client.query("COMMIT");
     res.status(201).json({ok:true,withdrawal:{...row.rows[0],amount,fee,net,method},usdt:Number(held.rows[0].usdt)});
   }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not create withdrawal request"});}finally{client.release();}
@@ -1363,6 +1376,7 @@ app.get("/api/wallet/withdrawals",auth,async(req,res)=>{
 });
 
 app.post("/api/wallet/sell",auth,async(req,res)=>{
+  if(!rateLimit("trade:"+req.user.id,30,60*1000))return res.status(429).json({error:"Too many trade requests."});
   const coinId=String(req.body.coinId||"").trim().toLowerCase();
   const quantity=Number(req.body.quantity);
   if(!coinId||!Number.isFinite(quantity)||quantity<=0)return res.status(400).json({error:"Invalid coin or quantity."});

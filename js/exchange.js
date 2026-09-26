@@ -119,13 +119,13 @@ function tickerValues(e,d){
  return {price,volume,change};
 }
 async function getTicker(e){
- const r=await fetch("/api/exchanges?provider="+encodeURIComponent(e.provider)+"&symbol="+encodeURIComponent(e.symbol));
+ const r=await fetch((window.GUGEE_API_BASE||"")+"/api/exchanges?provider="+encodeURIComponent(e.provider)+"&symbol="+encodeURIComponent(e.symbol));
  if(!r.ok)throw new Error();
  return tickerValues(e,await r.json());
 }
 async function getCandles(e){
  const symbol=e.candle||e.symbol;
- const r=await fetch("/api/exchanges/candles?provider="+encodeURIComponent(e.provider)+"&symbol="+encodeURIComponent(symbol));
+ const r=await fetch((window.GUGEE_API_BASE||"")+"/api/exchanges/candles?provider="+encodeURIComponent(e.provider)+"&symbol="+encodeURIComponent(symbol));
  if(!r.ok)throw new Error();
  const d=await r.json();return Array.isArray(d)?d:(d.rows||[]);
 }

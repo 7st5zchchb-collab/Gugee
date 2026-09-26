@@ -7,6 +7,8 @@ const checks=[
   {path:"/api/auth/me",status:401,description:"Protected account"},
   {path:"/api/wallet",status:401,description:"Protected wallet"},
   {path:"/api/referrals",status:401,description:"Protected referrals"},
+  {path:"/api/tournaments",status:200,validate:async r=>Array.isArray((await r.json()).tournaments),description:"Tournament directory"},
+  {path:"/api/giveaways",status:200,validate:async r=>Array.isArray((await r.json()).giveaways),description:"Giveaway directory"},
   {path:"/api/coingecko/top1000",status:200,validate:async r=>{const data=await r.json();return Array.isArray(data.coins)&&data.coins.length>=900},description:"Live crypto directory"}
 ];
 let failures=0;
@@ -18,4 +20,9 @@ for(const check of checks){
     if(!valid)failures++;
   }catch(error){failures++;console.log("FAIL "+check.description+" "+check.path+" ("+error.message+")")}
 }
+try{
+  const r=await fetch(apiBase+"/api/auth/logout",{method:"POST",headers:{Origin:"https://untrusted.example"},signal:AbortSignal.timeout(20000)});
+  const valid=r.status===403;console.log((valid?"PASS":"FAIL")+" Cross-origin mutation blocked (HTTP "+r.status+")");
+  if(!valid)failures++;
+}catch(error){failures++;console.log("FAIL Cross-origin mutation blocked ("+error.message+")")}
 process.exitCode=failures?1:0;

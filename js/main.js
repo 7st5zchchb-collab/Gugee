@@ -234,7 +234,7 @@ async function loadHomeExchanges(){
   if(!homeExchangeGrid)return;
   const rows=await Promise.all(homeExchanges.map(async e=>{
     try{
-      const r=await fetch("/api/exchanges?provider="+encodeURIComponent(e.provider)+"&symbol="+encodeURIComponent(e.symbol));
+      const r=await fetch((window.GUGEE_API_BASE||"")+"/api/exchanges?provider="+encodeURIComponent(e.provider)+"&symbol="+encodeURIComponent(e.symbol));
       if(!r.ok)throw new Error();
       const d=await r.json();let price=null,change=null;
       if(e.provider==="binance"){price=Number(d.lastPrice);change=Number(d.priceChangePercent)}

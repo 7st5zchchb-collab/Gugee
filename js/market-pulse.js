@@ -1,3 +1,5 @@
+function pulseEsc(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+function pulseImage(value){try{const url=new URL(String(value||""),location.href);return url.protocol==="https:"?pulseEsc(url.href):""}catch{return""}}
 (function(){
 const pulseGainers=document.getElementById("pulseGainers");
 const pulseLosers=document.getElementById("pulseLosers");
@@ -9,7 +11,7 @@ function pulseCompact(v){const n=Number(v);if(!Number.isFinite(n))return"$0.00";
 function pulseItems(list){
  return list.slice(0,5).map(c=>{
    const ch=Number(c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h),cls=ch>=0?"positive":"negative";
-   return '<a class="market-pulse-item" href="crypto.html?coin='+encodeURIComponent(c.id)+'"><img src="'+pulseLogo(c)+'" alt="" loading="lazy"><span class="market-pulse-name"><b>'+String(c.name||"Unknown")+'</b><small>'+String(c.symbol||"").toUpperCase()+'</small></span><span class="market-pulse-value"><b>'+pulseMoney(c.current_price)+'</b><span class="'+cls+'">'+(Number.isFinite(ch)?(ch>=0?"+":"")+ch.toFixed(2)+"%":"0.00%")+'</span></span></a>'
+   return '<a class="market-pulse-item" href="crypto.html?coin='+encodeURIComponent(c.id)+'"><img src="'+pulseImage(pulseLogo(c))+'" alt="" loading="lazy"><span class="market-pulse-name"><b>'+pulseEsc(c.name||"Unknown")+'</b><small>'+pulseEsc(String(c.symbol||"").toUpperCase())+'</small></span><span class="market-pulse-value"><b>'+pulseMoney(c.current_price)+'</b><span class="'+cls+'">'+(Number.isFinite(ch)?(ch>=0?"+":"")+ch.toFixed(2)+"%":"0.00%")+'</span></span></a>'
  }).join("");
 }
 function renderPulse(coins){
@@ -20,7 +22,7 @@ function renderPulse(coins){
  const volume=[...valid].sort((a,b)=>Number(b.total_volume||0)-Number(a.total_volume||0));
  if(pulseGainers)pulseGainers.innerHTML=pulseItems(gainers)||'<div class="market-pulse-empty">No data</div>';
  if(pulseLosers)pulseLosers.innerHTML=pulseItems(losers)||'<div class="market-pulse-empty">No data</div>';
- if(pulseVolume)pulseVolume.innerHTML=volume.slice(0,5).map(c=>'<a class="market-pulse-item" href="crypto.html?coin='+encodeURIComponent(c.id)+'"><img src="'+pulseLogo(c)+'" alt="" loading="lazy"><span class="market-pulse-name"><b>'+String(c.name||"Unknown")+'</b><small>'+String(c.symbol||"").toUpperCase()+'</small></span><span class="market-pulse-value"><b>'+pulseMoney(c.current_price)+'</b><span>'+pulseCompact(c.total_volume)+'</span></span></a>').join("");
+ if(pulseVolume)pulseVolume.innerHTML=volume.slice(0,5).map(c=>'<a class="market-pulse-item" href="crypto.html?coin='+encodeURIComponent(c.id)+'"><img src="'+pulseImage(pulseLogo(c))+'" alt="" loading="lazy"><span class="market-pulse-name"><b>'+pulseEsc(c.name||"Unknown")+'</b><small>'+pulseEsc(String(c.symbol||"").toUpperCase())+'</small></span><span class="market-pulse-value"><b>'+pulseMoney(c.current_price)+'</b><span>'+pulseCompact(c.total_volume)+'</span></span></a>').join("");
 }
 async function loadPulse(){try{const data=await window.gugeeMarketData.fetch("/api/coingecko/top1000");renderPulse(data.coins||[])}catch{}}
 loadPulse();
@@ -53,13 +55,13 @@ async function loadTrending(){
  const data=await baseFetch("/api/coingecko/search/trending");
  const list=document.getElementById("marketTrendingList");if(!list)return;
  const coins=(data?.coins||[]).slice(0,7).map(x=>x.item).filter(Boolean);
- list.innerHTML=coins.length?coins.map((c,i)=>'<a class="market-pulse-item" href="crypto.html?coin='+encodeURIComponent(c.id)+'"><img src="'+(c.small||c.thumb||"")+'" alt="" loading="lazy"><span class="market-pulse-name"><b>'+(i+1)+". "+String(c.name||"Unknown")+'</b><small>'+String(c.symbol||"").toUpperCase()+' • Rank '+(c.market_cap_rank||"--")+'</small></span><span class="market-pulse-value"><b>'+((c.data?.price||"")?String(c.data.price):"0.00%")+'</b><span>'+String(c.data?.price_change_percentage_24h?.usd??"0")+'</span></span></a>').join(""):'<div class="market-pulse-empty">Trending data unavailable</div>';
+ list.innerHTML=coins.length?coins.map((c,i)=>'<a class="market-pulse-item" href="crypto.html?coin='+encodeURIComponent(c.id)+'"><img src="'+pulseImage(c.small||c.thumb||"")+'" alt="" loading="lazy"><span class="market-pulse-name"><b>'+(i+1)+". "+pulseEsc(c.name||"Unknown")+'</b><small>'+pulseEsc(String(c.symbol||"").toUpperCase())+' • Rank '+pulseEsc(c.market_cap_rank||"--")+'</small></span><span class="market-pulse-value"><b>'+((c.data?.price||"")?pulseEsc(c.data.price):"0.00%")+'</b><span>'+pulseEsc(c.data?.price_change_percentage_24h?.usd??"0")+'</span></span></a>').join(""):'<div class="market-pulse-empty">Trending data unavailable</div>';
 }
 async function loadHeatmap(){
  const payload=await baseFetch("/api/coingecko/top1000");
  const data=Array.isArray(payload?.coins)?payload.coins.slice(0,30):[];
  const box=document.getElementById("marketHeatmap");if(!box||!Array.isArray(data))return;
- box.innerHTML=data.map(c=>{const ch=Number(c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h);const size=Math.max(1,Math.min(3.4,Math.log10(Math.max(1,Number(c.market_cap||0)))-7));const cls=ch>=0?"positive":"negative";return '<a class="heat-cell '+cls+'" style="flex-grow:'+size+'" href="crypto.html?coin='+encodeURIComponent(c.id)+'"><img src="'+logo(c)+'" alt="" loading="lazy"><b>'+String(c.symbol||"").toUpperCase()+'</b><span>'+(Number.isFinite(ch)?(ch>=0?"+":"")+ch.toFixed(2)+"%":"0.00%")+'</span></a>'}).join("");
+ box.innerHTML=data.map(c=>{const ch=Number(c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h);const size=Math.max(1,Math.min(3.4,Math.log10(Math.max(1,Number(c.market_cap||0)))-7));const cls=ch>=0?"positive":"negative";return '<a class="heat-cell '+cls+'" style="flex-grow:'+size+'" href="crypto.html?coin='+encodeURIComponent(c.id)+'"><img src="'+pulseImage(logo(c))+'" alt="" loading="lazy"><b>'+pulseEsc(String(c.symbol||"").toUpperCase())+'</b><span>'+(Number.isFinite(ch)?(ch>=0?"+":"")+ch.toFixed(2)+"%":"0.00%")+'</span></a>'}).join("");
 }
 async function refresh(){
  await Promise.all([loadMainAssets(),loadTrending(),loadHeatmap()]);
@@ -105,7 +107,7 @@ async function loadCategories(){
  const rows=Array.isArray(data)?data.slice(0,12):[];
  box.innerHTML=rows.length?rows.map(c=>{
    const ch=Number(c.market_cap_change_24h),cls=ch>=0?"positive":"negative";
-   return '<a class="market-category" href="cryptos.html"><div class="market-category-top"><b>'+String(c.name||"Unknown")+'</b><small>'+compact(c.market_cap)+'</small></div><div class="market-category-value"><span>24H</span><strong class="'+cls+'">'+(Number.isFinite(ch)?(ch>=0?"+":"")+ch.toFixed(2)+"%":"0.00%")+'</strong></div></a>';
+   return '<a class="market-category" href="cryptos.html"><div class="market-category-top"><b>'+pulseEsc(c.name||"Unknown")+'</b><small>'+compact(c.market_cap)+'</small></div><div class="market-category-value"><span>24H</span><strong class="'+cls+'">'+(Number.isFinite(ch)?(ch>=0?"+":"")+ch.toFixed(2)+"%":"0.00%")+'</strong></div></a>';
  }).join(""):'<div class="market-pulse-empty">Sector data unavailable</div>';
 }
 loadCategories();setInterval(loadCategories,60000);
