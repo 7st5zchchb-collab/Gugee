@@ -121,7 +121,7 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 <div class="profile-avatar-wrap"><div id="profileAvatar" class="profile-avatar">U</div><button id="avatarCameraBtn" class="avatar-camera-btn" type="button" aria-label="Change avatar">📷</button></div>
 <div class="profile-info">
 <div><small class="muted">Username</small><div id="profileUsername" class="readonly-field">@user</div></div>
-<div><small class="muted">Connected email</small><div id="profileEmail" class="readonly-field">—</div></div>
+<div><small class="muted">Connected email</small><div id="profileEmail" class="readonly-field">0</div></div>
 <div class="settings-actions"><input id="avatarInput" type="file" accept="image/jpeg,image/png,image/webp" hidden><button id="changeAvatarBtn" type="button">Change avatar</button><button id="removeAvatarBtn" type="button">Remove avatar</button></div>
 <p id="profileMessage" class="muted" aria-live="polite"></p>
 </div></div>
@@ -148,7 +148,7 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 <div id="depositPanel" class="wallet-operation"><h3>Deposit</h3><label for="depositAmount">USD amount</label><input id="depositAmount" type="number" min="20" max="100000" step="0.01" placeholder="100.00"><p id="depositQuote" class="muted">Minimum deposit: $20.00 · Fee: $1.00</p><p class="muted">Secure card payment is completed on Stripe Checkout. Wallet credit happens only after Stripe confirms payment.</p><button id="depositButton" class="auth-submit" type="button">Continue to secure checkout</button><p id="depositMessage" class="muted" aria-live="polite"></p></div>
 <div id="withdrawPanel" class="wallet-operation"><h3>Withdraw</h3><form id="withdrawForm"><label for="withdrawAmount">USDT amount (minimum 20)</label><input id="withdrawAmount" type="number" min="20" max="100000" step="0.01" placeholder="40.00" required><label for="withdrawMethod">Payout method</label><select id="withdrawMethod" required><option value="">Select method</option><option value="visa">Visa</option><option value="mastercard">Mastercard</option><option value="paypal">PayPal</option></select><label for="withdrawDestination">Card / payout destination</label><input id="withdrawDestination" type="text" maxlength="160" autocomplete="off" placeholder="Payout destination" required><p id="withdrawQuote" class="muted">Fee: $1 for each started $20. Requests are reviewed within 12 hours.</p><p class="muted">Never enter CVV. Your requested amount is held while the withdrawal is pending. Rejected requests are returned to your wallet.</p><button class="auth-submit" type="submit">Request withdrawal</button><p id="withdrawMessage" class="muted" aria-live="polite"></p></form></div>
 <div id="sellPanel" class="wallet-operation"><h3>Sell crypto</h3><form id="sellForm"><label for="sellCoin">Owned asset</label><select id="sellCoin" required><option value="">Select an asset</option></select><label for="sellQuantity">Quantity</label><input id="sellQuantity" type="number" min="0" step="any" required><p id="sellQuote" class="muted">Trading fee: 0.10 USDT.</p><button class="auth-submit" type="submit">Sell crypto</button><p id="sellMessage" class="muted" aria-live="polite"></p></form></div>
-<div id="referralPanel" class="wallet-operation"><h3>Referral</h3><p id="referralCode" class="muted">Loading...</p><input id="referralLink" aria-label="Your referral link" readonly><button id="copyReferral" class="auth-submit" type="button">Copy link</button><p id="referralMessage" class="muted" aria-live="polite"></p></div>
+<div id="referralPanel" class="wallet-operation"><h3>Referral</h3><p id="referralCode" class="muted">Updating...</p><input id="referralLink" aria-label="Your referral link" readonly><button id="copyReferral" class="auth-submit" type="button">Copy link</button><p id="referralMessage" class="muted" aria-live="polite"></p></div>
 </div></section>
 
 <section class="account-card" id="savedCardPanel" style="margin-top:20px"><p class="section-label">PAYMENT METHOD</p><h2>Card</h2><p class="muted">Add your card through Stripe securely. Gugee never stores your full card number or CVV.</p><button id="addCardBtn" class="auth-submit" type="button" style="margin-top:12px">Add card securely</button><p id="cardSetupMessage" class="muted" aria-live="polite"></p><div id="savedCards" style="display:grid;gap:8px;margin-top:12px"></div></section>
@@ -176,11 +176,11 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 
 <section class="account-card" style="margin-top:20px">
 <div class="account-head" style="margin-bottom:12px"><div><p class="section-label">CRYPTO ASSETS</p><h2>Your assets</h2></div><span class="muted" id="walletUpdated">Updating...</span></div>
-<div id="assets" class="asset-list"><p class="muted">Loading...</p></div>
+<div id="assets" class="asset-list"><p class="muted">Updating...</p></div>
 </section>
 
 <section class="account-card subscription-ui">
-<div class="account-head" style="margin-bottom:10px"><div><p class="section-label">SUBSCRIPTION</p><h2>Your plan</h2></div><span id="subscriptionStatus" class="muted">Loading...</span></div><div id="planLimits" class="muted" style="margin:8px 0 14px">Loading plan limits...</div>
+<div class="account-head" style="margin-bottom:10px"><div><p class="section-label">SUBSCRIPTION</p><h2>Your plan</h2></div><span id="subscriptionStatus" class="muted">Updating...</span></div><div id="planLimits" class="muted" style="margin:8px 0 14px">Loading plan limits...</div>
 <div class="plan-grid">
 <div class="plan-card" data-plan="free"><h3>Free</h3><div class="plan-price">$0</div><ul><li>5 favorites</li><li>Basic market analytics</li><li>Up to 500 USDT/day crypto withdrawal</li></ul><button class="plan-btn" type="button">Select</button></div>
 <div class="plan-card" data-plan="plus"><h3>Plus</h3><div class="plan-price">$4.99 / month</div><ul><li>25 favorites</li><li>Advanced analysis & alerts</li><li>Higher withdrawal limits</li><li>Portfolio analytics</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
@@ -190,19 +190,19 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 </section>
 
 <section class="account-card" style="margin-top:20px" id="tasksPanel">
-<div class="account-head"><div><p class="section-label">TASKS & REWARDS</p><h2>Complete tasks</h2><p class="muted">Progress is verified by Gugee servers. Each claimable reward can be collected only once.</p></div><div><small class="muted">AVAILABLE REWARD BUDGET</small><div id="taskRewardBudget" class="balance" style="font-size:22px;margin:4px 0">—</div></div></div>
+<div class="account-head"><div><p class="section-label">TASKS & REWARDS</p><h2>Complete tasks</h2><p class="muted">Progress is verified by Gugee servers. Each claimable reward can be collected only once.</p></div><div><small class="muted">AVAILABLE REWARD BUDGET</small><div id="taskRewardBudget" class="balance" style="font-size:22px;margin:4px 0">0</div></div></div>
 <div id="taskList" class="notification-list"><p class="muted">Loading tasks...</p></div>
 <p id="taskMessage" class="muted" aria-live="polite"></p>
 </section>
 
 <section class="account-card notification-ui" id="notificationsPanel">
 <div class="account-head" style="margin-bottom:10px"><div><p class="section-label">NOTIFICATIONS</p><h2>Recent notifications</h2></div></div>
-<div id="notifications" class="notification-list"><p class="muted">Loading...</p></div>
+<div id="notifications" class="notification-list"><p class="muted">Updating...</p></div>
 </section>
 
 <section class="account-card" style="margin-top:20px">
 <div class="account-head" style="margin-bottom:10px"><div><p class="section-label" id="transactionsPanel">TRANSACTIONS</p><h2>Wallet history</h2></div></div>
-<div id="transactions" class="notification-list"><p class="muted">Loading...</p></div>
+<div id="transactions" class="notification-list"><p class="muted">Updating...</p></div>
 </section>
 </main>
 
