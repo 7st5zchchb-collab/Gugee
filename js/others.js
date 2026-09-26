@@ -250,3 +250,5 @@ window.addEventListener("storage",event=>{
 
 load();
 setInterval(load,60000);
+
+window.addEventListener("gugee-market-update",event=>{if(event.detail?.path!=="/api/coingecko/top1000")return;const coins=event.detail.value?.coins;if(!Array.isArray(coins)||!coins.length)return;allCoins=coins;render();if(event.detail.value.partial)status.textContent+=" · partial coverage";});
