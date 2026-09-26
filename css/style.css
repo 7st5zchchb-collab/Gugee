@@ -2372,3 +2372,25 @@ html.gugee-light .nav-icon{color:#3e4a5c!important}
 html.gugee-light .mobile-nav-separator{background:#dce3ec!important}
 html.gugee-light .profile-avatar{background:#f4f7fb;color:#10151d}
 html.gugee-light .wallet-operation,html.gugee-light .plan-card,html.gugee-light .notice,html.gugee-light .password-settings{background:#f8fafc!important;border-color:#dce3ec!important;color:#10151d!important}
+
+
+/* Final mobile drawer fit: keep every action above browser chrome */
+@media(max-width:700px){
+ .site-header .nav{
+   top:0!important;
+   bottom:auto!important;
+   height:calc(100dvh - 86px)!important;
+   max-height:calc(100dvh - 86px)!important;
+   width:min(286px,78vw)!important;
+   padding:10px 12px max(18px,env(safe-area-inset-bottom))!important;
+ }
+ .mobile-drawer-head{padding-bottom:5px!important}
+ .site-header .nav>a,.mobile-drawer-logout{min-height:36px!important;height:36px!important;padding:0 10px!important;font-size:12px!important}
+ .nav-icon{font-size:15px!important;width:21px!important}
+ .mobile-nav-separator{margin:3px 2px!important}
+ .drawer-theme-switch{margin-top:4px!important;padding:7px!important;min-height:34px!important}
+ .drawer-theme-toggle{width:48px!important;height:26px!important}
+ .drawer-theme-toggle>span{width:18px!important;height:18px!important}
+ .drawer-theme-toggle.on>span{transform:translateX(22px)!important}
+ .mobile-drawer-logout{margin-bottom:2px!important}
+}
