@@ -8,7 +8,7 @@ const othersPreview=document.getElementById("cryptoOthersPreview");
 const API_BASES=[...new Set([(window.GUGEE_API_BASE||"").replace(/\/$/,""),window.location.origin.replace(/\/$/,"")])].filter(Boolean);
 const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
-const PAGE_SIZE=10;
+const PAGE_SIZE=100;
 let allCoins=[],loading=false,currentPage=1;
 try{
  const cached=JSON.parse(localStorage.getItem("gugeeTopCoinsCache")||"null");

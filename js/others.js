@@ -13,7 +13,7 @@ const API_BASES=[...new Set([
 
 const FAVORITES_KEY="gugeeFavoriteCryptos";
 const MAX_FAVORITES=5;
-const PER_PAGE=10;
+const PER_PAGE=100;
 let allCoins=[];
 let currentPage=1;
 let loading=false;
