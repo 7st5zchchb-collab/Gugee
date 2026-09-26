@@ -125,7 +125,7 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 <div class="settings-actions"><input id="avatarInput" type="file" accept="image/jpeg,image/png,image/webp" hidden><button id="changeAvatarBtn" type="button">Change avatar</button><button id="removeAvatarBtn" type="button">Remove avatar</button></div>
 <p id="profileMessage" class="muted" aria-live="polite"></p>
 </div></div>
-<form id="passwordSettingsForm" class="password-settings">
+<form id="passwordSettingsForm" class="password-settings" data-settings-target="true">
 <h3>Change password</h3>
 <input id="currentPassword" type="password" autocomplete="current-password" placeholder="Current password" required>
 <input id="newPassword" type="password" autocomplete="new-password" minlength="8" placeholder="New password (8+ characters)" required>
