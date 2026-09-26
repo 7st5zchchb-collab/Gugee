@@ -186,3 +186,4 @@ window.addEventListener("storage",event=>{
 load();
 
 setInterval(()=>{load();},60000);
+window.addEventListener("gugee-market-update",event=>{if(event.detail?.path!=="/api/coingecko/top1000")return;const coins=event.detail.value?.coins;if(!Array.isArray(coins)||!coins.length)return;allCoins=coins;try{localStorage.setItem("gugeeTopCoinsCache",JSON.stringify({time:Date.now(),coins}));}catch{}loadStatus.textContent=allCoins.length+" loaded"+(event.detail.value.partial?" · partial coverage":"");render();renderFavorites();});
