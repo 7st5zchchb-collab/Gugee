@@ -2313,3 +2313,21 @@ button,.auth-submit,.login-button{border-radius:10px}
 .drawer-notification-badge[hidden]{display:none!important}
 html{scroll-behavior:smooth}
 #profileSettings,#walletActions,#tasksPanel,#notificationsPanel,#transactionsPanel{scroll-margin-top:82px}
+
+
+/* Mobile drawer readability/hit-area fix */
+@media(max-width:700px){
+ body.nav-drawer-open:after{background:rgba(0,0,0,.52)}
+ .site-header .nav{width:min(300px,82vw)!important;padding:14px 14px 18px!important;background:#090e16!important;color:#f4f7fb!important}
+ .mobile-drawer-head{padding:0 2px 10px!important;margin:0 0 2px!important}
+ .mobile-drawer-brand{font-size:17px!important}
+ .mobile-drawer-brand .brand-mark{width:30px!important;height:30px!important}
+ .mobile-drawer-close{width:34px!important;height:34px!important;font-size:27px!important;color:#eef3fa!important}
+ .site-header .nav>a,.mobile-drawer-logout{min-height:42px!important;padding:0 11px!important;gap:11px!important;font-size:13px!important;line-height:1!important;color:#f0f3f8!important;opacity:1!important}
+ .site-header .nav>a strong,.site-header .nav>a span{opacity:1!important}
+ .nav-icon{width:23px!important;font-size:17px!important;color:#dbe5f2!important;opacity:1!important}
+ .mobile-nav-separator{margin:5px 2px!important;background:#2b3748!important}
+ .site-header .nav>a:hover,.site-header .nav>a.active{background:#087cf0!important;border-color:#1597ff!important;color:#fff!important}
+ .mobile-drawer-logout{color:#f0f3f8!important}
+ .drawer-notification-badge{color:#fff!important;background:#ff3151!important}
+}
