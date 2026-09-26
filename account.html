@@ -78,7 +78,7 @@
 <nav class="wallet-shortcuts" aria-label="Wallet actions"><a href="#depositPanel">Deposit</a><a href="#withdrawPanel">Withdraw</a><a href="#buyPanel">Buy</a><a href="#sellPanel">Sell</a><a href="#referralPanel">Referral</a><a href="#transactionsPanel">Transactions</a></nav>
 <div class="wallet-action-grid">
 <div id="depositPanel" class="wallet-operation"><h3>Deposit</h3><label for="depositAmount">USD amount</label><input id="depositAmount" type="number" min="20" max="100000" step="0.01" placeholder="100.00"><p id="depositQuote" class="muted">Minimum deposit: $20.00 · Fee: $1.00</p><p class="muted">Secure card payment is completed on Stripe Checkout. Wallet credit happens only after Stripe confirms payment.</p><button id="depositButton" class="auth-submit" type="button">Continue to secure checkout</button><p id="depositMessage" class="muted" aria-live="polite"></p></div>
-<div id="withdrawPanel" class="wallet-operation"><h3>Withdraw</h3><label for="withdrawAmount">USDT amount (minimum 20)</label><input id="withdrawAmount" type="number" min="20" step="0.01" placeholder="40.00"><p id="withdrawQuote" class="muted">Fee: $1 for every complete $20.</p><p class="muted">Payout provider is not connected yet. Your balance will not be debited.</p><button class="auth-submit" type="button" disabled>Withdrawal unavailable</button></div>
+<div id="withdrawPanel" class="wallet-operation"><h3>Withdraw</h3><form id="withdrawForm"><label for="withdrawAmount">USDT amount (minimum 20)</label><input id="withdrawAmount" type="number" min="20" max="100000" step="0.01" placeholder="40.00" required><label for="withdrawMethod">Payout method</label><select id="withdrawMethod" required><option value="">Select method</option><option value="visa">Visa</option><option value="mastercard">Mastercard</option><option value="paypal">PayPal</option></select><label for="withdrawDestination">Card / payout destination</label><input id="withdrawDestination" type="text" maxlength="160" autocomplete="off" placeholder="Payout destination" required><p id="withdrawQuote" class="muted">Fee: $1 for each started $20. Requests are reviewed within 12 hours.</p><p class="muted">Never enter CVV. Your requested amount is held while the withdrawal is pending. Rejected requests are returned to your wallet.</p><button class="auth-submit" type="submit">Request withdrawal</button><p id="withdrawMessage" class="muted" aria-live="polite"></p></form></div>
 <div id="sellPanel" class="wallet-operation"><h3>Sell crypto</h3><form id="sellForm"><label for="sellCoin">Owned asset</label><select id="sellCoin" required><option value="">Select an asset</option></select><label for="sellQuantity">Quantity</label><input id="sellQuantity" type="number" min="0" step="any" required><p id="sellQuote" class="muted">Trading fee: 0.10 USDT.</p><button class="auth-submit" type="submit">Sell crypto</button><p id="sellMessage" class="muted" aria-live="polite"></p></form></div>
 <div id="referralPanel" class="wallet-operation"><h3>Referral</h3><p id="referralCode" class="muted">Loading...</p><input id="referralLink" aria-label="Your referral link" readonly><button id="copyReferral" class="auth-submit" type="button">Copy link</button><p id="referralMessage" class="muted" aria-live="polite"></p></div>
 </div></section>
@@ -262,6 +262,16 @@ document.addEventListener("DOMContentLoaded",async()=>{
     el.textContent=kind==="deposit"?(amount>fee?"Fee $1.00 · Estimated credit "+(amount-fee).toFixed(2)+" USDT":"Amount must exceed $1.00"):(amount>=20?"Fee "+fee.toFixed(2)+" USDT · Estimated payout $"+(amount-fee).toFixed(2):"Minimum withdrawal: $20.00");
   }
   ["deposit","withdraw"].forEach(kind=>$(kind+"Amount").addEventListener("input",()=>previewFee(kind)));
+  $("withdrawForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const amount=Number($("withdrawAmount").value),method=$("withdrawMethod").value,destination=$("withdrawDestination").value.trim(),message=$("withdrawMessage");
+    message.textContent="Submitting withdrawal for review...";
+    try{
+      const result=await window.gugeeAuth.api("/api/wallet/withdraw",{method:"POST",body:JSON.stringify({amount,method,destination})});
+      message.textContent="Withdrawal #"+result.withdrawal.id+" is pending review. Target: within 12 hours.";
+      $("withdrawForm").reset();previewFee("withdraw");await loadWallet();await loadTransactions();
+    }catch(err){message.textContent=err.message;}
+  });
   $("depositButton").onclick=async()=>{
     const amount=Number($("depositAmount").value);
     const button=$("depositButton"),message=$("depositMessage");
