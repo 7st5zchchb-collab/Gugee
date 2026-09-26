@@ -84,6 +84,29 @@ async function creditStripeDeposit(session,eventId){
     await client.query("COMMIT");
   }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
 }
+async function fulfillCardCryptoOrder(session,eventId,eventType){
+  if(!session||session.payment_status!=="paid")return;
+  const userId=Number(session.metadata?.gugee_user_id),orderId=Number(session.metadata?.gugee_order_id);
+  if(session.metadata?.gugee_kind!=="card_crypto"||!Number.isSafeInteger(userId)||!Number.isSafeInteger(orderId))throw new Error("Invalid card crypto metadata");
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",[eventId,eventType]);
+    if(!inserted.rows[0]){await client.query("ROLLBACK");return;}
+    const orderQ=await client.query("SELECT * FROM card_crypto_orders WHERE id=$1 AND user_id=$2 FOR UPDATE",[orderId,userId]),order=orderQ.rows[0];
+    if(!order||order.status==="paid"){await client.query("ROLLBACK");return;}
+    await client.query("COMMIT");
+    const coin=await getPurchaseCoin(order.coin_id);
+    const cryptoUsd=Number(order.crypto_usd),quantity=cryptoUsd/coin.price;
+    if(!Number.isFinite(quantity)||quantity<=0)throw new Error("Invalid crypto quantity");
+    await client.query("BEGIN");
+    await client.query("INSERT INTO wallet_assets(user_id,coin_id,symbol,quantity,updated_at) VALUES($1,$2,$3,$4,NOW()) ON CONFLICT(user_id,coin_id) DO UPDATE SET quantity=wallet_assets.quantity+EXCLUDED.quantity,symbol=EXCLUDED.symbol,updated_at=NOW()",[userId,coin.id,coin.symbol,quantity]);
+    await client.query("UPDATE card_crypto_orders SET status='paid',symbol=$1,price_usd=$2,quantity=$3,completed_at=NOW() WHERE id=$4",[coin.symbol,coin.price,quantity,orderId]);
+    await client.query("INSERT INTO wallet_transactions(user_id,type,coin_id,symbol,quantity,price_usdt,usdt_amount,fee_usdt) VALUES($1,'buy',$2,$3,$4,$5,$6,$7)",[userId,coin.id,coin.symbol,quantity,coin.price,cryptoUsd,Number(order.fee_usd)]);
+    await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Card crypto purchase completed',$2,'buy')",[userId,"Your "+coin.symbol+" purchase was credited after Stripe confirmed the card payment."]);
+    await client.query("COMMIT");
+  }catch(e){try{await client.query("ROLLBACK")}catch{}throw e;}finally{client.release();}
+}
 async function activateStripeSubscription(session,eventId,eventType){
   if(!session||session.payment_status!=="paid")return;
   const userId=Number(session.metadata?.gugee_user_id),plan=String(session.metadata?.gugee_plan||"").toLowerCase();
@@ -106,6 +129,7 @@ app.post("/api/stripe/webhook",express.raw({type:"application/json",limit:"256kb
     if(event.type==="checkout.session.completed"||event.type==="checkout.session.async_payment_succeeded"){
       const session=event.data?.object;
       if(session?.metadata?.gugee_kind==="subscription")await activateStripeSubscription(session,event.id,event.type);
+      else if(session?.metadata?.gugee_kind==="card_crypto")await fulfillCardCryptoOrder(session,event.id,event.type);
       else await creditStripeDeposit(session,event.id);
     }
     if(event.type==="checkout.session.async_payment_failed"||event.type==="checkout.session.expired"){
@@ -555,6 +579,20 @@ async function initDb(){
       event_type TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS card_crypto_orders(
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      stripe_session_id TEXT UNIQUE,
+      coin_id TEXT NOT NULL,
+      symbol TEXT,
+      crypto_usd NUMERIC(30,10) NOT NULL,
+      fee_usd NUMERIC(30,10) NOT NULL DEFAULT 1.50,
+      price_usd NUMERIC(30,12),
+      quantity NUMERIC(40,18),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','paid','failed','expired')),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      completed_at TIMESTAMPTZ
+    );
     CREATE TABLE IF NOT EXISTS withdrawal_requests(
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -902,6 +940,25 @@ app.get("/api/wallet/price",auth,async(req,res)=>{
   }catch(e){
     res.status(400).json({error:e.message||"Could not load coin price"});
   }
+});
+
+app.post("/api/stripe/card-crypto-checkout",auth,async(req,res)=>{
+  if(!STRIPE_SECRET_KEY)return res.status(503).json({error:"Stripe is not configured."});
+  const coinId=String(req.body.coinId||"").trim().toLowerCase(),cryptoUsd=Number(req.body.usdAmount);
+  if(!Number.isFinite(cryptoUsd)||cryptoUsd<5||cryptoUsd>100000)return res.status(400).json({error:"Card crypto purchase must be between $5 and $100,000."});
+  let coin;try{coin=await getPurchaseCoin(coinId)}catch(e){return res.status(400).json({error:e.message||"Coin unavailable"});}
+  const fee=1.50,total=cryptoUsd+fee,totalCents=Math.round(total*100);
+  try{
+    const order=(await pool.query("INSERT INTO card_crypto_orders(user_id,coin_id,symbol,crypto_usd,fee_usd,status) VALUES($1,$2,$3,$4,$5,'pending') RETURNING id",[req.user.id,coin.id,coin.symbol,cryptoUsd,fee])).rows[0];
+    const origin=FRONTEND_URL||(`${req.protocol}://${req.get("host")}`),body=new URLSearchParams();
+    body.set("mode","payment");body.set("success_url",origin+"/account.html?cardcrypto=success");body.set("cancel_url",origin+"/account.html?cardcrypto=cancelled");body.set("customer_email",req.user.email);
+    body.set("line_items[0][price_data][currency]","usd");body.set("line_items[0][price_data][product_data][name]","Gugee "+coin.symbol+" card purchase");body.set("line_items[0][price_data][unit_amount]",String(totalCents));body.set("line_items[0][quantity]","1");
+    body.set("metadata[gugee_kind]","card_crypto");body.set("metadata[gugee_user_id]",String(req.user.id));body.set("metadata[gugee_order_id]",String(order.id));
+    const sr=await fetch("https://api.stripe.com/v1/checkout/sessions",{method:"POST",headers:{Authorization:"Bearer "+STRIPE_SECRET_KEY,"Content-Type":"application/x-www-form-urlencoded"},body}),session=await sr.json();
+    if(!sr.ok||!session.url)throw new Error(session?.error?.message||"Could not create checkout");
+    await pool.query("UPDATE card_crypto_orders SET stripe_session_id=$1 WHERE id=$2",[session.id,order.id]);
+    res.json({url:session.url,orderId:order.id,fee,total,coin:coin.symbol});
+  }catch(e){console.error("Card crypto checkout:",e.message);res.status(502).json({error:"Could not start card crypto checkout."});}
 });
 
 app.post("/api/wallet/buy",auth,async(req,res)=>{
