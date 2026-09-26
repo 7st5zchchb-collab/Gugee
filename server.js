@@ -1013,7 +1013,10 @@ app.post("/api/stripe/card-crypto-checkout",auth,async(req,res)=>{
   try{
     const order=(await pool.query("INSERT INTO card_crypto_orders(user_id,coin_id,symbol,crypto_usd,fee_usd,status) VALUES($1,$2,$3,$4,$5,'pending') RETURNING id",[req.user.id,coin.id,coin.symbol,cryptoUsd,fee])).rows[0];
     const origin=FRONTEND_URL||(`${req.protocol}://${req.get("host")}`),body=new URLSearchParams();
-    body.set("mode","payment");body.set("success_url",origin+"/account.html?cardcrypto=success");body.set("cancel_url",origin+"/account.html?cardcrypto=cancelled");body.set("customer_email",req.user.email);
+    const savedCard=(await pool.query("SELECT stripe_customer_id FROM saved_payment_methods WHERE user_id=$1 AND is_default=TRUE ORDER BY created_at DESC LIMIT 1",[req.user.id])).rows[0];
+    body.set("mode","payment");body.set("success_url",origin+"/account.html?cardcrypto=success");body.set("cancel_url",origin+"/account.html?cardcrypto=cancelled");
+    if(savedCard?.stripe_customer_id)body.set("customer",savedCard.stripe_customer_id);else body.set("customer_email",req.user.email);
+    body.set("payment_intent_data[setup_future_usage]","off_session");
     body.set("line_items[0][price_data][currency]","usd");body.set("line_items[0][price_data][product_data][name]","Gugee "+coin.symbol+" card purchase");body.set("line_items[0][price_data][unit_amount]",String(totalCents));body.set("line_items[0][quantity]","1");
     body.set("metadata[gugee_kind]","card_crypto");body.set("metadata[gugee_user_id]",String(req.user.id));body.set("metadata[gugee_order_id]",String(order.id));
     const sr=await fetch("https://api.stripe.com/v1/checkout/sessions",{method:"POST",headers:{Authorization:"Bearer "+STRIPE_SECRET_KEY,"Content-Type":"application/x-www-form-urlencoded"},body}),session=await sr.json();
