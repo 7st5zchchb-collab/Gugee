@@ -105,6 +105,7 @@ async function initLogin(){
     const submit=form.querySelector(".auth-submit"),label=submit?.querySelector("span");if(submit){submit.disabled=true;if(label)label.textContent="Signing in…"}
     const email=form.email.value.trim().toLowerCase();
     const password=form.password.value;
+    setAuthMessage("","success");
     if(!email||!password){if(submit){submit.disabled=false;if(label)label.textContent="Log in"}return setAuthMessage("Enter your email and password.");}
     try{
       const data=await api("/api/auth/login",{method:"POST",body:JSON.stringify({email,password})});
@@ -125,6 +126,7 @@ async function initRegister(){
     const email=form.email.value.trim().toLowerCase();
     const password=form.password.value;
     const confirm=form.confirmPassword.value;
+    setAuthMessage("","success");
     if(!/^[a-z0-9_][a-z0-9_.-]{2,19}$/.test(username))return setAuthMessage("Username must be 3-20 characters.");
     if(!email)return setAuthMessage("Enter a valid email address.");
     if(password.length<8)return setAuthMessage("Password must be at least 8 characters.");
