@@ -2029,3 +2029,64 @@ footer{width:100%;box-sizing:border-box}
 
 /* Crypto detail identity alignment */
 .crypto-head .coin-title{min-width:0;align-items:center}.crypto-head .coin-icon{flex:0 0 52px;overflow:hidden}.crypto-head .coin-icon img{width:38px;height:38px;object-fit:contain;display:block}.crypto-head .coin-icon #coinIconFallback{width:100%;height:100%;place-items:center}.crypto-head .coin-title>div:last-child{min-width:0}.crypto-head .coin-title h1{margin:0;line-height:1.08;overflow-wrap:anywhere}.crypto-head .coin-title p{margin:6px 0 0}.crypto-head-actions{display:flex;align-items:center;gap:18px;flex:0 0 auto}@media(max-width:800px){.crypto-head-actions{width:100%;justify-content:space-between}}
+
+
+/* Gugee mobile home pass 2026-09-26 */
+@media (max-width:700px){
+  body{overflow-x:hidden}
+  main{width:100%;overflow:hidden}
+  .site-header{position:sticky;top:0;z-index:1000;width:100%;height:60px;min-height:60px;padding:0 12px;grid-template-columns:minmax(0,1fr) 38px auto auto;gap:7px}
+  .brand{min-width:0;gap:8px}
+  .brand-logo{width:30px;height:30px;object-fit:contain}
+  .brand>span:last-child{font-size:15px!important;white-space:nowrap}
+  .mobile-nav-toggle{display:flex!important;align-items:center;justify-content:center;flex-direction:column;gap:4px;width:38px;height:38px;padding:0;border-radius:10px}
+  .mobile-nav-toggle span{display:block;width:17px;height:2px;border-radius:2px;transition:.2s}
+  .site-header .nav{display:none;position:absolute;top:66px;left:12px;right:12px;width:auto;padding:8px;border-radius:14px;z-index:1100;flex-direction:column;align-items:stretch}
+  .site-header .nav.mobile-open{display:flex!important}
+  .site-header .nav>a,.site-header .nav-menu>summary{width:100%;min-height:42px;display:flex;align-items:center;padding:0 12px;box-sizing:border-box;border-radius:9px}
+  .site-header .nav-menu{width:100%}
+  .site-header .nav-menu-panel{position:static;width:100%;box-sizing:border-box;margin-top:4px}
+  .site-header .notification-bell-wrap{min-width:0}
+  .site-header .login-button{max-width:104px;overflow:hidden}
+  .site-header .user-button .user-handle{max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .home-market-strip{width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:none}
+  .home-market-strip::-webkit-scrollbar{display:none}
+  .home-market-strip-inner{width:max-content;min-width:100%;padding:0 12px;box-sizing:border-box}
+  .home-market-strip-inner>a{min-width:116px;padding:9px 10px}
+
+  .home-quick-nav{width:calc(100% - 24px);margin:12px auto 0;display:flex;overflow-x:auto;gap:7px;padding-bottom:3px;scrollbar-width:none}
+  .home-quick-nav::-webkit-scrollbar{display:none}
+  .home-quick-nav a{flex:0 0 auto;white-space:nowrap}
+
+  .hero{width:calc(100% - 24px);margin:0 auto;padding:44px 0 34px;text-align:left}
+  .hero .eyebrow{font-size:8px}
+  .hero h1{font-size:clamp(32px,10vw,44px);line-height:1.02;letter-spacing:-1.7px;margin:14px 0}
+  .hero-text{max-width:100%;font-size:11px;line-height:1.7}
+  .search-box{width:100%;display:grid;grid-template-columns:32px minmax(0,1fr);gap:0;padding:6px;box-sizing:border-box}
+  .search-box input{min-width:0;width:100%;font-size:11px}
+  .search-box>button[type="submit"]{grid-column:1/-1;width:100%;margin:6px 0 0;height:40px}
+  .search-suggestions{left:0;right:0;top:100%}
+  .search-hint{font-size:9px;line-height:1.7}
+
+  .market-section,.watchlist-section,.feature-section{width:calc(100% - 24px);margin-left:auto;margin-right:auto}
+  .section-heading,.watchlist-toolbar{align-items:flex-start;gap:12px;flex-direction:column}
+  .market-grid,.watchlist-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .market-card,.watchlist-card{min-width:0;padding:13px}
+  .market-card strong{font-size:17px}
+  .watchlist-actions{width:100%;display:flex;overflow-x:auto;gap:6px;scrollbar-width:none}
+  .watchlist-actions>*{flex:0 0 auto}
+  .feature-section{grid-template-columns:1fr!important;gap:10px}
+  .feature-card,.feature-list{min-width:0}
+  footer{width:100%;padding:20px 12px!important;box-sizing:border-box;display:flex;flex-wrap:wrap;gap:8px 14px}
+}
+@media (max-width:430px){
+  .site-header{grid-template-columns:minmax(0,1fr) 36px auto auto;padding:0 9px;gap:5px}
+  .brand-logo{width:27px;height:27px}
+  .brand>span:last-child{font-size:13px!important}
+  .site-header .login-button{max-width:86px;padding:0 8px!important}
+  .site-header .user-button .user-handle{max-width:42px}
+  .market-grid,.watchlist-grid{grid-template-columns:1fr}
+  .hero{padding-top:36px}
+  .hero h1{font-size:34px}
+}
