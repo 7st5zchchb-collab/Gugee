@@ -751,7 +751,19 @@ app.post("/api/subscriptions/free",auth,async(req,res)=>{
   }catch(e){res.status(500).json({error:"Could not activate Free plan"});}
 });
 
-app.post("/api/subscriptions/cancel",auth,async(req,res)=>{try{await pool.query("UPDATE subscriptions SET status='cancelled',expires_at=NOW() WHERE user_id=$1",[req.user.id]);res.json({ok:true})}catch(e){res.status(500).json({error:"Could not cancel subscription"})}});
+app.post("/api/subscriptions/cancel",auth,async(req,res)=>{
+  try{
+    const {rows}=await pool.query("SELECT plan,stripe_subscription_id FROM subscriptions WHERE user_id=$1",[req.user.id]),sub=rows[0];
+    if(!sub||sub.plan==="free")return res.json({ok:true,plan:"free"});
+    if(!STRIPE_SECRET_KEY||!sub.stripe_subscription_id)return res.status(409).json({error:"This subscription is not linked to Stripe."});
+    const body=new URLSearchParams();body.set("cancel_at_period_end","true");
+    const sr=await fetch("https://api.stripe.com/v1/subscriptions/"+encodeURIComponent(sub.stripe_subscription_id),{method:"POST",headers:{Authorization:"Bearer "+STRIPE_SECRET_KEY,"Content-Type":"application/x-www-form-urlencoded"},body});
+    const stripeSub=await sr.json();if(!sr.ok)throw new Error(stripeSub?.error?.message||"Stripe cancellation failed");
+    const end=Number(stripeSub.current_period_end);
+    await pool.query("UPDATE subscriptions SET expires_at=CASE WHEN $1::bigint>0 THEN to_timestamp($1) ELSE expires_at END WHERE user_id=$2",[end,req.user.id]);
+    res.json({ok:true,cancelAtPeriodEnd:true,expiresAt:end?new Date(end*1000).toISOString():null});
+  }catch(e){console.error("Subscription cancel:",e.message);res.status(502).json({error:"Could not schedule subscription cancellation"})}
+});
 app.get("/api/notifications",auth,async(req,res)=>{try{const {rows}=await pool.query("SELECT * FROM notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50",[req.user.id]);res.json({notifications:rows})}catch(e){res.status(500).json({error:"Could not load notifications"})}});
 app.post("/api/notifications/:id/read",auth,async(req,res)=>{try{await pool.query("UPDATE notifications SET read_at=NOW() WHERE id=$1 AND user_id=$2",[req.params.id,req.user.id]);res.json({ok:true})}catch(e){res.status(500).json({error:"Could not update notification"})}});
 app.get("/api/health",async(req,res)=>{
