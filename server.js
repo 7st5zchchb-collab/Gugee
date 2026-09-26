@@ -513,13 +513,12 @@ function makeReferralCode(username){
   return base+"_"+crypto.randomBytes(4).toString("hex");
 }
 
-function depositFee(amount){return 1;}
+function depositFee(amount){return Math.max(1,Math.ceil(Number(amount)/20));}
 function withdrawFee(amount){return Math.max(1,Math.ceil(Number(amount)/20));}
-function tradeFee(){return 0.10;}
 const PLAN_LIMITS={
-  free:{favorites:5,dailyWithdrawal:500},
-  plus:{favorites:25,dailyWithdrawal:5000},
-  pro:{favorites:100,dailyWithdrawal:25000}
+  free:{favorites:5,dailyWithdrawal:500,tradeFee:0.10,cardCryptoFee:1.50},
+  plus:{favorites:25,dailyWithdrawal:5000,tradeFee:0.05,cardCryptoFee:1.00},
+  pro:{favorites:100,dailyWithdrawal:25000,tradeFee:0,cardCryptoFee:0.50}
 };
 async function getActivePlan(userId){
   const {rows}=await pool.query("SELECT plan,status,expires_at FROM subscriptions WHERE user_id=$1",[userId]);
@@ -746,8 +745,9 @@ app.post("/api/subscriptions/create-checkout-session",auth,async(req,res)=>{
 
 app.post("/api/subscriptions/free",auth,async(req,res)=>{
   try{
-    await pool.query("INSERT INTO subscriptions(user_id,plan,price_usdt,status,expires_at) VALUES($1,'free',0,'active',NULL) ON CONFLICT(user_id) DO UPDATE SET plan='free',price_usdt=0,status='active',expires_at=NULL",[req.user.id]);
-    res.json({ok:true,plan:"free"});
+    const {rows}=await pool.query("SELECT plan,stripe_subscription_id FROM subscriptions WHERE user_id=$1",[req.user.id]),sub=rows[0];
+    if(!sub||sub.plan==="free"){await pool.query("INSERT INTO subscriptions(user_id,plan,price_usdt,status,expires_at) VALUES($1,'free',0,'active',NULL) ON CONFLICT(user_id) DO UPDATE SET plan='free',price_usdt=0,status='active',expires_at=NULL",[req.user.id]);return res.json({ok:true,plan:"free"});}
+    return res.status(409).json({error:"Cancel your paid plan first. It will switch to Free after the paid billing period ends."});
   }catch(e){res.status(500).json({error:"Could not activate Free plan"});}
 });
 
@@ -1060,7 +1060,7 @@ app.post("/api/stripe/card-crypto-checkout",auth,async(req,res)=>{
   const coinId=String(req.body.coinId||"").trim().toLowerCase(),cryptoUsd=Number(req.body.usdAmount);
   if(!Number.isFinite(cryptoUsd)||cryptoUsd<5||cryptoUsd>100000)return res.status(400).json({error:"Card crypto purchase must be between $5 and $100,000."});
   let coin;try{coin=await getPurchaseCoin(coinId)}catch(e){return res.status(400).json({error:e.message||"Coin unavailable"});}
-  const fee=1.50,total=cryptoUsd+fee,totalCents=Math.round(total*100);
+  const limits=await getPlanLimits(req.user.id),fee=limits.cardCryptoFee,total=cryptoUsd+fee,totalCents=Math.round(total*100);
   try{
     const order=(await pool.query("INSERT INTO card_crypto_orders(user_id,coin_id,symbol,crypto_usd,fee_usd,status) VALUES($1,$2,$3,$4,$5,'pending') RETURNING id",[req.user.id,coin.id,coin.symbol,cryptoUsd,fee])).rows[0];
     const origin=FRONTEND_URL||(`${req.protocol}://${req.get("host")}`),body=new URLSearchParams();
@@ -1084,7 +1084,7 @@ app.post("/api/wallet/buy",auth,async(req,res)=>{
   if(usdtAmount>1000000000)return res.status(400).json({error:"USDT amount is too large."});
   let coin;
   try{coin=await getPurchaseCoin(coinId);}catch(e){return res.status(400).json({error:e.message||"Could not load coin price"});}
-  const fee=tradeFee();
+  const limits=await getPlanLimits(req.user.id),fee=limits.tradeFee;
   const totalDebit=usdtAmount+fee;
   const quantity=usdtAmount/coin.price;
   if(!Number.isFinite(quantity)||quantity<=0)return res.status(400).json({error:"Could not calculate crypto quantity."});
