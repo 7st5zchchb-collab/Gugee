@@ -502,9 +502,9 @@ document.addEventListener("DOMContentLoaded",async()=>{
   // Secondary panels load after first paint so a slow task/referral query cannot hold up the account UI.
   const primaryLoads=[loadWallet(),loadSubscription(),loadTransactions()];
   Promise.allSettled(primaryLoads);
-  const loadSecondary=()=>Promise.allSettled([loadNotifications(),loadReferral(),loadTasks()]);
-  if("requestIdleCallback" in window)requestIdleCallback(loadSecondary,{timeout:900});
-  else setTimeout(loadSecondary,0);
+  // Start secondary data immediately too; do not make the user wait until idle.
+  // allSettled keeps one slow endpoint from blocking the other panels.
+  Promise.allSettled([loadNotifications(),loadReferral(),loadTasks()]);
 });
 </script>
 </body>
