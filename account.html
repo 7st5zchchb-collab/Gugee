@@ -120,8 +120,8 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 <div class="profile-settings" style="margin-top:16px">
 <div class="profile-avatar-wrap"><div id="profileAvatar" class="profile-avatar">U</div><button id="avatarCameraBtn" class="avatar-camera-btn" type="button" aria-label="Change avatar">📷</button></div>
 <div class="profile-info">
-<div><small class="muted">Username</small><div id="profileUsername" class="readonly-field">@user</div></div>
-<div><small class="muted">Connected email</small><div id="profileEmail" class="readonly-field">0</div></div>
+<div><small class="muted">Username</small><div id="profileUsername" class="readonly-field">Loading account…</div></div>
+<div><small class="muted">Connected email</small><div id="profileEmail" class="readonly-field">Loading account…</div></div>
 <div class="settings-actions"><input id="avatarInput" type="file" accept="image/*" hidden><button id="changeAvatarBtn" type="button">Change avatar</button><button id="removeAvatarBtn" type="button">Remove avatar</button></div>
 <p id="profileMessage" class="muted" aria-live="polite"></p>
 </div></div>
@@ -225,8 +225,9 @@ document.addEventListener("DOMContentLoaded",async()=>{
   // Never block Profile controls on the session request.
   // auth.js already refreshes the session in the background; this page stays interactive immediately.
   if(!user){
-    user={username:"user",email:"",avatar_data:null};
-    paintIdentity(user);
+    user={username:"",email:"",avatar_data:null};
+    $("welcome").textContent="Your Account";
+    $("accountHeaderHandle").textContent="Account";
   }
   if(subscriptionReturn==="success")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Payment confirmed. Activating your plan…";},0);
   if(subscriptionReturn==="cancelled")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Subscription checkout was cancelled.";},0);
@@ -242,9 +243,14 @@ document.addEventListener("DOMContentLoaded",async()=>{
   renderProfileAvatar(user.avatar_data);
   // Start the non-blocking session refresh only after avatar rendering is initialized.
   window.gugeeAuth.refreshCurrentUser().then(freshUser=>{
-    if(freshUser){user=freshUser;paintIdentity(user);renderProfileAvatar(user.avatar_data);}
-    else if(!window.gugeeAuth.getCurrentUser())window.location.href="login.html";
-  }).catch(()=>{});
+    if(freshUser){user=freshUser;paintIdentity(user);renderProfileAvatar(user.avatar_data);return;}
+    $("profileUsername").textContent="Could not load account";
+    $("profileEmail").textContent="Session unavailable";
+    if(!window.gugeeAuth.getCurrentUser())setTimeout(()=>window.location.href="login.html",700);
+  }).catch(()=>{
+    $("profileUsername").textContent="Could not load account";
+    $("profileEmail").textContent="Check connection and retry";
+  });
   const openAvatarPicker=()=>{const input=$("avatarInput");if(!input)return;input.value="";try{if(typeof input.showPicker==="function"){input.showPicker();return;}}catch{}input.click();};
   ["changeAvatarBtn","avatarCameraBtn"].forEach(id=>{const btn=$(id);if(!btn)return;btn.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();openAvatarPicker();},{passive:false});});
   $("avatarInput").onchange=async()=>{
