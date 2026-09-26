@@ -17,7 +17,22 @@ function initCommunity(app,pool,auth){
   };
   const notify=async(client,userId,title,message,type="community")=>{await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,$2,$3,$4)",[userId,title,message,type]);};
   const codeFor=userId=>"GUG-"+crypto.createHash("sha256").update("gugee-referral:"+userId).digest("hex").slice(0,8).toUpperCase();
-  const rewardReferralIfQualified=async(client,userId)=>{const r=(await client.query("SELECT * FROM community_referrals WHERE referred_id=$1 AND status='registered' FOR UPDATE",[userId])).rows[0];if(!r)return;const reward=1;await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[reward,r.referrer_id]);await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount) VALUES($1,$2,$3)",[r.referrer_id,"referral_reward",reward]);await client.query("INSERT INTO referral_rewards(referral_id,user_id,amount_usdt,reason) VALUES($1,$2,$3,$4)",[r.id,r.referrer_id,reward,"Qualified referral: paid tournament entry"]);await client.query("UPDATE community_referrals SET status='rewarded',reward_usdt=$1,qualified_at=NOW() WHERE id=$2",[reward,r.id]);await notify(client,r.referrer_id,"Referral reward received","Your referral qualified through a paid tournament entry. +1 USDT was added to your wallet.","referral");};
+  const rewardReferralIfQualified=async(client,userId)=>{
+    const r=(await client.query("SELECT * FROM community_referrals WHERE referred_id=$1 AND status='registered' FOR UPDATE",[userId])).rows[0];
+    if(!r)return;
+    await client.query("UPDATE community_referrals SET status='qualified',qualified_at=NOW() WHERE id=$1",[r.id]);
+    const count=Number((await client.query("SELECT COUNT(*)::int AS n FROM community_referrals WHERE referrer_id=$1 AND status IN ('qualified','rewarded')",[r.referrer_id])).rows[0].n||0);
+    if(count<5)return;
+    const already=Number((await client.query("SELECT COUNT(*)::int AS n FROM referral_rewards WHERE user_id=$1 AND reason=$2",[r.referrer_id,"5 qualified referrals milestone"])).rows[0].n||0);
+    if(already)return;
+    const reward=10;
+    await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[r.referrer_id]);
+    await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[reward,r.referrer_id]);
+    await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount) VALUES($1,$2,$3)",[r.referrer_id,"referral_reward",reward]);
+    await client.query("INSERT INTO referral_rewards(referral_id,user_id,amount_usdt,reason) VALUES($1,$2,$3,$4)",[r.id,r.referrer_id,reward,"5 qualified referrals milestone"]);
+    await client.query("UPDATE community_referrals SET status='rewarded',reward_usdt=CASE WHEN id=$1 THEN $2 ELSE reward_usdt END WHERE referrer_id=$3 AND status='qualified'",[r.id,reward,r.referrer_id]);
+    await notify(client,r.referrer_id,"10 USDT referral reward","5 people joined through your link and qualified. +10 USDT was added to your Gugee balance.","referral");
+  };
 
   return pool.query(`
     CREATE TABLE IF NOT EXISTS referral_codes(
