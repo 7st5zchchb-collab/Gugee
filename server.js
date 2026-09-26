@@ -652,7 +652,7 @@ async function initDb(){
       fee_usdt NUMERIC(30,10) NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-    CREATE TABLE IF NOT EXISTS platform_revenue_events(
+    CREATE INDEX IF NOT EXISTS idx_wallet_transactions_user_created ON wallet_transactions(user_id,created_at DESC);\n    CREATE TABLE IF NOT EXISTS platform_revenue_events(
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       source_type TEXT NOT NULL,
@@ -668,13 +668,14 @@ async function initDb(){
       reward_usdt NUMERIC(30,10) NOT NULL DEFAULT 0,
       claimed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE(user_id,task_id)
-    );
+    );\n    CREATE INDEX IF NOT EXISTS idx_task_claims_user ON task_claims(user_id,claimed_at DESC);
     CREATE TABLE IF NOT EXISTS referrals(
       id BIGSERIAL PRIMARY KEY,
       referrer_user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       referred_user_id BIGINT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_user_id,created_at DESC);
     CREATE TABLE IF NOT EXISTS stripe_events(
       event_id TEXT PRIMARY KEY,
       event_type TEXT NOT NULL,
