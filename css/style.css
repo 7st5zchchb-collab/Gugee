@@ -2394,3 +2394,29 @@ html.gugee-light .wallet-operation,html.gugee-light .plan-card,html.gugee-light 
  .drawer-theme-toggle.on>span{transform:translateX(22px)!important}
  .mobile-drawer-logout{margin-bottom:2px!important}
 }
+
+/* iPhone-safe final drawer: dynamic viewport + reachable bottom controls */
+@media(max-width:700px){
+  body.nav-drawer-open{overflow:hidden!important;touch-action:none!important}
+  .site-header .nav{
+    top:0!important;bottom:0!important;
+    height:100dvh!important;max-height:100dvh!important;
+    width:min(300px,82vw)!important;
+    padding:max(10px,env(safe-area-inset-top)) 12px max(10px,env(safe-area-inset-bottom))!important;
+    overflow-y:auto!important;overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important;
+    touch-action:pan-y!important;
+  }
+  .site-header .nav>a,.mobile-drawer-logout{flex:0 0 40px!important;min-height:40px!important;height:40px!important}
+  .mobile-drawer-head{flex:0 0 auto!important}
+  .mobile-nav-separator{flex:0 0 1px!important}
+  .mobile-drawer-logout{margin-top:auto!important;position:relative!important;z-index:2!important}
+  .drawer-theme-switch{
+    flex:0 0 38px!important;min-height:38px!important;
+    margin-top:4px!important;margin-bottom:0!important;
+    position:relative!important;z-index:2!important;
+  }
+  .mobile-drawer-close,.mobile-drawer-logout,.drawer-theme-toggle,.site-header .nav>a{
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation!important;
+  }
+}
