@@ -102,14 +102,15 @@ async function initLogin(){
   if(current){window.location.href="index.html";return;}
   form.addEventListener("submit",async e=>{
     e.preventDefault();
+    const submit=form.querySelector(".auth-submit"),label=submit?.querySelector("span");if(submit){submit.disabled=true;if(label)label.textContent="Signing in…"}
     const email=form.email.value.trim().toLowerCase();
     const password=form.password.value;
-    if(!email||!password)return setAuthMessage("Enter your email and password.");
+    if(!email||!password){if(submit){submit.disabled=false;if(label)label.textContent="Log in"}return setAuthMessage("Enter your email and password.");}
     try{
       const data=await api("/api/auth/login",{method:"POST",body:JSON.stringify({email,password})});
       setCurrentUser(data.user);
       window.location.href="index.html";
-    }catch(error){setAuthMessage(error.message);}
+    }catch(error){setAuthMessage(error.message);if(submit){submit.disabled=false;if(label)label.textContent="Log in"}}
   });
 }
 async function initRegister(){
@@ -119,6 +120,7 @@ async function initRegister(){
   if(current){window.location.href="account.html";return;}
   form.addEventListener("submit",async e=>{
     e.preventDefault();
+    const submit=form.querySelector(".auth-submit"),label=submit?.querySelector("span");
     const username=form.username.value.trim().toLowerCase();
     const email=form.email.value.trim().toLowerCase();
     const password=form.password.value;
@@ -127,13 +129,14 @@ async function initRegister(){
     if(!email)return setAuthMessage("Enter a valid email address.");
     if(password.length<8)return setAuthMessage("Password must be at least 8 characters.");
     if(password!==confirm)return setAuthMessage("Passwords do not match.");
+    if(submit){submit.disabled=true;if(label)label.textContent="Creating account…"}
     try{
       const data=await api("/api/auth/register",{method:"POST",body:JSON.stringify({username,email,password})});
       setCurrentUser(data.user);
       const referralCode=new URLSearchParams(window.location.search).get("ref");
       if(referralCode){try{await api("/api/referrals/claim",{method:"POST",body:JSON.stringify({code:referralCode})});}catch{}}
       window.location.href="index.html";
-    }catch(error){setAuthMessage(error.message);}
+    }catch(error){setAuthMessage(error.message);if(submit){submit.disabled=false;if(label)label.textContent="Create account"}}
   });
 }
 function initNotificationsBell(){
@@ -167,13 +170,6 @@ function initPasswordToggles(){
     };
   });
 }
-function initAuthSubmitState(){
-  document.querySelectorAll(".auth-form").forEach(form=>form.addEventListener("submit",()=>{
-    const button=form.querySelector(".auth-submit");if(!button)return;button.disabled=true;
-    const label=button.querySelector("span");if(label)label.textContent="Please wait…";
-    setTimeout(()=>{button.disabled=false;if(label)label.textContent=form.id==="registerForm"?"Create account":"Log in"},7000);
-  }));
-}
 document.addEventListener("DOMContentLoaded",async()=>{
-  await refreshCurrentUser();initGlobalNavigation();renderAuthNav();initPasswordToggles();initAuthSubmitState();initLogin();initRegister();if(getCurrentUser())initNotificationsBell();
+  await refreshCurrentUser();initGlobalNavigation();renderAuthNav();initPasswordToggles();initLogin();initRegister();if(getCurrentUser())initNotificationsBell();
 });
