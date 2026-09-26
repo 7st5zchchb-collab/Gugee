@@ -57,7 +57,8 @@ function initGlobalNavigation(){
     '<a href="referrals.html"><span class="nav-icon">♧</span>Referral</a>'+
     '<div class="mobile-nav-separator"></div>'+
     '<a href="account.html#profileSettings"><span class="nav-icon">⚙</span>Settings</a>'+
-    (signedIn?'<button class="mobile-drawer-logout" type="button"><span class="nav-icon">↪</span>Log out</button>':'<a href="login.html"><span class="nav-icon">↪</span>Log in</a>');
+    (signedIn?'<button class="mobile-drawer-logout" type="button"><span class="nav-icon">↪</span>Log out</button>':'<a href="login.html"><span class="nav-icon">↪</span>Log in</a>')+
+    '<div class="drawer-theme-switch" aria-label="Theme"><span>☾</span><button class="drawer-theme-toggle" type="button" role="switch" aria-checked="false"><span></span></button><span>☀</span></div>';
   const current=(window.location.pathname.split("/").pop()||"index.html").toLowerCase();
   nav.querySelectorAll("[data-nav]").forEach(link=>{
     const key=link.dataset.nav;
@@ -90,6 +91,13 @@ function initGlobalNavigation(){
   const closeMenu=()=>{nav.classList.remove("mobile-open");toggle.classList.remove("active");toggle.setAttribute("aria-expanded","false");document.body.classList.remove("nav-drawer-open");};
   nav.querySelector(".mobile-drawer-close")?.addEventListener("click",closeMenu);
   nav.querySelector(".mobile-drawer-logout")?.addEventListener("click",()=>window.gugeeAuth.logout());
+  const themeToggle=nav.querySelector(".drawer-theme-toggle");
+  const applyTheme=theme=>{
+    const light=theme==="light";document.documentElement.classList.toggle("gugee-light",light);
+    if(themeToggle){themeToggle.setAttribute("aria-checked",String(light));themeToggle.classList.toggle("on",light);}
+  };
+  applyTheme(localStorage.getItem("gugeeTheme")==="light"?"light":"dark");
+  themeToggle?.addEventListener("click",()=>{const next=document.documentElement.classList.contains("gugee-light")?"dark":"light";localStorage.setItem("gugeeTheme",next);applyTheme(next);});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&nav.classList.contains("mobile-open"))closeMenu();});
   document.addEventListener("click",e=>{
     if(!nav.classList.contains("mobile-open"))return;
