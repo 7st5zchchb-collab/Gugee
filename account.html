@@ -90,7 +90,7 @@
 <form id="cardCryptoForm" style="display:grid;gap:12px;max-width:520px;margin-top:16px">
 <input id="cardCryptoCoin" type="text" placeholder="Coin ID, e.g. bitcoin" required>
 <input id="cardCryptoAmount" type="number" min="5" max="100000" step="0.01" placeholder="Crypto value in USD" required>
-<p class="muted">Gugee card purchase fee: $1.50 per transaction. Card details are entered securely on Stripe Checkout and are not stored by Gugee.</p>
+<p class="muted">Gugee card purchase fee depends on your plan: Free $1.50, Plus $1.00, Pro $0.50. Card details are entered securely on Stripe Checkout and are not stored by Gugee.</p>
 <button class="auth-submit" type="submit">Continue to card payment</button><p id="cardCryptoMessage" class="muted" aria-live="polite"></p>
 </form></section>
 
@@ -100,7 +100,7 @@
 <form id="buyForm" style="display:grid;gap:12px;max-width:520px;margin-top:16px">
 <input id="buyCoin" type="text" placeholder="Coin ID, e.g. bitcoin" required>
 <input id="buyAmount" type="number" min="0.01" step="0.01" placeholder="USDT amount" required>
-<p id="buyPrice" class="muted">Enter a coin ID to load its live price.</p><p class="muted">Trading fee: 0.10 USDT, added to the purchase amount.</p>
+<p id="buyPrice" class="muted">Enter a coin ID to load its live price.</p><p class="muted">Trading fee: Free 0.10 USDT, Plus 0.05 USDT, Pro 0 USDT.</p>
 <button class="auth-submit" type="submit">Buy crypto</button>
 <p id="buyMessage" class="muted" aria-live="polite"></p>
 </form>
@@ -112,7 +112,7 @@
 </section>
 
 <section class="account-card subscription-ui">
-<div class="account-head" style="margin-bottom:10px"><div><p class="section-label">SUBSCRIPTION</p><h2>Your plan</h2></div><span id="subscriptionStatus" class="muted">Loading...</span></div><div id="planLimits" class="muted" style="margin:8px 0 14px">Loading plan limits...</div><div style="display:none"></div>
+<div class="account-head" style="margin-bottom:10px"><div><p class="section-label">SUBSCRIPTION</p><h2>Your plan</h2></div><span id="subscriptionStatus" class="muted">Loading...</span></div><div id="planLimits" class="muted" style="margin:8px 0 14px">Loading plan limits...</div>
 <div class="plan-grid">
 <div class="plan-card" data-plan="free"><h3>Free</h3><div class="plan-price">$0</div><ul><li>5 favorites</li><li>Basic market analytics</li><li>Up to 500 USDT/day crypto withdrawal</li></ul><button class="plan-btn" type="button">Select</button></div>
 <div class="plan-card" data-plan="plus"><h3>Plus</h3><div class="plan-price">$4.99 / month</div><ul><li>25 favorites</li><li>Advanced analysis & alerts</li><li>Higher withdrawal limits</li><li>Portfolio analytics</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
