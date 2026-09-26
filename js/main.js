@@ -296,7 +296,7 @@ async function loadMarketSnapshot() {
       const card = index >= 0 ? marketCards[index] : null;
       const price = coin.current_price;
       const change = coin.price_change_percentage_24h;
-      const priceText = price == null ? "$--" : "$" + price.toLocaleString(undefined, {maximumSignificantDigits: 7});
+      const priceText = price == null ? "$0.00" : "$" + price.toLocaleString(undefined, {maximumSignificantDigits: 7});
       const changeText = change == null ? "--" : (change >= 0 ? "+" : "") + change.toFixed(2) + "%";
 
       if(card){
@@ -374,7 +374,7 @@ function renderWatchlist(){
     const coin=favoriteDefaults[id]||{name:id,symbol:id.slice(0,4).toUpperCase()};
     const card=document.createElement("a");
     card.className="watchlist-card"; card.href="crypto.html?coin="+encodeURIComponent(id);
-    card.innerHTML='<div><b>'+coin.name+'</b><span>'+coin.symbol+'</span></div><div class="watchlist-market"><strong class="watch-price">Loading...</strong><span class="watch-change">--</span></div>';
+    card.innerHTML='<div><b>'+coin.name+'</b><span>'+coin.symbol+'</span></div><div class="watchlist-market"><strong class="watch-price">Updating...</strong><span class="watch-change">0</span></div>';
     watchlistGrid.appendChild(card);
     window.gugeeMarketData.fetch("/api/coingecko/simple/price?ids="+encodeURIComponent(id)+"&vs_currencies=usd&include_24hr_change=true").then(data=>{
         const item=data[id];
