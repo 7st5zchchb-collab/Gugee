@@ -214,6 +214,20 @@ app.use(express.json({limit:"20kb"}));
 
 app.disable("x-powered-by");
 app.use((req,res,next)=>{
+  const origin=String(req.headers.origin||"");
+  const allowed=new Set(["https://gugee.onrender.com","https://gugees.onrender.com"]);
+  if(FRONTEND_URL)allowed.add(FRONTEND_URL);
+  if(origin&&allowed.has(origin)){
+    res.setHeader("Access-Control-Allow-Origin",origin);
+    res.setHeader("Access-Control-Allow-Credentials","true");
+    res.setHeader("Vary","Origin");
+    res.setHeader("Access-Control-Allow-Headers","Content-Type");
+    res.setHeader("Access-Control-Allow-Methods","GET,POST,PUT,DELETE,OPTIONS");
+  }
+  if(req.method==="OPTIONS")return res.sendStatus(204);
+  next();
+});
+app.use((req,res,next)=>{
   res.setHeader("X-Content-Type-Options","nosniff");
   res.setHeader("X-Frame-Options","DENY");
   res.setHeader("Referrer-Policy","strict-origin-when-cross-origin");
@@ -535,11 +549,11 @@ function validMoney(value,max=1000000000){
 }
 
 function setAuthCookie(res,token){
-  res.setHeader("Set-Cookie",`gugee_token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${process.env.NODE_ENV==="production" ? "; Secure" : ""}`);
+  res.setHeader("Set-Cookie",`gugee_token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=None; Max-Age=604800${process.env.NODE_ENV==="production" ? "; Secure" : ""}`);
 }
 
 function clearAuthCookie(res){
-  res.setHeader("Set-Cookie",`gugee_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${process.env.NODE_ENV==="production" ? "; Secure" : ""}`);
+  res.setHeader("Set-Cookie",`gugee_token=; Path=/; HttpOnly; SameSite=None; Max-Age=0${process.env.NODE_ENV==="production" ? "; Secure" : ""}`);
 }
 
 async function auth(req,res,next){
