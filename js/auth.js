@@ -131,21 +131,23 @@ function initGlobalNavigation(){
     nav.querySelectorAll('a[href^="account.html#"]').forEach(a=>a.classList.toggle("active",a.getAttribute("href").endsWith(hash)));
   }
   const accountHashLinks=nav.querySelectorAll('a[href^="account.html#"]');
-  if(current==="account.html")accountHashLinks.forEach(link=>link.addEventListener("click",e=>{
-    const targetHash=new URL(link.href,location.href).hash,target=document.querySelector(targetHash);
-    if(!target)return;
-    e.preventDefault();closeMenu();history.replaceState(null,"",targetHash);target.scrollIntoView({behavior:"smooth",block:"start"});
-    accountHashLinks.forEach(a=>a.classList.toggle("active",a===link));
-  }));
-  nav.querySelectorAll('a[href^="account.html#"]').forEach(link=>{const id=new URL(link.href,location.href).hash.slice(1);if(current==="account.html"&&!document.getElementById(id)){link.classList.add("nav-target-missing");link.setAttribute("aria-disabled","true");}});
-  nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",e=>{
+  nav.querySelectorAll("a[href]").forEach(link=>link.addEventListener("click",e=>{
     const href=link.getAttribute("href");
+    if(!href)return;
+    const url=new URL(href,location.href);
+    e.preventDefault();
     closeMenu();
-    if(href){
-      e.preventDefault();
-      if(href.startsWith("#"))location.hash=href;
-      else window.location.assign(new URL(href,location.href).href);
+    // Same-page Account shortcuts scroll directly; every other menu item performs a normal navigation.
+    if(current==="account.html"&&url.pathname.endsWith("/account.html")&&url.hash){
+      const target=document.getElementById(url.hash.slice(1));
+      if(target){
+        history.replaceState(null,"",url.hash);
+        requestAnimationFrame(()=>target.scrollIntoView({behavior:"smooth",block:"start"}));
+        accountHashLinks.forEach(a=>a.classList.toggle("active",a===link));
+        return;
+      }
     }
+    window.location.href=url.href;
   }));
 }
 function renderAuthNav(){
