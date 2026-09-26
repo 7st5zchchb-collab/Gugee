@@ -2266,3 +2266,24 @@ footer{width:100%;box-sizing:border-box}
   .site-header .nav{margin-left:0!important}
   .site-header .nav.mobile-open{display:flex!important}
 }
+
+
+/* Gugee unified dark-blue visual system */
+:root{--g-bg:#05080c;--g-panel:#090f17;--g-panel2:#080d15;--g-border:#202c3b;--g-border2:#2a3749;--g-text:#f4f7fb;--g-muted:#8f9bad;--g-blue:#087cf0;--g-blue2:#1495ff;--g-danger:#ff5568}
+body{background:radial-gradient(circle at 82% 7%,rgba(17,91,160,.12),transparent 29%),var(--g-bg);color:var(--g-text)}
+.site-header{background:#070b11!important;border-bottom-color:var(--g-border)!important}
+.account-card,.market-card,.crypto-card,.exchange-card,.analysis-card,.auth-card,.community-card,.card,.panel{background:linear-gradient(145deg,#0b111a,#070b11)!important;border-color:var(--g-border)!important;box-shadow:0 16px 45px rgba(0,0,0,.2)}
+input,select,textarea{background:var(--g-panel2)!important;border-color:var(--g-border2)!important;color:var(--g-text)!important}
+button,.auth-submit,.login-button{border-radius:10px}
+.auth-submit{background:linear-gradient(135deg,var(--g-blue),#0868d8)!important;border-color:var(--g-blue2)!important;color:#fff!important}
+.section-label{color:#78869a}
+.muted{color:var(--g-muted)}
+.site-header .nav>a,.site-header .nav-menu>summary{color:#9ca8b9}
+.site-header .nav>a:hover,.site-header .nav>a.active,.site-header .nav-menu>summary:hover{background:#111b28;color:#fff}
+.nav-menu-panel{background:#070b11!important;border-color:var(--g-border)!important}
+@media(max-width:700px){
+ .site-header .nav,.site-header .nav.mobile-open{background:#070b11!important;border:1px solid #263244!important;box-shadow:0 22px 60px rgba(0,0,0,.82)!important;backdrop-filter:none!important;opacity:1!important}
+ .site-header .nav a,.site-header .nav-menu,.site-header .nav-menu-panel{background:#070b11}
+ .site-header .nav a{color:#d7dde8}
+ .site-header .nav a:hover,.site-header .nav a.active{background:#111b28}
+}
