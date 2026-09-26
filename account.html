@@ -143,7 +143,7 @@
 </section>
 
 <section class="account-card" style="margin-top:20px" id="tasksPanel">
-<div class="account-head"><div><p class="section-label">TASKS & REWARDS</p><h2>Complete tasks</h2><p class="muted">Progress is verified by Gugee servers. Each claimable reward can be collected only once.</p></div></div>
+<div class="account-head"><div><p class="section-label">TASKS & REWARDS</p><h2>Complete tasks</h2><p class="muted">Progress is verified by Gugee servers. Each claimable reward can be collected only once.</p></div><div><small class="muted">AVAILABLE REWARD BUDGET</small><div id="taskRewardBudget" class="balance" style="font-size:22px;margin:4px 0">—</div></div></div>
 <div id="taskList" class="notification-list"><p class="muted">Loading tasks...</p></div>
 <p id="taskMessage" class="muted" aria-live="polite"></p>
 </section>
@@ -307,6 +307,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
     const box=$("taskList"),msg=$("taskMessage");
     try{
       const data=await window.gugeeAuth.api("/api/tasks");
+      $("taskRewardBudget").textContent=Number(data.rewardBudget||0).toFixed(2)+" USDT";
       box.innerHTML=data.tasks.map(t=>{
         const pct=Math.min(100,Math.round((Number(t.progress)/Number(t.target))*100));
         const action=t.reward>0?(t.claimed?'<button disabled>Claimed</button>':t.completed&&t.revenueReady?'<button class="task-claim" data-task="'+esc(t.id)+'">Claim '+Number(t.reward).toFixed(2)+' USDT</button>':t.completed?'<button disabled>Reward pending</button>':'<button disabled>In progress</button>'):(t.completed?'<button disabled>Reward credited</button>':'<button disabled>In progress</button>');
@@ -321,7 +322,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
     try{
       const data=await window.gugeeAuth.api("/api/wallet/transactions");
       const box=$("transactions");
-      const labels={buy:"Crypto purchase",subscription:"Subscription",tournament_entry:"Tournament entry",tournament_prize:"Tournament prize",giveaway_prize:"Giveaway prize",referral_reward:"Referral reward",usdt_adjustment:"USDT adjustment"};
+      const labels={buy:"Crypto purchase",sell:"Crypto sale",deposit:"Deposit",withdraw:"Withdrawal",subscription:"Subscription",tournament_entry:"Tournament entry",tournament_prize:"Tournament prize",giveaway_prize:"Giveaway prize",referral_reward:"Referral reward",task_reward:"Task reward",usdt_adjustment:"USDT adjustment"};
       if(!data.transactions.length){box.innerHTML='<p class="muted">No transactions yet.</p>';return;}
       box.innerHTML=data.transactions.map(t=>{
         const n=Number(t.usdt_amount||0);
