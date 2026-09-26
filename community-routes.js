@@ -27,6 +27,12 @@ function initCommunity(app,pool,auth){
     const already=Number((await client.query("SELECT COUNT(*)::int AS n FROM referral_rewards WHERE user_id=$1 AND reason=$2",[r.referrer_id,"5 qualified referrals milestone"])).rows[0].n||0);
     if(already)return;
     const reward=10;
+    const revenue=Number((await client.query("SELECT COALESCE(SUM(fee_usdt),0) AS fees FROM wallet_transactions WHERE user_id=$1",[r.referrer_id])).rows[0].fees||0)+Number((await client.query("SELECT COALESCE(SUM(amount_usdt),0) AS subscriptions FROM platform_revenue_events WHERE user_id=$1",[r.referrer_id])).rows[0].subscriptions||0);
+    const spent=Number((await client.query("SELECT COALESCE(SUM(reward_usdt),0) AS task_rewards FROM task_claims WHERE user_id=$1",[r.referrer_id])).rows[0].task_rewards||0)+Number((await client.query("SELECT COALESCE(SUM(amount_usdt),0) AS referral_rewards FROM referral_rewards WHERE user_id=$1",[r.referrer_id])).rows[0].referral_rewards||0);
+    if(revenue-spent<reward){
+      await notify(client,r.referrer_id,"Referral milestone completed","5 qualified referrals reached. Your 10 USDT reward is pending until eligible Gugee fee/subscription activity funds the reward.","referral");
+      return;
+    }
     await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[r.referrer_id]);
     await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[reward,r.referrer_id]);
     await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount) VALUES($1,$2,$3)",[r.referrer_id,"referral_reward",reward]);
