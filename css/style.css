@@ -2308,3 +2308,8 @@ button,.auth-submit,.login-button{border-radius:10px}
  .mobile-drawer-logout:hover{background:#111b28!important}
  .site-header .nav .nav-menu{display:none!important}
 }
+
+.drawer-notification-badge{margin-left:auto;min-width:21px;height:21px;padding:0 5px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#ff3151;color:#fff;font-size:10px;font-weight:800}
+.drawer-notification-badge[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+#profileSettings,#walletActions,#tasksPanel,#notificationsPanel,#transactionsPanel{scroll-margin-top:82px}
