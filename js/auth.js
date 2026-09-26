@@ -3,6 +3,7 @@ const AUTH_USER_KEY="gugee_current_user";
 function getCurrentUser(){return JSON.parse(localStorage.getItem(AUTH_USER_KEY)||"null")}
 function setCurrentUser(user){if(user)localStorage.setItem(AUTH_USER_KEY,JSON.stringify(user));else localStorage.removeItem(AUTH_USER_KEY)}
 const API_BASE=(location.hostname==="gugee.onrender.com")?"https://gugees.onrender.com":"";
+window.GUGEE_API_BASE=API_BASE||location.origin;
 async function api(path,options={}){
   const url=/^https?:\/\//.test(path)?path:API_BASE+path;
   const response=await fetch(url,{credentials:"include",headers:{"Content-Type":"application/json",...(options.headers||{})},...options});

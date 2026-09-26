@@ -222,6 +222,7 @@ async function load(){
   status.textContent="Updating live market data...";
   try{
     const result=await fetchServerList();allCoins=result.coins;
+    try{localStorage.setItem("gugeeTopCoinsCache",JSON.stringify({time:Date.now(),coins:allCoins}));}catch{}
     render();if(result.partial)status.textContent+=" · partial coverage";
   }catch(error){
     console.error("Others crypto directory error:",error);

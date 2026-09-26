@@ -105,6 +105,7 @@ async function loadCoin(){
   try{
    const cached=JSON.parse(localStorage.getItem("gugeeTopCoinsCache")||"null");
    if(cached&&Array.isArray(cached.coins))shared=cached.coins.find(x=>String(x.id).toLowerCase()===coinId)||null;
+   if(!shared){const marketCache=JSON.parse(localStorage.getItem("gugeeMarketResponseCache")||"{}");shared=marketCache["/api/coingecko/top1000"]?.value?.coins?.find(x=>String(x.id).toLowerCase()===coinId)||null;}
   }catch{}
   if(shared){
    els.name.textContent=shared.name||coinId;

@@ -306,8 +306,31 @@ async function fetchCoinCapTop1000(){
   }));
 }
 
+async function fetchCoinPaprikaTop1000(){
+  const r=await fetch("https://api.coinpaprika.com/v1/tickers?quotes=USD",{
+    headers:{accept:"application/json","user-agent":"Gugee/1.0"},signal:AbortSignal.timeout(20000)
+  });
+  if(!r.ok)throw new Error("CoinPaprika HTTP "+r.status);
+  const rows=await r.json();
+  if(!Array.isArray(rows))throw new Error("Invalid CoinPaprika response");
+  const coins=rows.filter(c=>Number(c.rank)>0&&Number.isFinite(Number(c.quotes?.USD?.price)))
+    .sort((a,b)=>Number(a.rank)-Number(b.rank)).slice(0,1000).map(c=>normalizeMarketCoin({
+      id:c.id,name:c.name,symbol:c.symbol,market_cap_rank:c.rank,
+      current_price:c.quotes.USD.price,market_cap:c.quotes.USD.market_cap,
+      total_volume:c.quotes.USD.volume_24h,
+      price_change_percentage_24h:c.quotes.USD.percent_change_24h,
+      price_change_percentage_7d_in_currency:c.quotes.USD.percent_change_7d,
+      price_change_percentage_30d_in_currency:c.quotes.USD.percent_change_30d
+    }));
+  if(coins.length<900)throw new Error("CoinPaprika returned too few priced cryptocurrencies");
+  return coins;
+}
+
+let top1000Pending=null;
 async function getTop1000Coins(){
   if(top1000Cache.data&&Date.now()<top1000Cache.expires)return top1000Cache.data;
+  if(top1000Pending)return top1000Pending;
+  top1000Pending=(async()=>{
   let coins=null;
   try{
     const pages=await Promise.all([1,2,3,4].map(page=>fetchCoinGeckoPage(page)));
@@ -317,10 +340,16 @@ async function getTop1000Coins(){
     if(coins.length<900)throw new Error("CoinGecko returned too few cryptocurrencies");
   }catch(coinGeckoError){
     console.warn("CoinGecko top 1000 failed, using CoinCap fallback:",coinGeckoError.message);
-    coins=await fetchCoinCapTop1000();
+    try{coins=await fetchCoinPaprikaTop1000();}
+    catch(paprikaError){
+      console.warn("CoinPaprika fallback failed:",paprikaError.message);
+      coins=await fetchCoinCapTop1000();
+    }
   }
   top1000Cache={data:coins,expires:Date.now()+5*60*1000};
   return coins;
+  })();
+  try{return await top1000Pending;}finally{top1000Pending=null;}
 }
 
 async function top1000Coins(req,res){

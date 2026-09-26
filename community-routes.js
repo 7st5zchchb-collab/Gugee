@@ -1,6 +1,6 @@
 const crypto=require("crypto");
 
-function initCommunity(app,pool,auth){
+async function initCommunity(app,pool,auth){
   const optionalAuth=async(req,res,next)=>{
     try{
       const header=String(req.headers.cookie||"");
@@ -41,7 +41,7 @@ function initCommunity(app,pool,auth){
     await notify(client,r.referrer_id,"10 USDT referral reward","5 people joined through your link and qualified. +10 USDT was added to your Gugee balance.","referral");
   };
 
-  return pool.query(`
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS referral_codes(
       user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       code TEXT UNIQUE NOT NULL,
@@ -132,7 +132,7 @@ function initCommunity(app,pool,auth){
     if(!g)await pool.query(`INSERT INTO giveaways(name,description,prize_usdt,max_entries,starts_at,ends_at,status) VALUES
       ('Gugee Launch Giveaway','Free community giveaway for verified Gugee members.',5,5000,NOW(),NOW()+INTERVAL '7 days','live'),
       ('Weekly 25 USDT Draw','A weekly community reward event.',25,10000,NOW()+INTERVAL '1 day',NOW()+INTERVAL '8 days','upcoming')`);
-  }).catch(e=>console.error("Community DB init:",e.message));
+  });
 
   app.get("/api/tournaments",async(req,res)=>{
     try{
