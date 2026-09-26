@@ -191,7 +191,7 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 
 <section class="account-card" style="margin-top:20px" id="tasksPanel">
 <div class="account-head"><div><p class="section-label">TASKS & REWARDS</p><h2>Complete tasks</h2><p class="muted">Progress is verified by Gugee servers. Each claimable reward can be collected only once.</p></div><div><small class="muted">AVAILABLE REWARD BUDGET</small><div id="taskRewardBudget" class="balance" style="font-size:22px;margin:4px 0">0</div></div></div>
-<div id="taskList" class="notification-list"><p class="muted">Loading tasks...</p></div>
+<div id="taskList" class="notification-list"><p class="muted">Updating tasks...</p></div>
 <p id="taskMessage" class="muted" aria-live="polite"></p>
 </section>
 
@@ -219,7 +219,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
     $("welcome").textContent="@"+(u.username||"user");
     $("accountHeaderHandle").textContent="@"+(u.username||"user");
     $("profileUsername").textContent="@"+(u.username||"user");
-    $("profileEmail").textContent=u.email||"—";
+    $("profileEmail").textContent=u.email||"Not connected";
   };
   if(user)paintIdentity(user);
   const freshUser=await window.gugeeAuth.refreshCurrentUser();
@@ -272,7 +272,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
       msg.textContent="Avatar removed.";
     }catch(e){msg.textContent=e.message;}finally{btn.disabled=false;}
   };
-  $("profileLogoutBtn").onclick=window.gugeeAuth.logout;
+  $("profileLogoutBtn").onclick=async e=>{const b=e.currentTarget;b.disabled=true;b.textContent="Logging out...";try{await window.gugeeAuth.logout();}catch(err){b.disabled=false;b.textContent="Log out";$("profileMessage").textContent=err?.message||"Could not log out.";} };
   $("passwordSettingsForm").onsubmit=async e=>{
     e.preventDefault();const currentPassword=$("currentPassword").value,newPassword=$("newPassword").value,confirm=$("confirmNewPassword").value,msg=$("passwordSettingsMessage");
     if(newPassword!==confirm){msg.textContent="New passwords do not match.";return;}
@@ -339,13 +339,13 @@ document.addEventListener("DOMContentLoaded",async()=>{
     if(!currentPrice)return;
     const amount=Number(buyAmount.value);
     if(!Number.isFinite(amount)||amount<=0){buyMessage.textContent="Enter a valid USDT amount.";return;}
-    const button=e.currentTarget.querySelector('button[type="submit"]');button.disabled=true;buyMessage.textContent="Processing...";
+    const button=e.currentTarget.querySelector('button[type="submit"]');const oldText=button.textContent;button.disabled=true;button.textContent="Processing...";buyMessage.textContent="Processing...";
     try{
       const result=await window.gugeeAuth.api("/api/wallet/buy",{method:"POST",body:JSON.stringify({coinId:buyCoin.value.trim(),usdtAmount:amount})});
       buyMessage.textContent="Bought "+Number(result.purchase.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+" "+result.purchase.symbol+" for "+Number(result.purchase.usdtAmount).toFixed(2)+" USDT.";
       buyAmount.value="";
       await loadWallet();await loadTransactions();await loadNotifications();
-    }catch(e){buyMessage.textContent=e.message;}finally{button.disabled=false;}
+    }catch(e){buyMessage.textContent=e.message;}finally{button.disabled=false;button.textContent=oldText;}
   });
 
   async function loadSubscription(){
@@ -448,12 +448,12 @@ document.addEventListener("DOMContentLoaded",async()=>{
     const asset=heldAssets.find(x=>x.coin_id===coinId);
     if(!asset||!Number.isFinite(quantity)||quantity<=0||quantity>Number(asset.quantity)){sellMessage.textContent="Enter a valid quantity within your holdings.";return;}
     if(!window.confirm("Sell "+quantity+" "+asset.symbol+" at the current market price?"))return;
-    const button=event.currentTarget.querySelector('button[type="submit"]');button.disabled=true;sellMessage.textContent="Processing...";
+    const button=event.currentTarget.querySelector('button[type="submit"]');const oldText=button.textContent;button.disabled=true;button.textContent="Processing...";sellMessage.textContent="Processing...";
     try{
       const result=await window.gugeeAuth.api("/api/wallet/sell",{method:"POST",body:JSON.stringify({coinId,quantity})});
       sellMessage.textContent="Sold "+result.sale.quantity+" "+result.sale.symbol+" · credited "+Number(result.sale.net).toFixed(2)+" USDT.";
       sellQuantity.value="";await Promise.all([loadWallet(),loadTransactions()]);
-    }catch(e){sellMessage.textContent=e.message;}finally{button.disabled=false;}
+    }catch(e){sellMessage.textContent=e.message;}finally{button.disabled=false;button.textContent=oldText;}
   });
   function previewFee(kind){
     const input=$(kind+"Amount"),amount=Number(input.value),el=$(kind+"Quote");
