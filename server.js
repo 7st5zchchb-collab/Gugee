@@ -84,11 +84,30 @@ async function creditStripeDeposit(session,eventId){
     await client.query("COMMIT");
   }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
 }
+async function activateStripeSubscription(session,eventId,eventType){
+  if(!session||session.payment_status!=="paid")return;
+  const userId=Number(session.metadata?.gugee_user_id),plan=String(session.metadata?.gugee_plan||"").toLowerCase();
+  if(session.metadata?.gugee_kind!=="subscription"||!Number.isSafeInteger(userId)||!["plus","pro"].includes(plan))throw new Error("Invalid subscription metadata");
+  const price=plan==="plus"?4.99:9.99;
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",[eventId,eventType]);
+    if(!inserted.rows[0]){await client.query("ROLLBACK");return;}
+    await client.query("INSERT INTO subscriptions(user_id,plan,price_usdt,status,started_at,expires_at,stripe_subscription_id,stripe_customer_id) VALUES($1,$2,$3,'active',NOW(),NOW()+INTERVAL '31 days',$4,$5) ON CONFLICT(user_id) DO UPDATE SET plan=EXCLUDED.plan,price_usdt=EXCLUDED.price_usdt,status='active',started_at=NOW(),expires_at=EXCLUDED.expires_at,stripe_subscription_id=EXCLUDED.stripe_subscription_id,stripe_customer_id=EXCLUDED.stripe_customer_id",[userId,plan,price,session.subscription||null,session.customer||null]);
+    await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Subscription activated',$2,'subscription')",[userId,plan.toUpperCase()+" is now active."]);
+    await client.query("COMMIT");
+  }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
+}
 app.post("/api/stripe/webhook",express.raw({type:"application/json",limit:"256kb"}),async(req,res)=>{
   try{
     verifyStripeSignature(req.body,req.headers["stripe-signature"]);
     const event=JSON.parse(req.body.toString("utf8"));
-    if(event.type==="checkout.session.completed"||event.type==="checkout.session.async_payment_succeeded")await creditStripeDeposit(event.data?.object,event.id);
+    if(event.type==="checkout.session.completed"||event.type==="checkout.session.async_payment_succeeded"){
+      const session=event.data?.object;
+      if(session?.metadata?.gugee_kind==="subscription")await activateStripeSubscription(session,event.id,event.type);
+      else await creditStripeDeposit(session,event.id);
+    }
     if(event.type==="checkout.session.async_payment_failed"||event.type==="checkout.session.expired"){
       await pool.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING",[event.id,event.type]);
     }
@@ -483,7 +502,7 @@ async function initDb(){
     CREATE TABLE IF NOT EXISTS subscriptions(
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      plan TEXT NOT NULL CHECK(plan IN ('free','pro','elite')),
+      plan TEXT NOT NULL CHECK(plan IN ('free','plus','pro')),
       price_usdt NUMERIC(30,10) NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','cancelled')),
       started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -550,6 +569,10 @@ async function initDb(){
   await pool.query("ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ");
   await pool.query("ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
   await pool.query("ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS review_note TEXT");
+  await pool.query("ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_plan_check");
+  await pool.query("ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_plan_check CHECK(plan IN ('free','plus','pro'))");
+  await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT");
+  await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE");
   await pool.query("UPDATE users SET is_admin=TRUE WHERE LOWER(email)='gurgensirunyan111@gmail.com'");
   const statements=[
@@ -563,17 +586,40 @@ async function initDb(){
 }
 
 app.get("/api/subscriptions",auth,async(req,res)=>{try{const {rows}=await pool.query("SELECT * FROM subscriptions WHERE user_id=$1",[req.user.id]);res.json({subscription:rows[0]||{plan:"free",status:"active",price_usdt:0}})}catch(e){res.status(500).json({error:"Could not load subscription"})}});
-app.post("/api/subscriptions/subscribe",auth,async(req,res)=>{
+app.post("/api/subscriptions/create-checkout-session",auth,async(req,res)=>{
+  if(!STRIPE_SECRET_KEY)return res.status(503).json({error:"Stripe is not configured."});
   const plan=String(req.body.plan||"").toLowerCase();
-  const prices={free:0,pro:5,elite:25};
-  if(!(plan in prices))return res.status(400).json({error:"Invalid subscription plan."});
-  const client=await pool.connect();try{await client.query("BEGIN");
-    if(plan!=="free"){await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[req.user.id]);const w=await client.query("UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",[prices[plan],req.user.id]);if(!w.rowCount)return rollback(client,res,400,"Insufficient USDT balance.");await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount) VALUES($1,$2,$3)",[req.user.id,"subscription",-prices[plan]]);}
-    await client.query("INSERT INTO subscriptions(user_id,plan,price_usdt,status,expires_at) VALUES($1,$2,$3,'active',NOW()+INTERVAL '30 days') ON CONFLICT(user_id) DO UPDATE SET plan=EXCLUDED.plan,price_usdt=EXCLUDED.price_usdt,status='active',started_at=NOW(),expires_at=EXCLUDED.expires_at",[req.user.id,plan,prices[plan]]);
-    await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,$2,$3,$4)",[req.user.id,"Subscription activated",plan.toUpperCase()+" plan is now active for 30 days.","subscription"]);
-    await client.query("COMMIT");res.json({ok:true,plan,price_usdt:prices[plan]});
-  }catch(e){await client.query("ROLLBACK");res.status(500).json({error:"Could not activate subscription"})}finally{client.release()}
+  const plans={plus:{cents:499,name:"Gugee Plus"},pro:{cents:999,name:"Gugee Pro"}};
+  if(!plans[plan])return res.status(400).json({error:"Select Plus or Pro."});
+  try{
+    const origin=FRONTEND_URL||(`${req.protocol}://${req.get("host")}`);
+    const body=new URLSearchParams();
+    body.set("mode","subscription");
+    body.set("success_url",origin+"/account.html?subscription=success");
+    body.set("cancel_url",origin+"/account.html?subscription=cancelled");
+    body.set("customer_email",req.user.email);
+    body.set("line_items[0][price_data][currency]","usd");
+    body.set("line_items[0][price_data][product_data][name]",plans[plan].name);
+    body.set("line_items[0][price_data][unit_amount]",String(plans[plan].cents));
+    body.set("line_items[0][price_data][recurring][interval]","month");
+    body.set("line_items[0][quantity]","1");
+    body.set("metadata[gugee_kind]","subscription");
+    body.set("metadata[gugee_user_id]",String(req.user.id));
+    body.set("metadata[gugee_plan]",plan);
+    const stripeResponse=await fetch("https://api.stripe.com/v1/checkout/sessions",{method:"POST",headers:{Authorization:"Bearer "+STRIPE_SECRET_KEY,"Content-Type":"application/x-www-form-urlencoded"},body});
+    const session=await stripeResponse.json();
+    if(!stripeResponse.ok||!session.url)throw new Error(session?.error?.message||"Could not create subscription checkout");
+    res.json({url:session.url,plan,price:plans[plan].cents/100});
+  }catch(e){console.error("Subscription checkout error:",e.message);res.status(502).json({error:"Could not start subscription checkout."});}
 });
+
+app.post("/api/subscriptions/free",auth,async(req,res)=>{
+  try{
+    await pool.query("INSERT INTO subscriptions(user_id,plan,price_usdt,status,expires_at) VALUES($1,'free',0,'active',NULL) ON CONFLICT(user_id) DO UPDATE SET plan='free',price_usdt=0,status='active',expires_at=NULL",[req.user.id]);
+    res.json({ok:true,plan:"free"});
+  }catch(e){res.status(500).json({error:"Could not activate Free plan"});}
+});
+
 app.post("/api/subscriptions/cancel",auth,async(req,res)=>{try{await pool.query("UPDATE subscriptions SET status='cancelled',expires_at=NOW() WHERE user_id=$1",[req.user.id]);res.json({ok:true})}catch(e){res.status(500).json({error:"Could not cancel subscription"})}});
 app.get("/api/notifications",auth,async(req,res)=>{try{const {rows}=await pool.query("SELECT * FROM notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50",[req.user.id]);res.json({notifications:rows})}catch(e){res.status(500).json({error:"Could not load notifications"})}});
 app.post("/api/notifications/:id/read",auth,async(req,res)=>{try{await pool.query("UPDATE notifications SET read_at=NOW() WHERE id=$1 AND user_id=$2",[req.params.id,req.user.id]);res.json({ok:true})}catch(e){res.status(500).json({error:"Could not update notification"})}});
@@ -817,6 +863,7 @@ app.post("/api/stripe/create-checkout-session",auth,async(req,res)=>{
     body.set("line_items[0][price_data][product_data][name]","Gugee wallet deposit");
     body.set("line_items[0][price_data][unit_amount]",String(grossCents));
     body.set("line_items[0][quantity]","1");
+    body.set("metadata[gugee_kind]","deposit");
     body.set("metadata[gugee_user_id]",String(req.user.id));
     body.set("metadata[gugee_fee_cents]",String(feeCents));
     const stripeResponse=await fetch("https://api.stripe.com/v1/checkout/sessions",{
