@@ -11,13 +11,15 @@ async function api(path,options={}){
   return data;
 }
 async function refreshCurrentUser(){
+  const cached=getCurrentUser();
   try{
     const data=await api("/api/auth/me");
     setCurrentUser(data.user);
     return data.user;
   }catch{
-    setCurrentUser(null);
-    return null;
+    // Keep the freshly authenticated UI visible if the API is briefly waking/deploying.
+    // Protected API calls still require the secure server cookie.
+    return cached||null;
   }
 }
 async function logout(){
