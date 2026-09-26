@@ -81,7 +81,7 @@
 <div class="profile-info">
 <div><small class="muted">Username</small><div id="profileUsername" class="readonly-field">@user</div></div>
 <div><small class="muted">Connected email</small><div id="profileEmail" class="readonly-field">—</div></div>
-<div class="settings-actions"><input id="avatarInput" type="file" accept="image/*" hidden><button id="changeAvatarBtn" type="button">Change avatar</button><button id="removeAvatarBtn" type="button">Remove avatar</button></div>
+<div class="settings-actions"><input id="avatarInput" type="file" accept="image/jpeg,image/png,image/webp" hidden><button id="changeAvatarBtn" type="button">Change avatar</button><button id="removeAvatarBtn" type="button">Remove avatar</button></div>
 <p id="profileMessage" class="muted" aria-live="polite"></p>
 </div></div>
 <form id="passwordSettingsForm" class="password-settings">
@@ -191,29 +191,37 @@ document.addEventListener("DOMContentLoaded",async()=>{
   const openAvatarPicker=()=>{const input=$("avatarInput");input.value="";input.click();};
   $("changeAvatarBtn").onclick=openAvatarPicker;
   $("avatarCameraBtn").onclick=openAvatarPicker;
-  $("avatarInput").onchange=()=>{
-    const file=$("avatarInput").files?.[0];if(!file)return;
-    if(!String(file.type||"").startsWith("image/")){$("profileMessage").textContent="Please choose a photo.";return;}
-    $("profileMessage").textContent="Preparing avatar...";
-    const img=new Image(),url=URL.createObjectURL(file);
-    img.onload=async()=>{
-      try{
-        const side=Math.min(img.naturalWidth,img.naturalHeight);
-        const sx=(img.naturalWidth-side)/2,sy=(img.naturalHeight-side)/2;
-        const canvas=document.createElement("canvas");canvas.width=512;canvas.height=512;
-        const ctx=canvas.getContext("2d");ctx.drawImage(img,sx,sy,side,side,0,0,512,512);
-        let avatar=canvas.toDataURL("image/jpeg",0.82);
-        if(avatar.length>650000)avatar=canvas.toDataURL("image/jpeg",0.65);
-        const r=await window.gugeeAuth.api("/api/account/avatar",{method:"POST",body:JSON.stringify({avatar})});
-        user.avatar_data=r.avatar;window.gugeeAuth.setCurrentUser(user);renderProfileAvatar(r.avatar);$("profileMessage").textContent="Avatar updated.";
-      }catch(e){$("profileMessage").textContent="Could not prepare this photo. Try a JPEG, PNG or WebP image.";}
-      finally{URL.revokeObjectURL(url);}
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);$("profileMessage").textContent="This photo format could not be opened. Try JPEG, PNG or WebP.";};
-    img.src=url;
+  $("avatarInput").onchange=async()=>{
+    const input=$("avatarInput"),file=input.files?.[0],msg=$("profileMessage");
+    if(!file)return;
+    if(!["image/jpeg","image/png","image/webp"].includes(String(file.type||"").toLowerCase())){msg.textContent="Choose a JPEG, PNG or WebP photo.";input.value="";return;}
+    const changeBtn=$("changeAvatarBtn"),cameraBtn=$("avatarCameraBtn");
+    changeBtn.disabled=true;cameraBtn.disabled=true;msg.textContent="Updating avatar...";
+    const url=URL.createObjectURL(file),img=new Image();
+    try{
+      await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url;});
+      const side=Math.min(img.naturalWidth,img.naturalHeight),sx=(img.naturalWidth-side)/2,sy=(img.naturalHeight-side)/2;
+      const canvas=document.createElement("canvas");canvas.width=384;canvas.height=384;
+      const ctx=canvas.getContext("2d");if(!ctx)throw new Error("Could not prepare image.");
+      ctx.drawImage(img,sx,sy,side,side,0,0,384,384);
+      let quality=.86,avatar=canvas.toDataURL("image/jpeg",quality);
+      while(avatar.length>620000&&quality>.45){quality-=.1;avatar=canvas.toDataURL("image/jpeg",quality);}
+      if(avatar.length>680000)throw new Error("Photo is too large.");
+      const r=await window.gugeeAuth.api("/api/account/avatar",{method:"POST",body:JSON.stringify({avatar})});
+      user.avatar_data=r.avatar;window.gugeeAuth.setCurrentUser(user);renderProfileAvatar(r.avatar);
+      window.dispatchEvent(new CustomEvent("gugee:user-updated",{detail:{user}}));
+      msg.textContent="Avatar updated.";
+    }catch(e){msg.textContent=e?.message||"Could not update avatar. Try another JPEG, PNG or WebP photo.";}
+    finally{URL.revokeObjectURL(url);input.value="";changeBtn.disabled=false;cameraBtn.disabled=false;}
   };
   $("removeAvatarBtn").onclick=async()=>{
-    try{await window.gugeeAuth.api("/api/account/avatar",{method:"POST",body:JSON.stringify({avatar:""})});user.avatar_data=null;window.gugeeAuth.setCurrentUser(user);renderProfileAvatar(null);$("profileMessage").textContent="Avatar removed.";}catch(e){$("profileMessage").textContent=e.message;}
+    const btn=$("removeAvatarBtn"),msg=$("profileMessage");btn.disabled=true;msg.textContent="Removing avatar...";
+    try{
+      await window.gugeeAuth.api("/api/account/avatar",{method:"POST",body:JSON.stringify({avatar:""})});
+      user.avatar_data=null;window.gugeeAuth.setCurrentUser(user);renderProfileAvatar(null);
+      window.dispatchEvent(new CustomEvent("gugee:user-updated",{detail:{user}}));
+      msg.textContent="Avatar removed.";
+    }catch(e){msg.textContent=e.message;}finally{btn.disabled=false;}
   };
   $("profileLogoutBtn").onclick=window.gugeeAuth.logout;
   $("passwordSettingsForm").onsubmit=async e=>{
