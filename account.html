@@ -61,6 +61,47 @@
   .asset span{text-align:left}
 }
 </style>
+<style>
+/* 2026-09-26 account visual refresh — functionality unchanged */
+body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),transparent 30%),radial-gradient(circle at 8% 55%,rgba(0,120,190,.07),transparent 28%),#05080c;color:#f5f7fb}
+.account-shell{max-width:980px}
+.account-card{background:linear-gradient(145deg,rgba(13,19,28,.98),rgba(7,11,17,.98));border:1px solid #202c3b;box-shadow:0 18px 55px rgba(0,0,0,.25)}
+#profileSettings{padding:30px}
+#profileSettings h2{font-size:28px;margin:8px 0 4px}
+.profile-settings{grid-template-columns:150px 1fr;align-items:start;margin-top:26px!important}
+.profile-avatar-wrap,.profile-avatar{width:124px;height:124px}
+.profile-avatar{font-size:46px;background:#0c121b;border:2px solid #455368}
+.avatar-camera-btn{width:42px;height:42px;right:2px;bottom:2px;background:#111a26;border:3px solid #536176}
+.profile-info{gap:14px!important}
+.readonly-field,.password-settings input{background:#080d15;border:1px solid #2a3749;border-radius:13px;padding:14px 16px;color:#e7ebf2}
+.settings-actions button{border-radius:11px;padding:12px 16px}
+#changeAvatarBtn{background:#087cf0;border-color:#1495ff;color:white}
+#removeAvatarBtn{background:#160d12;border-color:#9d2638;color:#ff5568}
+.password-settings{max-width:none;margin-top:28px;padding:24px;background:#090f17;border:1px solid #202c3b;border-radius:18px}
+.password-settings h3{font-size:20px;margin:0 0 8px}
+.password-settings .auth-submit{background:#087cf0;border-color:#1495ff;color:#fff}
+.wallet-operation,.plan-card,.notice{background:#080e16;border-color:#202c3b}
+.wallet-operation input,.wallet-operation select{background:#080d15;border-color:#2a3749}
+.wallet-shortcuts a{border-color:#245a83;color:#59b8ff}
+@media(max-width:700px){
+ body.auth-page{background:#05080c}
+ .account-shell{padding-top:22px}
+ #accountUserButton{position:static!important;right:auto!important;top:auto!important;max-width:145px}
+ #profileSettings{padding:20px}
+ #profileSettings h2{font-size:25px}
+ .profile-settings{grid-template-columns:1fr;gap:20px}
+ .profile-avatar-wrap,.profile-avatar{width:100px;height:100px}
+ .profile-avatar{font-size:38px}
+ .avatar-camera-btn{width:38px;height:38px}
+ .password-settings{padding:18px}
+ .site-header .nav{background:#070b11!important;border:1px solid #263244!important;box-shadow:0 22px 60px rgba(0,0,0,.8)!important;backdrop-filter:none!important;opacity:1!important}
+ .site-header .nav.mobile-open{background:#070b11!important}
+ .site-header .nav a,.site-header .nav-menu,.site-header .nav-menu-panel{background:#070b11}
+ .site-header .nav a{color:#d7dde8}
+ .site-header .nav a:hover,.site-header .nav a.active{background:#111b28}
+ .site-header .nav-menu-panel{border-color:#263244}
+}
+</style>
 </head>
 <body class="auth-page">
 <header class="site-header">
