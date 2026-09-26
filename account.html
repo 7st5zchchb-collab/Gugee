@@ -282,12 +282,13 @@ document.addEventListener("DOMContentLoaded",async()=>{
     if(!currentPrice)return;
     const amount=Number(buyAmount.value);
     if(!Number.isFinite(amount)||amount<=0){buyMessage.textContent="Enter a valid USDT amount.";return;}
+    const button=e.currentTarget.querySelector('button[type="submit"]');button.disabled=true;buyMessage.textContent="Processing...";
     try{
       const result=await window.gugeeAuth.api("/api/wallet/buy",{method:"POST",body:JSON.stringify({coinId:buyCoin.value.trim(),usdtAmount:amount})});
       buyMessage.textContent="Bought "+Number(result.purchase.quantity).toLocaleString(undefined,{maximumFractionDigits:18})+" "+result.purchase.symbol+" for "+Number(result.purchase.usdtAmount).toFixed(2)+" USDT.";
       buyAmount.value="";
       await loadWallet();await loadTransactions();await loadNotifications();
-    }catch(e){buyMessage.textContent=e.message;}
+    }catch(e){buyMessage.textContent=e.message;}finally{button.disabled=false;}
   });
 
   async function loadSubscription(){
@@ -400,19 +401,21 @@ document.addEventListener("DOMContentLoaded",async()=>{
   function previewFee(kind){
     const input=$(kind+"Amount"),amount=Number(input.value),el=$(kind+"Quote");
     if(!input.value||!Number.isFinite(amount)||amount<=0){el.textContent=kind==="deposit"?"Minimum deposit: $20.00 · Fee: $1.00":"Minimum withdrawal: $20.00.";return;}
-    const fee=kind==="deposit"?1:Math.floor(amount/20);
+    const fee=Math.max(1,Math.ceil(amount/20));
     el.textContent=kind==="deposit"?(amount>fee?"Fee $1.00 · Estimated credit "+(amount-fee).toFixed(2)+" USDT":"Amount must exceed $1.00"):(amount>=20?"Fee "+fee.toFixed(2)+" USDT · Estimated payout $"+(amount-fee).toFixed(2):"Minimum withdrawal: $20.00");
   }
   ["deposit","withdraw"].forEach(kind=>$(kind+"Amount").addEventListener("input",()=>previewFee(kind)));
   $("withdrawForm").addEventListener("submit",async e=>{
     e.preventDefault();
     const amount=Number($("withdrawAmount").value),method=$("withdrawMethod").value,destination=$("withdrawDestination").value.trim(),message=$("withdrawMessage");
-    message.textContent="Submitting withdrawal for review...";
+    const button=e.currentTarget.querySelector('button[type="submit"]');
+    if(!Number.isFinite(amount)||amount<20||amount>100000||!method||!destination){message.textContent="Complete the withdrawal details with an amount from 20 to 100,000 USDT.";return;}
+    button.disabled=true;message.textContent="Submitting withdrawal for review...";
     try{
       const result=await window.gugeeAuth.api("/api/wallet/withdraw",{method:"POST",body:JSON.stringify({amount,method,destination})});
       message.textContent="Withdrawal #"+result.withdrawal.id+" is pending review. Target: within 12 hours.";
       $("withdrawForm").reset();previewFee("withdraw");await loadWallet();await loadTransactions();
-    }catch(err){message.textContent=err.message;}
+    }catch(err){message.textContent=err.message;}finally{button.disabled=false;}
   });
   $("depositButton").onclick=async()=>{
     const amount=Number($("depositAmount").value);
