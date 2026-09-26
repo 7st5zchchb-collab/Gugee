@@ -12,6 +12,7 @@
 .balance{font-size:42px;font-weight:800;margin:8px 0 28px}
 .asset-list{display:grid;gap:12px;margin-top:18px}.asset{display:flex;justify-content:space-between;padding:18px;border:1px solid rgba(255,255,255,.08);border-radius:14px}
 .muted{opacity:.65}.error{color:#ff6b6b}
+.profile-settings{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center}.profile-avatar{width:82px;height:82px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:#15171a;border:1px solid #34373d;font-size:28px;font-weight:800}.profile-avatar img{width:100%;height:100%;object-fit:cover}.profile-info{display:grid;gap:10px}.readonly-field{background:#090a0c;border:1px solid #292c31;border-radius:10px;padding:11px 13px;color:#a8abb1;overflow-wrap:anywhere}.settings-actions{display:flex;gap:8px;flex-wrap:wrap}.password-settings{display:grid;gap:10px;max-width:520px;margin-top:20px}.password-settings input{width:100%;box-sizing:border-box;background:#090a0c;color:#fff;border:1px solid #292c31;border-radius:10px;padding:12px}@media(max-width:600px){.profile-settings{grid-template-columns:1fr}.profile-avatar{width:72px;height:72px}}
 @media(max-width:650px){.account-head{align-items:flex-start;flex-direction:column}.balance{font-size:32px}}
 .subscription-ui{margin-top:20px}.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.plan-card{background:#0b0b0d;border:1px solid #242429;border-radius:15px;padding:18px}.plan-card.active{border-color:#35e08b;box-shadow:0 0 0 1px rgba(53,224,139,.12)}.plan-card h3{margin:0 0 7px}.plan-price{font-size:24px;font-weight:800;margin:10px 0}.plan-card ul{padding-left:18px;color:#888;font-size:11px;line-height:1.8;min-height:72px}.plan-btn{width:100%;border:1px solid #2d2d33;background:#111114;color:#eee;border-radius:9px;padding:11px;cursor:pointer;font-weight:700}.plan-card.active .plan-btn{background:#35e08b;color:#06120b;border-color:#35e08b}.notification-ui{margin-top:20px}.notification-list{display:grid;gap:8px;margin-top:14px}.notice{padding:13px;border:1px solid #242429;border-radius:11px;background:#0b0b0d}.notice.unread{border-color:#294a38}.notice-title{font-weight:800;font-size:12px}.notice-message{color:#888;font-size:11px;margin-top:5px;line-height:1.5}.notice-time{color:#555;font-size:9px;margin-top:7px}@media(max-width:700px){.plan-grid{grid-template-columns:1fr}.plan-card ul{min-height:0}}.wallet-shortcuts{display:flex;gap:8px;overflow:auto;margin:18px 0}.wallet-shortcuts a{padding:10px 14px;white-space:nowrap;border:1px solid #345044;border-radius:9px;color:#35e08b;text-decoration:none}.wallet-operation{padding:20px;background:#0e1614;border:1px solid #293b33;border-radius:14px}.wallet-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.wallet-operation h3{margin:0 0 12px}.wallet-operation label{display:block;margin:12px 0 6px}.wallet-operation input,.wallet-operation select{width:100%;max-width:100%;background:#111c19;color:#fff;border:1px solid #365145;border-radius:8px;padding:11px}.wallet-operation button{margin-top:12px}.wallet-operation button:disabled{opacity:.55;cursor:not-allowed}.wallet-operation .muted{overflow-wrap:anywhere}@media(max-width:720px){.wallet-action-grid{grid-template-columns:1fr}}
 /* Mobile account wallet pass 2026-09-26 */
@@ -67,7 +68,26 @@
 <div><p class="section-label">GUGEE ACCOUNT</p><h1 id="welcome">Your Account</h1><p class="muted">Your public Gugee identity</p></div>
 </div>
 
-<section class="account-card">
+<section class="account-card" id="profileSettings">
+<p class="section-label">PROFILE SETTINGS</p><h2>Account information</h2>
+<div class="profile-settings" style="margin-top:16px">
+<div id="profileAvatar" class="profile-avatar">U</div>
+<div class="profile-info">
+<div><small class="muted">Username</small><div id="profileUsername" class="readonly-field">@user</div></div>
+<div><small class="muted">Connected email</small><div id="profileEmail" class="readonly-field">—</div></div>
+<div class="settings-actions"><input id="avatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden><button id="changeAvatarBtn" type="button">Change avatar</button><button id="removeAvatarBtn" type="button">Remove avatar</button></div>
+<p id="profileMessage" class="muted" aria-live="polite"></p>
+</div></div>
+<form id="passwordSettingsForm" class="password-settings">
+<h3>Change password</h3>
+<input id="currentPassword" type="password" autocomplete="current-password" placeholder="Current password" required>
+<input id="newPassword" type="password" autocomplete="new-password" minlength="8" placeholder="New password (8+ characters)" required>
+<input id="confirmNewPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Confirm new password" required>
+<button class="auth-submit" type="submit">Change password</button><p id="passwordSettingsMessage" class="muted" aria-live="polite"></p>
+</form>
+</section>
+
+<section class="account-card" style="margin-top:20px">
 <p class="section-label">CASH BALANCE</p>
 <div class="balance" id="usdt">0.00 USDT</div>
 <p class="muted">Internal Gugee wallet balance. Purchases and platform rewards are recorded in your transaction history.</p>
@@ -146,6 +166,32 @@ document.addEventListener("DOMContentLoaded",async()=>{
   const esc=v=>String(v??"").replace(/[&<>"\x27]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","\x27":"&#39;"}[c]));
   $("welcome").textContent="@"+(user.username||"user");
   $("logoutBtn").onclick=window.gugeeAuth.logout;
+  $("profileUsername").textContent="@"+(user.username||"user");
+  $("profileEmail").textContent=user.email||"—";
+  function renderProfileAvatar(value){
+    const box=$("profileAvatar"),letter=String(user.username||"U").charAt(0).toUpperCase();
+    box.innerHTML=value?'<img src="'+esc(value)+'" alt="Profile avatar">':esc(letter);
+  }
+  renderProfileAvatar(user.avatar_data);
+  $("changeAvatarBtn").onclick=()=>$("avatarInput").click();
+  $("avatarInput").onchange=()=>{
+    const file=$("avatarInput").files?.[0];if(!file)return;
+    if(file.size>500*1024){$("profileMessage").textContent="Avatar must be 500 KB or smaller.";return;}
+    const reader=new FileReader();reader.onload=async()=>{
+      try{
+        const r=await window.gugeeAuth.api("/api/account/avatar",{method:"POST",body:JSON.stringify({avatar:reader.result})});
+        user.avatar_data=r.avatar;window.gugeeAuth.setCurrentUser(user);renderProfileAvatar(r.avatar);$("profileMessage").textContent="Avatar updated.";
+      }catch(e){$("profileMessage").textContent=e.message;}
+    };reader.readAsDataURL(file);
+  };
+  $("removeAvatarBtn").onclick=async()=>{
+    try{await window.gugeeAuth.api("/api/account/avatar",{method:"POST",body:JSON.stringify({avatar:""})});user.avatar_data=null;window.gugeeAuth.setCurrentUser(user);renderProfileAvatar(null);$("profileMessage").textContent="Avatar removed.";}catch(e){$("profileMessage").textContent=e.message;}
+  };
+  $("passwordSettingsForm").onsubmit=async e=>{
+    e.preventDefault();const currentPassword=$("currentPassword").value,newPassword=$("newPassword").value,confirm=$("confirmNewPassword").value,msg=$("passwordSettingsMessage");
+    if(newPassword!==confirm){msg.textContent="New passwords do not match.";return;}
+    try{await window.gugeeAuth.api("/api/account/change-password",{method:"POST",body:JSON.stringify({currentPassword,newPassword})});e.currentTarget.reset();msg.textContent="Password changed successfully.";}catch(err){msg.textContent=err.message;}
+  };
   if(user.is_admin)$("adminLink").innerHTML='<a class="auth-submit" style="display:inline-block;text-decoration:none;margin-bottom:20px" href="community-admin.html">Community Admin</a>';
 
   const buyForm=$("buyForm"),buyCoin=$("buyCoin"),buyAmount=$("buyAmount"),buyPrice=$("buyPrice"),buyMessage=$("buyMessage");
