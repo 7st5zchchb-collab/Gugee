@@ -88,7 +88,8 @@ function renderAuthNav(){
   }
   const displayName=user.username||"user";
   const avatarLetter=(displayName.trim()[0]||"U").toUpperCase();
-  button.innerHTML='<span class="user-avatar">'+avatarLetter+'</span><span class="user-handle">@'+displayName.replace(/\s+/g,"").replace(/[^a-zA-Z0-9_.-]/g,"")+"</span>";
+  const avatar=user.avatar_data?'<span class="user-avatar user-avatar-image"><img src="'+String(user.avatar_data).replace(/"/g,"&quot;")+'" alt=""></span>':'<span class="user-avatar">'+avatarLetter+'</span>';
+  button.innerHTML=avatar+'<span class="user-handle">@'+displayName.replace(/\s+/g,"").replace(/[^a-zA-Z0-9_.-]/g,"")+"</span>";
   button.href="account.html";
   button.classList.add("user-button");
   button.onclick=null;
