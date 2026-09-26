@@ -131,20 +131,27 @@ function initGlobalNavigation(){
     nav.querySelectorAll('a[href^="account.html#"]').forEach(a=>a.classList.toggle("active",a.getAttribute("href").endsWith(hash)));
   }
   const accountHashLinks=nav.querySelectorAll('a[href^="account.html#"]');
-  // Keep ordinary links native. iPhone Safari handles real anchor navigation more reliably
-  // than cancelling every tap and rebuilding it with JavaScript.
-  accountHashLinks.forEach(link=>link.addEventListener("click",e=>{
-    if(current!=="account.html")return;
-    const url=new URL(link.href,location.href);
-    const target=document.getElementById(url.hash.slice(1));
-    if(!target)return;
+  // One delegated handler makes every drawer row actionable, including taps on icons/text.
+  nav.addEventListener("click",e=>{
+    const link=e.target.closest("a[href]");
+    if(!link||!nav.contains(link))return;
+    const href=link.getAttribute("href");
+    if(!href)return;
+    const url=new URL(href,window.location.href);
     e.preventDefault();
     closeMenu();
-    history.replaceState(null,"",url.hash);
-    requestAnimationFrame(()=>target.scrollIntoView({behavior:"smooth",block:"start"}));
-    accountHashLinks.forEach(a=>a.classList.toggle("active",a===link));
-  }));
-  nav.querySelectorAll('a[href]:not([href^="account.html#"])').forEach(link=>link.addEventListener("click",()=>closeMenu()));
+    if(current==="account.html"&&url.pathname.endsWith("/account.html")&&url.hash){
+      const target=document.getElementById(url.hash.slice(1));
+      if(target){
+        history.replaceState(null,"",url.hash);
+        requestAnimationFrame(()=>target.scrollIntoView({behavior:"smooth",block:"start"}));
+        accountHashLinks.forEach(a=>a.classList.toggle("active",a===link));
+        return;
+      }
+    }
+    // Use assign after the drawer is closed; this is reliable on iOS Safari and same-origin Render pages.
+    window.location.assign(url.href);
+  });
 }
 function renderAuthNav(){
   const button=document.querySelector(".login-button");
