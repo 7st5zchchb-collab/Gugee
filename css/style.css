@@ -2167,3 +2167,36 @@ footer{width:100%;box-sizing:border-box}
   .auth-card{padding:15px!important}
   .auth-card h1{font-size:25px!important}
 }
+
+
+/* Final secondary pages mobile pass 2026-09-26 */
+@media(max-width:700px){
+  .exchange-analysis-page{width:calc(100% - 24px)!important;max-width:none!important;margin:22px auto 60px!important;box-sizing:border-box}
+  .exchange-analysis-hero{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:14px!important;padding:18px 0!important}
+  .exchange-analysis-hero h1{font-size:28px!important;line-height:1.08!important}
+  .exchange-selector-wrap{width:100%!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important}
+  .exchange-selector-wrap label,.exchange-selector-wrap select{width:100%!important;min-width:0!important;box-sizing:border-box}
+  .exchange-live-summary{grid-template-columns:1fr 1fr!important;gap:7px!important}
+  .exchange-chart-panel,.exchange-analysis-card,.exchange-comparison,.exchange-note{padding:12px!important;box-sizing:border-box}
+  .exchange-chart-wrap{width:100%!important;overflow:hidden!important;min-height:220px!important}
+  .exchange-analysis-grid{grid-template-columns:1fr!important;gap:9px!important}
+  .exchange-analysis-card .metric-grid{grid-template-columns:1fr 1fr!important;gap:7px!important}
+  .comparison-table-wrap{max-width:100%!important;overflow-x:auto!important}
+  .comparison-table-wrap table{min-width:700px}
+  .exchange-note{display:flex!important;flex-direction:column!important;gap:7px!important}
+
+  .others-favorites-grid{grid-template-columns:1fr!important;gap:8px!important}
+  .others-favorites-title{gap:5px}
+  .others-pagination{display:flex!important;max-width:100%;overflow-x:auto;gap:5px;scrollbar-width:none}
+  .others-pagination::-webkit-scrollbar{display:none}
+  .others-pagination button,.others-pagination a{flex:0 0 auto}
+
+  .auth-page footer{width:100%;box-sizing:border-box;padding:18px 12px!important;display:flex;flex-wrap:wrap;gap:8px 14px}
+  .auth-card>.brand{display:inline-flex;max-width:100%;margin-bottom:16px}
+  .auth-card .auth-brand{font-size:14px;letter-spacing:2px;margin-bottom:12px}
+}
+@media(max-width:430px){
+  .exchange-analysis-page{width:calc(100% - 18px)!important}
+  .exchange-selector-wrap,.exchange-live-summary,.exchange-analysis-card .metric-grid{grid-template-columns:1fr!important}
+  .exchange-chart-wrap{min-height:190px!important}
+}
