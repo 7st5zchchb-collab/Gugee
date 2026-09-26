@@ -80,7 +80,7 @@ const $=id=>document.getElementById(id);
 const money=v=>Number.isFinite(v)?v.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:v<1?6:2}):"--";
 const compact=v=>Number.isFinite(v)?v.toLocaleString("en-US",{notation:"compact",maximumFractionDigits:2}):"--";
 const pct=v=>Number.isFinite(v)?(v>=0?"+":"")+v.toFixed(2)+"%":"--";
-const state={current:exchanges[0],ticker:null,candles:[]};
+const state={current:exchanges.find(e=>e.provider==="coinbase"),ticker:null,candles:[]};
 
 function rawTicker(d){return d.data?.[0]||d.data||d.result?.[0]||d.result||d} 
 function tickerValues(e,d){
@@ -131,7 +131,7 @@ async function getCandles(e){
 }
 function metric(label,value,cls=""){return '<div class="analysis-metric"><span>'+label+'</span><b class="'+cls+'">'+value+'</b></div>'}
 function renderSummary(t){
- $("exchangeSummary").innerHTML='<div class="live-stat"><span>LIVE PRICE</span><strong>'+money(t.price)+'</strong></div><div class="live-stat"><span>24H CHANGE</span><strong class="'+(t.change>=0?"positive":"negative")+'">'+pct(t.change)+'</strong></div><div class="live-stat"><span>24H VOLUME</span><strong>'+money(t.volume)+'</strong></div><div class="live-stat"><span>MARKET</span><strong>BTC / USD</strong></div>';
+ $("exchangeSummary").innerHTML='<div class="live-stat"><span>LIVE PRICE</span><strong>'+money(t.price)+'</strong></div><div class="live-stat"><span>24H CHANGE</span><strong class="'+(t.change>=0?"positive":"negative")+'">'+pct(t.change)+'</strong></div><div class="live-stat"><span>24H VOLUME</span><strong>'+money(t.volume)+'</strong></div><div class="live-stat"><span>MARKET</span><strong>BTC / "+(String(state.current.symbol).includes("USDT")?"USDT":"USD")+"</strong></div>';
 }
 function drawChart(rows){
  const svg=$("exchangeChart"); if(!rows.length){svg.innerHTML='<text x="500" y="170" text-anchor="middle" fill="#666">Historical data unavailable</text>';return}
@@ -163,7 +163,7 @@ async function loadComparison(){
  if(state.ticker){$("spreadLow").textContent=money(low);$("spreadHigh").textContent=money(high);$("spreadPct").textContent=low?((high/low-1)*100).toFixed(3)+"%":"--"}
 }
 async function loadSelected(){
- const e=state.current;$("exchangeTitle").textContent=e.name;$("exchangeSubtitle").textContent="BTC market analysis • live exchange data";
+ const e=state.current;$("pairSelector").innerHTML="<option>BTC / "+(String(e.symbol).includes("USDT")?"USDT":"USD")+"</option>";$("exchangeTitle").textContent=e.name;$("exchangeSubtitle").textContent="BTC market analysis • live exchange data";
  try{state.ticker=await getTicker(e);renderSummary(state.ticker)}catch{$("exchangeSummary").innerHTML='<div class="analysis-loading">Live ticker unavailable.</div>'}
  try{state.candles=await getCandles(e);drawChart(state.candles);analyze(state.candles,state.ticker||{})}catch{$("chartUpdated").textContent="Historical data unavailable";analyze([],state.ticker||{})}
  await loadComparison();
