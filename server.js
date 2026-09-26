@@ -141,7 +141,7 @@ async function activateStripeSubscription(session,eventId,eventType){
     const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",[eventId,eventType]);
     if(!inserted.rows[0]){await client.query("ROLLBACK");return;}
     await client.query("INSERT INTO subscriptions(user_id,plan,price_usdt,status,started_at,expires_at,stripe_subscription_id,stripe_customer_id) VALUES($1,$2,$3,'active',NOW(),NOW()+INTERVAL '31 days',$4,$5) ON CONFLICT(user_id) DO UPDATE SET plan=EXCLUDED.plan,price_usdt=EXCLUDED.price_usdt,status='active',started_at=NOW(),expires_at=EXCLUDED.expires_at,stripe_subscription_id=EXCLUDED.stripe_subscription_id,stripe_customer_id=EXCLUDED.stripe_customer_id",[userId,plan,price,session.subscription||null,session.customer||null]);
-    await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount,fee_usdt) VALUES($1,'subscription',$2,0)",[userId,price]);
+    await client.query("INSERT INTO platform_revenue_events(user_id,source_type,source_id,amount_usdt) VALUES($1,'stripe_subscription_checkout',$2,$3) ON CONFLICT(source_type,source_id) DO NOTHING",[userId,String(session.id||eventId),price]);
     await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Subscription activated',$2,'subscription')",[userId,plan.toUpperCase()+" is now active."]);
     await client.query("COMMIT");
   }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
@@ -176,7 +176,8 @@ async function handleStripeInvoice(invoice,eventId,eventType){
     if(!s){await client.query("ROLLBACK");return;}
     if(eventType==="invoice.paid"){
       await client.query("UPDATE subscriptions SET status='active',expires_at=NOW()+INTERVAL '31 days' WHERE user_id=$1",[s.user_id]);
-      await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount,fee_usdt) VALUES($1,'subscription',$2,0)",[s.user_id,Number(s.price_usdt||0)]);
+      const invoiceId=String(invoice.id||eventId);
+      await client.query("INSERT INTO platform_revenue_events(user_id,source_type,source_id,amount_usdt) VALUES($1,'stripe_subscription_invoice',$2,$3) ON CONFLICT(source_type,source_id) DO NOTHING",[s.user_id,invoiceId,Number(s.price_usdt||0)]);
       await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Subscription renewed',$2,'subscription')",[s.user_id,s.plan.toUpperCase()+" renewed successfully."]);
     }else{
       await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Subscription payment failed',$2,'subscription')",[s.user_id,"Stripe could not renew your "+s.plan.toUpperCase()+" subscription. Update your payment method to avoid losing paid-plan access."]);
@@ -651,6 +652,15 @@ async function initDb(){
       fee_usdt NUMERIC(30,10) NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS platform_revenue_events(
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      source_type TEXT NOT NULL,
+      source_id TEXT NOT NULL,
+      amount_usdt NUMERIC(30,10) NOT NULL CHECK(amount_usdt>=0),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(source_type,source_id)
+    );
     CREATE TABLE IF NOT EXISTS task_claims(
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -992,7 +1002,7 @@ const TASK_DEFS=[
 ];
 async function userPlatformRevenue(userId,client=pool){
   const tx=(await client.query("SELECT COALESCE(SUM(fee_usdt),0) AS fees FROM wallet_transactions WHERE user_id=$1",[userId])).rows[0];
-  const sub=(await client.query("SELECT COALESCE(SUM(usdt_amount),0) AS subscriptions FROM wallet_transactions WHERE user_id=$1 AND type='subscription' AND usdt_amount>0",[userId])).rows[0];
+  const sub=(await client.query("SELECT COALESCE(SUM(amount_usdt),0) AS subscriptions FROM platform_revenue_events WHERE user_id=$1",[userId])).rows[0];
   const earned=Number(tx.fees||0)+Number(sub.subscriptions||0);
   const paid=(await client.query("SELECT COALESCE(SUM(reward_usdt),0) AS rewards FROM task_claims WHERE user_id=$1",[userId])).rows[0];
   return Math.max(0,earned-Number(paid.rewards||0));
