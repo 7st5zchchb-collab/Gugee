@@ -2348,3 +2348,27 @@ html{scroll-behavior:smooth}
  }
  .mobile-drawer-logout{flex:0 0 42px!important;margin-bottom:8px}
 }
+
+
+/* Drawer theme control + site light mode */
+.drawer-theme-switch{display:none}
+@media(max-width:700px){
+ .drawer-theme-switch{display:flex;align-items:center;justify-content:center;gap:15px;margin-top:8px;padding:12px;border:1px solid #273343;border-radius:14px;background:#0c131e;color:#dbe5f2}
+ .drawer-theme-toggle{position:relative;width:54px;height:29px;padding:0;border:0;border-radius:999px;background:#273343;cursor:pointer}
+ .drawer-theme-toggle>span{position:absolute;top:4px;left:4px;width:21px;height:21px;border-radius:50%;background:#fff;transition:.18s}
+ .drawer-theme-toggle.on{background:#087cf0}
+ .drawer-theme-toggle.on>span{transform:translateX(25px)}
+}
+html.gugee-light body{background:#f3f6fa!important;color:#10151d!important}
+html.gugee-light .site-header{background:#fff!important;border-bottom-color:#dce3ec!important}
+html.gugee-light .site-header .nav{background:#fff!important;color:#111827!important}
+html.gugee-light .site-header .nav>a,html.gugee-light .mobile-drawer-logout{color:#17202d!important}
+html.gugee-light .site-header .nav>a:hover,html.gugee-light .site-header .nav>a.active{color:#fff!important}
+html.gugee-light .account-card,html.gugee-light .market-card,html.gugee-light .crypto-card,html.gugee-light .exchange-card,html.gugee-light .analysis-card,html.gugee-light .auth-card,html.gugee-light .community-card,html.gugee-light .card,html.gugee-light .panel{background:#fff!important;border-color:#dce3ec!important;color:#10151d!important}
+html.gugee-light input,html.gugee-light select,html.gugee-light textarea,html.gugee-light .readonly-field{background:#f7f9fc!important;border-color:#cfd8e5!important;color:#10151d!important}
+html.gugee-light .muted{color:#596579!important;opacity:1}
+html.gugee-light .drawer-theme-switch{background:#f2f5f9;color:#17202d;border-color:#d3dce8}
+html.gugee-light .nav-icon{color:#3e4a5c!important}
+html.gugee-light .mobile-nav-separator{background:#dce3ec!important}
+html.gugee-light .profile-avatar{background:#f4f7fb;color:#10151d}
+html.gugee-light .wallet-operation,html.gugee-light .plan-card,html.gugee-light .notice,html.gugee-light .password-settings{background:#f8fafc!important;border-color:#dce3ec!important;color:#10151d!important}
