@@ -1219,16 +1219,7 @@ app.post("/api/wallet/buy",auth,async(req,res)=>{
   }finally{client.release();}
 });
 
-app.post("/api/wallet/deposit",auth,async(req,res)=>{
-  const amount=Number(req.body.amount);
-  const method=String(req.body.method||"").toLowerCase();
-  if(!validMoney(amount))return res.status(400).json({error:"Invalid deposit amount."});
-  if(!["visa","mastercard","paypal"].includes(method))return res.status(400).json({error:"Unsupported deposit method."});
-  const fee=depositFee(amount);
-  const credit=amount-fee;
-  if(credit<=0)return res.status(400).json({error:"Deposit amount must be greater than the $1 fee."});
-  return res.status(501).json({error:"Payment provider not connected yet.",method,amount,fee,credit});
-});
+// Wallet deposits are created through /api/stripe/create-checkout-session and credited only by verified Stripe webhooks.
 
 app.post("/api/wallet/withdraw",auth,async(req,res)=>{
   const amount=Number(req.body.amount);
