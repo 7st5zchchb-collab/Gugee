@@ -1082,14 +1082,20 @@ app.post("/api/wallet/usdt",auth,async(req,res)=>{
   }finally{client.release();}
 });
 
+const purchasePriceCache=new Map();
+const PURCHASE_PRICE_CACHE_MS=15000;
+
 async function getPurchaseCoin(coinId){
   const id=String(coinId||"").trim().toLowerCase();
   if(!/^[a-z0-9][a-z0-9._-]{1,80}$/.test(id))throw new Error("Invalid coin id");
+  const cached=purchasePriceCache.get(id);
+  if(cached&&cached.expires>Date.now())return cached.value;
   try{
     const coins=await getTop1000Coins();
     const coin=coins.find(c=>String(c.id).toLowerCase()===id);
     if(coin&&Number.isFinite(Number(coin.current_price))&&Number(coin.current_price)>0){
-      return {id:coin.id,symbol:String(coin.symbol||"").toUpperCase(),price:Number(coin.current_price)};
+      const value={id:coin.id,symbol:String(coin.symbol||"").toUpperCase(),price:Number(coin.current_price)};
+      purchasePriceCache.set(id,{value,expires:Date.now()+PURCHASE_PRICE_CACHE_MS});return value;
     }
   }catch{}
   const target=COINGECKO_BASE+"/simple/price?ids="+encodeURIComponent(id)+"&vs_currencies=usd";
@@ -1098,7 +1104,8 @@ async function getPurchaseCoin(coinId){
   const data=await response.json();
   const price=Number(data?.[id]?.usd);
   if(!Number.isFinite(price)||price<=0)throw new Error("Coin not found");
-  return {id,symbol:id.toUpperCase(),price};
+  const value={id,symbol:id.toUpperCase(),price};
+  purchasePriceCache.set(id,{value,expires:Date.now()+PURCHASE_PRICE_CACHE_MS});return value;
 }
 
 app.post("/api/stripe/create-checkout-session",auth,async(req,res)=>{
