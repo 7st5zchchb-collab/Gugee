@@ -1,5 +1,6 @@
 // Run with: GUGEE_BASE_URL=https://gugee.onrender.com npm run smoke
 const base=(process.env.GUGEE_BASE_URL||"https://gugee.onrender.com").replace(/\/$/,"");
+const apiBase=(process.env.GUGEE_API_BASE_URL||"https://gugees.onrender.com").replace(/\/$/,"");
 const checks=[
   {path:"/",status:200,validate:async r=>(await r.text()).includes("Gugee"),description:"Homepage"},
   {path:"/health",status:200,validate:async r=>(await r.json()).ok===true,description:"Node server"},
@@ -11,7 +12,7 @@ const checks=[
 let failures=0;
 for(const check of checks){
   try{
-    const response=await fetch(base+check.path,{signal:AbortSignal.timeout(20000)});
+    const response=await fetch((check.path==="/"?base:apiBase)+check.path,{signal:AbortSignal.timeout(20000)});
     const valid=response.status===check.status&&(!check.validate||await check.validate(response));
     console.log((valid?"PASS":"FAIL")+" "+check.description+" "+check.path+" (HTTP "+response.status+")");
     if(!valid)failures++;

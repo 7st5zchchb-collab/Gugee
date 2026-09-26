@@ -42,13 +42,6 @@
   </div>
 
   <main>
-    <section id="homeWalletBalance" style="display:none;margin:18px auto 0;max-width:1180px;padding:0 18px">
-      <a href="account.html" style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(10,15,13,.82);text-decoration:none;color:inherit">
-        <div><small style="opacity:.6">YOUR GUGEE BALANCE</small><div style="font-size:12px;opacity:.55;margin-top:4px">Available wallet balance</div></div>
-        <strong id="homeUsdtBalance" style="font-size:22px;color:#35e08b;white-space:nowrap">0.00 USDT</strong>
-      </a>
-    </section>
-
     <section class="hero">
       <div class="eyebrow"><span class="live-dot"></span> CRYPTO MARKET INTELLIGENCE</div>
       <h1>Understand the market.<br /><span>Find your next move.</span></h1>
@@ -129,20 +122,8 @@
   <a href="tel:+37410000000">+374 10 000 000</a>
 </footer>
 
-  <script src="js/auth.js?v=20260926-menu6"></script>
+  <script src="js/auth.js?v=20260927-balance1"></script>
   <script src="js/market-data.js?v=1"></script>
   <script src="js/main.js?v=2"></script>
-  <script>
-  document.addEventListener("DOMContentLoaded",async()=>{
-    try{
-      const user=await window.gugeeAuth.refreshCurrentUser();
-      if(!user)return;
-      const data=await window.gugeeAuth.api("/api/wallet");
-      const balance=Number(data?.wallet?.usdt||0);
-      document.getElementById("homeUsdtBalance").textContent=balance.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+" USDT";
-      document.getElementById("homeWalletBalance").style.display="block";
-    }catch{}
-  });
-  </script>
 </body>
 </html>

@@ -158,10 +158,27 @@ function renderAuthNav(){
   const displayName=user.username||"user";
   const avatarLetter=(displayName.trim()[0]||"U").toUpperCase();
   const avatar=user.avatar_data?'<span class="user-avatar user-avatar-image"><img src="'+String(user.avatar_data).replace(/"/g,"&quot;")+'" alt=""></span>':'<span class="user-avatar">'+avatarLetter+'</span>';
-  button.innerHTML=avatar+'<span class="user-handle">@'+displayName.replace(/\s+/g,"").replace(/[^a-zA-Z0-9_.-]/g,"")+"</span>";
+  button.innerHTML=avatar+'<span class="user-identity"><span class="user-handle">@'+displayName.replace(/\s+/g,"").replace(/[^a-zA-Z0-9_.-]/g,"")+'</span><span class="header-usdt-balance" aria-label="USDT wallet balance">… USDT</span></span>';
+  loadHeaderBalance();
   button.href="account.html";
   button.classList.add("user-button");
   button.onclick=null;
+}
+let headerBalancePending=false;
+async function loadHeaderBalance(){
+  const target=document.querySelector(".header-usdt-balance");
+  if(!target||headerBalancePending)return;
+  headerBalancePending=true;
+  try{
+    const data=await api("/api/wallet");
+    const amount=Number(data?.wallet?.usdt);
+    if(!Number.isFinite(amount))throw new Error("Invalid balance");
+    const current=document.querySelector(".header-usdt-balance");
+    if(current)current.textContent=amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+" USDT";
+  }catch{
+    const current=document.querySelector(".header-usdt-balance");
+    if(current)current.textContent="— USDT";
+  }finally{headerBalancePending=false;}
 }
 function setAuthMessage(message,type="error"){
   const el=document.getElementById("authMessage");

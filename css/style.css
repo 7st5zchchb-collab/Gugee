@@ -2420,3 +2420,10 @@ html.gugee-light .wallet-operation,html.gugee-light .plan-card,html.gugee-light 
     -webkit-tap-highlight-color:transparent;touch-action:manipulation!important;
   }
 }
+
+/* Account identity and verified wallet balance in the shared header */
+.site-header .user-button{height:auto;min-height:40px;gap:8px;max-width:none;overflow:visible}
+.site-header .user-identity{display:flex;flex-direction:column;align-items:flex-start;min-width:0;line-height:1.25}
+.site-header .header-usdt-balance{color:#35e08b;font-size:10px;font-weight:700;white-space:nowrap}
+@media(max-width:700px){.site-header .user-button{height:42px;min-height:42px;padding:3px 7px!important;max-width:136px!important}.site-header .user-button .user-handle{max-width:75px}.site-header .header-usdt-balance{font-size:9px}}
+@media(max-width:380px){.site-header .user-button{max-width:115px!important}.site-header .user-button .user-handle{max-width:55px}}
