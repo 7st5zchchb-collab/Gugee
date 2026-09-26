@@ -2147,3 +2147,23 @@ footer{width:100%;box-sizing:border-box}
   .crypto-favorites-heading,.crypto-directory-toolbar{flex-direction:column!important}
   .chart-placeholder{min-height:220px!important}
 }
+
+
+/* Auth mobile pass 2026-09-26 */
+@media(max-width:700px){
+  .auth-page .site-header{grid-template-columns:minmax(0,1fr) auto!important}
+  .auth-page .site-header .nav{display:none!important}
+  .auth-shell{width:calc(100% - 24px)!important;max-width:none!important;min-height:auto!important;margin:0 auto!important;padding:38px 0 60px!important;box-sizing:border-box}
+  .auth-card{width:100%!important;max-width:none!important;padding:18px!important;border-radius:16px!important;box-sizing:border-box}
+  .auth-card h1{font-size:28px!important;line-height:1.08!important;letter-spacing:-1px!important}
+  .auth-subtitle,.auth-note,.auth-switch{font-size:10px!important;line-height:1.6!important}
+  .auth-form{width:100%!important}
+  .auth-form label{width:100%!important;box-sizing:border-box}
+  .auth-form input{width:100%!important;box-sizing:border-box;font-size:16px!important}
+  .auth-submit{width:100%;box-sizing:border-box}
+}
+@media(max-width:430px){
+  .auth-shell{width:calc(100% - 18px)!important;padding-top:26px!important}
+  .auth-card{padding:15px!important}
+  .auth-card h1{font-size:25px!important}
+}
