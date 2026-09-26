@@ -83,6 +83,8 @@
 <div id="referralPanel" class="wallet-operation"><h3>Referral</h3><p id="referralCode" class="muted">Loading...</p><input id="referralLink" aria-label="Your referral link" readonly><button id="copyReferral" class="auth-submit" type="button">Copy link</button><p id="referralMessage" class="muted" aria-live="polite"></p></div>
 </div></section>
 
+<section class="account-card" id="savedCardPanel" style="margin-top:20px"><p class="section-label">PAYMENT METHOD</p><h2>Card</h2><p class="muted">Add your card through Stripe securely. Gugee never stores your full card number or CVV.</p><button id="addCardBtn" class="auth-submit" type="button" style="margin-top:12px">Add card securely</button><p id="cardSetupMessage" class="muted" aria-live="polite"></p></section>
+
 <section class="account-card" id="cardCryptoPanel" style="margin-top:20px">
 <p class="section-label">CARD → CRYPTO</p><h2>Buy crypto directly by card</h2>
 <form id="cardCryptoForm" style="display:grid;gap:12px;max-width:520px;margin-top:16px">
@@ -173,6 +175,8 @@ document.addEventListener("DOMContentLoaded",async()=>{
     }catch(e){$("assets").innerHTML='<p class="error">Could not load wallet.</p>';}
   }
 
+  $("addCardBtn").onclick=async()=>{ $("cardSetupMessage").textContent="Opening secure card setup..."; try{const r=await window.gugeeAuth.api("/api/stripe/setup-card",{method:"POST"});if(!r.url)throw new Error("Setup URL was not returned.");window.location.href=r.url;}catch(e){$("cardSetupMessage").textContent=e.message;} };
+  const cardReturn=new URLSearchParams(location.search).get("card"); if(cardReturn==="added")$("cardSetupMessage").textContent="Card setup completed securely with Stripe."; if(cardReturn==="cancelled")$("cardSetupMessage").textContent="Card setup was cancelled.";
   const cardCryptoForm=$("cardCryptoForm"),cardCryptoMessage=$("cardCryptoMessage");
   cardCryptoForm.addEventListener("submit",async e=>{
     e.preventDefault();cardCryptoMessage.textContent="Preparing secure checkout...";
