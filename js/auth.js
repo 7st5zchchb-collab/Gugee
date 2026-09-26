@@ -253,6 +253,11 @@ function initPasswordToggles(){
     };
   });
 }
-document.addEventListener("DOMContentLoaded",async()=>{
-  await refreshCurrentUser();initGlobalNavigation();renderAuthNav();initPasswordToggles();initLogin();initRegister();if(getCurrentUser())initNotificationsBell();
+document.addEventListener("DOMContentLoaded",()=>{
+  // Render and bind all UI immediately; never make taps wait for the backend.
+  initGlobalNavigation();renderAuthNav();initPasswordToggles();initLogin();initRegister();if(getCurrentUser())initNotificationsBell();
+  refreshCurrentUser().then(user=>{
+    renderAuthNav();
+    if(user)initNotificationsBell();
+  }).catch(()=>{});
 });
