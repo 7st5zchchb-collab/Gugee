@@ -424,6 +424,19 @@ function makeReferralCode(username){
 function depositFee(amount){return 1;}
 function withdrawFee(amount){return Math.max(1,Math.ceil(Number(amount)/20));}
 function tradeFee(){return 0.10;}
+const PLAN_LIMITS={
+  free:{favorites:5,dailyWithdrawal:500},
+  plus:{favorites:25,dailyWithdrawal:5000},
+  pro:{favorites:100,dailyWithdrawal:25000}
+};
+async function getActivePlan(userId){
+  const {rows}=await pool.query("SELECT plan,status,expires_at FROM subscriptions WHERE user_id=$1",[userId]);
+  const s=rows[0];
+  if(!s||s.status!=="active"||(s.expires_at&&new Date(s.expires_at)<=new Date()))return "free";
+  return ["free","plus","pro"].includes(s.plan)?s.plan:"free";
+}
+async function getPlanLimits(userId){const plan=await getActivePlan(userId);return {plan,...PLAN_LIMITS[plan]};}
+
 
 function validMoney(value,max=1000000000){
   const n=Number(value);
@@ -788,6 +801,8 @@ app.get("/api/wallet/transactions",auth,async(req,res)=>{
   }catch(e){console.error(e);res.status(500).json({error:"Could not load transaction history"});}
 });
 
+app.get("/api/account/limits",auth,async(req,res)=>{try{const limits=await getPlanLimits(req.user.id);res.json(limits)}catch(e){res.status(500).json({error:"Could not load account limits"})}});
+
 app.get("/api/wallet",auth,async(req,res)=>{
   try{
     await pool.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[req.user.id]);
@@ -942,6 +957,10 @@ app.post("/api/wallet/deposit",auth,async(req,res)=>{
 
 app.post("/api/wallet/withdraw",auth,async(req,res)=>{
   const amount=Number(req.body.amount);
+  const limits=await getPlanLimits(req.user.id);
+  const today=await pool.query("SELECT COALESCE(SUM(amount_usdt),0) AS total FROM withdrawal_requests WHERE user_id=$1 AND created_at>=date_trunc('day',NOW()) AND status NOT IN ('rejected','cancelled')",[req.user.id]);
+  const usedToday=Number(today.rows[0]?.total||0);
+  if(Number.isFinite(amount)&&usedToday+amount>limits.dailyWithdrawal)return res.status(403).json({error:limits.plan.toUpperCase()+" daily withdrawal limit is "+limits.dailyWithdrawal+" USDT.",plan:limits.plan,limit:limits.dailyWithdrawal,usedToday});
   const method=String(req.body.method||"").toLowerCase();
   const destination=String(req.body.destination||"").trim();
   if(!Number.isFinite(amount)||amount<20||amount>100000)return res.status(400).json({error:"Withdrawal must be between 20 and 100,000 USDT."});
@@ -1131,7 +1150,10 @@ app.get("/api/watchlist",auth,async(req,res)=>{
 
 app.put("/api/watchlist",auth,async(req,res)=>{
   const ids=Array.isArray(req.body.watchlist)?req.body.watchlist:[];
-  const clean=[...new Set(ids.map(v=>String(v).trim()).filter(Boolean))].slice(0,100);
+  const limits=await getPlanLimits(req.user.id);
+  const unique=[...new Set(ids.map(v=>String(v).trim()).filter(Boolean))];
+  if(unique.length>limits.favorites)return res.status(403).json({error:limits.plan.toUpperCase()+" plan allows up to "+limits.favorites+" favorites.",plan:limits.plan,limit:limits.favorites});
+  const clean=unique.slice(0,limits.favorites);
   const client=await pool.connect();
   try{
     await client.query("BEGIN");
