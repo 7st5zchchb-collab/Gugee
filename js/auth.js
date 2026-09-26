@@ -223,7 +223,7 @@ function initNotificationsBell(){
   const header=document.querySelector(".site-header");
   if(!header||document.getElementById("notificationBell"))return;
   const wrap=document.createElement("div"); wrap.className="notification-bell-wrap";
-  wrap.innerHTML='<button id="notificationBell" class="notification-bell" type="button" aria-label="Notifications" aria-expanded="false">🔔<span id="notificationCount" class="notification-count" hidden>0</span></button><div id="notificationDropdown" class="notification-dropdown" hidden><div class="notification-dropdown-head"><strong>Notifications</strong><button id="markNotificationsRead" type="button">Mark all read</button></div><div id="notificationItems" class="notification-items"><span class="notification-empty">Loading...</span></div></div>';
+  wrap.innerHTML='<button id="notificationBell" class="notification-bell" type="button" aria-label="Notifications" aria-expanded="false">🔔<span id="notificationCount" class="notification-count" hidden>0</span></button><div id="notificationDropdown" class="notification-dropdown" hidden><div class="notification-dropdown-head"><strong>Notifications</strong><button id="markNotificationsRead" type="button">Mark all read</button></div><div id="notificationItems" class="notification-items"><span class="notification-empty">Updating...</span></div></div>';
   const login=header.querySelector(".login-button"); header.insertBefore(wrap,login||null);
   const bell=wrap.querySelector("#notificationBell"), dropdown=wrap.querySelector("#notificationDropdown");
   bell.onclick=async()=>{const open=dropdown.hidden;dropdown.hidden=!open;bell.setAttribute("aria-expanded",String(open));if(open)await loadNotificationsBell()};
