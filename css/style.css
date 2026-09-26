@@ -2255,3 +2255,14 @@ footer{width:100%;box-sizing:border-box}
 .auth-card-final .auth-switch a{font-weight:700}
 .auth-card-final .auth-note{text-align:center;color:#575860}
 @media(max-width:520px){.auth-card-final{padding:20px!important}.auth-card-final h1{font-size:29px!important}.auth-logo-lockup{margin-bottom:16px}.auth-card-final .auth-form input{height:48px}.auth-card-final .auth-submit{height:49px}}
+
+
+/* Reliable avatar rendering + mobile menu shell */
+.user-avatar{overflow:hidden;flex:0 0 auto}
+.user-avatar img,.user-avatar-image img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;border-radius:50%}
+@media(max-width:700px){
+  .site-header{height:auto;min-height:64px;grid-template-columns:minmax(0,1fr) 40px minmax(0,auto)!important}
+  .mobile-nav-toggle{display:flex!important;position:relative;z-index:1250}
+  .site-header .nav{margin-left:0!important}
+  .site-header .nav.mobile-open{display:flex!important}
+}
