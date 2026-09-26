@@ -29,7 +29,18 @@ async function logout(){
 }
 window.gugeeAuth={getCurrentUser,setCurrentUser,refreshCurrentUser,logout,api};
 
+const GUGEE_PREFETCH_PAGES=["index.html","markets.html","cryptos.html","analysis.html","exchanges.html","account.html","referrals.html"];
+function warmNavigationPages(){
+  if(!("requestIdleCallback" in window))return setTimeout(warmNavigationPages,1200);
+  requestIdleCallback(()=>{
+    GUGEE_PREFETCH_PAGES.forEach(href=>{
+      if(document.head.querySelector('link[data-gugee-prefetch="'+href+'"]'))return;
+      const link=document.createElement("link");link.rel="prefetch";link.as="document";link.href=href;link.dataset.gugeePrefetch=href;document.head.appendChild(link);
+    });
+  },{timeout:1800});
+}
 function initGlobalNavigation(){
+  warmNavigationPages();
   const header=document.querySelector(".site-header");
   if(!header)return;
 
