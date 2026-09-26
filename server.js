@@ -980,14 +980,19 @@ app.get("/api/wallet/transactions",auth,async(req,res)=>{
 app.get("/api/account/limits",auth,async(req,res)=>{try{const limits=await getPlanLimits(req.user.id);res.json(limits)}catch(e){res.status(500).json({error:"Could not load account limits"})}});
 
 const TASK_DEFS=[
-  {id:"deposit_100",title:"Deposit 100 USDT",description:"Reach 100 USDT in confirmed lifetime deposits.",target:100,reward:0.50},
-  {id:"deposit_500",title:"Deposit 500 USDT",description:"Reach 500 USDT in confirmed lifetime deposits.",target:500,reward:1.50},
-  {id:"ten_crypto_buys",title:"Complete 10 crypto buys",description:"Complete 10 successful crypto purchases.",target:10,reward:0.75},
-  {id:"trade_volume_1000",title:"Trade 1,000 USDT",description:"Reach 1,000 USDT in completed buy and sell volume.",target:1000,reward:2.00},
-  {id:"trade_volume_5000",title:"Trade 5,000 USDT",description:"Reach 5,000 USDT in completed buy and sell volume.",target:5000,reward:5.00},
-  {id:"invite_three",title:"Invite 3 qualified users",description:"3 people must join through your referral link and qualify.",target:3,reward:1.00},
-  {id:"five_referrals",title:"Invite 5 qualified users",description:"5 qualified referrals unlock the separate 10 USDT referral milestone.",target:5,reward:0}
+  {id:"deposit_100",title:"Deposit 100 USDT",description:"Reach 100 USDT in confirmed lifetime deposits.",target:100,reward:0.50,minRevenue:5},
+  {id:"deposit_500",title:"Deposit 500 USDT",description:"Reach 500 USDT in confirmed lifetime deposits.",target:500,reward:1.50,minRevenue:15},
+  {id:"ten_crypto_buys",title:"Complete 10 crypto buys",description:"Complete 10 successful crypto purchases.",target:10,reward:0.75,minRevenue:7.5},
+  {id:"trade_volume_1000",title:"Trade 1,000 USDT",description:"Reach 1,000 USDT in completed buy and sell volume.",target:1000,reward:2.00,minRevenue:20},
+  {id:"trade_volume_5000",title:"Trade 5,000 USDT",description:"Reach 5,000 USDT in completed buy and sell volume.",target:5000,reward:5.00,minRevenue:50},
+  {id:"invite_three",title:"Invite 3 qualified users",description:"3 people must join through your referral link and qualify.",target:3,reward:1.00,minRevenue:10},
+  {id:"five_referrals",title:"Invite 5 qualified users",description:"5 qualified referrals unlock the separate 10 USDT referral milestone.",target:5,reward:0,minRevenue:0}
 ];
+async function userPlatformRevenue(userId){
+  const tx=(await pool.query("SELECT COALESCE(SUM(fee_usdt),0) AS fees FROM wallet_transactions WHERE user_id=$1",[userId])).rows[0];
+  const sub=(await pool.query("SELECT COALESCE(SUM(price_usdt),0) AS subscriptions FROM subscriptions WHERE user_id=$1 AND status='active'",[userId])).rows[0];
+  return Number(tx.fees||0)+Number(sub.subscriptions||0);
+}
 async function taskProgress(userId){
   const u=(await pool.query("SELECT email_verified,avatar_data FROM users WHERE id=$1",[userId])).rows[0]||{};
   const tx=(await pool.query("SELECT COUNT(*) FILTER(WHERE type='deposit')::int AS deposits,COALESCE(SUM(usdt_amount) FILTER(WHERE type='deposit'),0) AS deposit_volume,COUNT(*) FILTER(WHERE type='buy')::int AS buys,COALESCE(SUM(ABS(usdt_amount)) FILTER(WHERE type IN ('buy','sell')),0) AS trade_volume FROM wallet_transactions WHERE user_id=$1",[userId])).rows[0];
@@ -999,7 +1004,8 @@ app.get("/api/tasks",auth,async(req,res)=>{
     const progress=await taskProgress(req.user.id);
     const {rows}=await pool.query("SELECT task_id,reward_usdt,claimed_at FROM task_claims WHERE user_id=$1",[req.user.id]);
     const claimed=new Map(rows.map(x=>[x.task_id,x]));
-    res.json({tasks:TASK_DEFS.map(t=>({...t,progress:Math.min(t.target,Number(progress[t.id]||0)),completed:Number(progress[t.id]||0)>=t.target,claimed:claimed.has(t.id),claimed_at:claimed.get(t.id)?.claimed_at||null}))});
+    const platformRevenue=await userPlatformRevenue(req.user.id);
+    res.json({platformRevenue,tasks:TASK_DEFS.map(t=>({...t,progress:Math.min(t.target,Number(progress[t.id]||0)),completed:Number(progress[t.id]||0)>=t.target,revenueReady:platformRevenue>=Number(t.minRevenue||0),claimed:claimed.has(t.id),claimed_at:claimed.get(t.id)?.claimed_at||null}))});
   }catch(e){console.error(e);res.status(500).json({error:"Could not load tasks"});}
 });
 app.post("/api/tasks/:id/claim",auth,async(req,res)=>{
@@ -1011,6 +1017,8 @@ app.post("/api/tasks/:id/claim",auth,async(req,res)=>{
     await client.query("BEGIN");
     const progress=await taskProgress(req.user.id);
     if(Number(progress[def.id]||0)<def.target){await client.query("ROLLBACK");return res.status(400).json({error:"Complete the task before claiming the reward."});}
+    const platformRevenue=await userPlatformRevenue(req.user.id);
+    if(platformRevenue<Number(def.minRevenue||0)){await client.query("ROLLBACK");return res.status(400).json({error:"Reward unlock requires more completed fee/subscription activity."});}
     const claim=await client.query("INSERT INTO task_claims(user_id,task_id,reward_usdt) VALUES($1,$2,$3) ON CONFLICT(user_id,task_id) DO NOTHING RETURNING id",[req.user.id,def.id,def.reward]);
     if(!claim.rows[0]){await client.query("ROLLBACK");return res.status(409).json({error:"Reward already claimed."});}
     await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT DO NOTHING",[req.user.id]);
