@@ -14,6 +14,8 @@ const DATABASE_URL=process.env.DATABASE_URL;
 const RESEND_API_KEY=process.env.RESEND_API_KEY;
 const EMAIL_FROM=process.env.EMAIL_FROM||"Gugee <noreply@gugee.com>";
 const FRONTEND_URL=(process.env.FRONTEND_URL||"").replace(/\/$/,"");
+const STRIPE_SECRET_KEY=process.env.STRIPE_SECRET_KEY||"";
+const STRIPE_WEBHOOK_SECRET=process.env.STRIPE_WEBHOOK_SECRET||"";
 
 if(!JWT_SECRET||!DATABASE_URL){
   console.error("Missing JWT_SECRET or DATABASE_URL environment variables.");
@@ -45,6 +47,56 @@ setInterval(()=>{
 const pool=new Pool({
   connectionString:DATABASE_URL,
   ssl:process.env.NODE_ENV==="production"?{rejectUnauthorized:false}:undefined
+});
+
+function safeEqualHex(a,b){
+  try{
+    const aa=Buffer.from(String(a||""),"hex"),bb=Buffer.from(String(b||""),"hex");
+    return aa.length===bb.length&&aa.length>0&&crypto.timingSafeEqual(aa,bb);
+  }catch{return false;}
+}
+function verifyStripeSignature(rawBody,header){
+  if(!STRIPE_WEBHOOK_SECRET)throw new Error("Stripe webhook secret is not configured");
+  const parts=String(header||"").split(",").map(x=>x.split("="));
+  const timestamp=parts.find(x=>x[0]==="t")?.[1];
+  const signatures=parts.filter(x=>x[0]==="v1").map(x=>x[1]);
+  if(!timestamp||!signatures.length)throw new Error("Missing Stripe signature");
+  if(Math.abs(Math.floor(Date.now()/1000)-Number(timestamp))>300)throw new Error("Expired Stripe signature");
+  const expected=crypto.createHmac("sha256",STRIPE_WEBHOOK_SECRET).update(timestamp+"."+rawBody.toString("utf8")).digest("hex");
+  if(!signatures.some(sig=>safeEqualHex(sig,expected)))throw new Error("Invalid Stripe signature");
+}
+async function creditStripeDeposit(session,eventId){
+  if(!session||session.payment_status!=="paid")return;
+  const userId=Number(session.metadata?.gugee_user_id);
+  const grossCents=Number(session.amount_total);
+  const feeCents=Number(session.metadata?.gugee_fee_cents||100);
+  const creditCents=grossCents-feeCents;
+  if(!Number.isSafeInteger(userId)||userId<=0||!Number.isSafeInteger(grossCents)||grossCents<2000||creditCents<=0)throw new Error("Invalid Stripe deposit metadata");
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",[eventId,"checkout.session.completed"]);
+    if(!inserted.rows[0]){await client.query("ROLLBACK");return;}
+    await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[userId]);
+    await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[creditCents/100,userId]);
+    await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount,fee_usdt) VALUES($1,'deposit',$2,$3)",[userId,creditCents/100,feeCents/100]);
+    await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,$2,$3,'deposit')",[userId,"Deposit completed",(creditCents/100).toFixed(2)+" USDT was credited to your Gugee wallet."]);
+    await client.query("COMMIT");
+  }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
+}
+app.post("/api/stripe/webhook",express.raw({type:"application/json",limit:"256kb"}),async(req,res)=>{
+  try{
+    verifyStripeSignature(req.body,req.headers["stripe-signature"]);
+    const event=JSON.parse(req.body.toString("utf8"));
+    if(event.type==="checkout.session.completed"||event.type==="checkout.session.async_payment_succeeded")await creditStripeDeposit(event.data?.object,event.id);
+    if(event.type==="checkout.session.async_payment_failed"||event.type==="checkout.session.expired"){
+      await pool.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING",[event.id,event.type]);
+    }
+    res.json({received:true});
+  }catch(e){
+    console.error("Stripe webhook error:",e.message);
+    res.status(400).json({error:"Invalid webhook"});
+  }
 });
 
 app.use(express.json({limit:"20kb"}));
@@ -466,6 +518,11 @@ async function initDb(){
       referred_user_id BIGINT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS stripe_events(
+      event_id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS withdrawal_requests(
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -735,6 +792,40 @@ async function getPurchaseCoin(coinId){
   if(!Number.isFinite(price)||price<=0)throw new Error("Coin not found");
   return {id,symbol:id.toUpperCase(),price};
 }
+
+app.post("/api/stripe/create-checkout-session",auth,async(req,res)=>{
+  if(!STRIPE_SECRET_KEY)return res.status(503).json({error:"Stripe is not configured."});
+  const amount=Number(req.body.amount);
+  if(!Number.isFinite(amount)||amount<20||amount>100000)return res.status(400).json({error:"Deposit must be between $20 and $100,000."});
+  const grossCents=Math.round(amount*100);
+  const feeCents=Math.round(depositFee(amount)*100);
+  if(grossCents<=feeCents)return res.status(400).json({error:"Deposit amount is too small."});
+  try{
+    const origin=FRONTEND_URL||(`${req.protocol}://${req.get("host")}`);
+    const body=new URLSearchParams();
+    body.set("mode","payment");
+    body.set("success_url",origin+"/account.html?deposit=success&session_id={CHECKOUT_SESSION_ID}");
+    body.set("cancel_url",origin+"/account.html?deposit=cancelled");
+    body.set("customer_email",req.user.email);
+    body.set("line_items[0][price_data][currency]","usd");
+    body.set("line_items[0][price_data][product_data][name]","Gugee wallet deposit");
+    body.set("line_items[0][price_data][unit_amount]",String(grossCents));
+    body.set("line_items[0][quantity]","1");
+    body.set("metadata[gugee_user_id]",String(req.user.id));
+    body.set("metadata[gugee_fee_cents]",String(feeCents));
+    const stripeResponse=await fetch("https://api.stripe.com/v1/checkout/sessions",{
+      method:"POST",
+      headers:{Authorization:"Bearer "+STRIPE_SECRET_KEY,"Content-Type":"application/x-www-form-urlencoded","Idempotency-Key":"gugee-deposit-"+req.user.id+"-"+grossCents+"-"+Date.now()},
+      body
+    });
+    const session=await stripeResponse.json();
+    if(!stripeResponse.ok||!session.url)throw new Error(session?.error?.message||"Could not create Stripe Checkout session");
+    res.json({url:session.url,sessionId:session.id,fee:feeCents/100,estimatedCredit:(grossCents-feeCents)/100});
+  }catch(e){
+    console.error("Stripe checkout error:",e.message);
+    res.status(502).json({error:"Could not start secure checkout."});
+  }
+});
 
 app.get("/api/wallet/price",auth,async(req,res)=>{
   try{
