@@ -23,6 +23,7 @@ function initCommunity(app,pool,auth){
     await client.query("UPDATE community_referrals SET status='qualified',qualified_at=NOW() WHERE id=$1",[r.id]);
     const count=Number((await client.query("SELECT COUNT(*)::int AS n FROM community_referrals WHERE referrer_id=$1 AND status IN ('qualified','rewarded')",[r.referrer_id])).rows[0].n||0);
     if(count<5)return;
+    await client.query("SELECT id FROM users WHERE id=$1 FOR UPDATE",[r.referrer_id]);
     const already=Number((await client.query("SELECT COUNT(*)::int AS n FROM referral_rewards WHERE user_id=$1 AND reason=$2",[r.referrer_id,"5 qualified referrals milestone"])).rows[0].n||0);
     if(already)return;
     const reward=10;
@@ -58,6 +59,7 @@ function initCommunity(app,pool,auth){
       reason TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE UNIQUE INDEX IF NOT EXISTS referral_rewards_user_reason_unique ON referral_rewards(user_id,reason);
     CREATE TABLE IF NOT EXISTS tournaments(
       id BIGSERIAL PRIMARY KEY,
       name TEXT NOT NULL,
