@@ -67,7 +67,7 @@ function initGlobalNavigation(){
     '<a href="account.html#tasksPanel"><span class="nav-icon">☑</span>Tasks</a>'+
     '<a href="referrals.html"><span class="nav-icon">♧</span>Referral</a>'+
     '<div class="mobile-nav-separator"></div>'+
-    '<a href="account.html#passwordSettings"><span class="nav-icon">⚙</span>Settings</a>'+
+    '<a href="account.html#passwordSettingsForm"><span class="nav-icon">⚙</span>Settings</a>'+
     (signedIn?'<button class="mobile-drawer-logout" type="button"><span class="nav-icon">↪</span>Log out</button>':'<a href="login.html"><span class="nav-icon">↪</span>Log in</a>')+
     '<div class="drawer-theme-switch" aria-label="Theme"><span>☾</span><button class="drawer-theme-toggle" type="button" role="switch" aria-checked="false"><span></span></button><span>☀</span></div>';
   const current=(window.location.pathname.split("/").pop()||"index.html").toLowerCase();
