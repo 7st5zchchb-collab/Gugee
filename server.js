@@ -403,7 +403,7 @@ function makeReferralCode(username){
 }
 
 function depositFee(amount){return 1;}
-function withdrawFee(amount){return Math.floor(amount/20);}
+function withdrawFee(amount){return Math.max(1,Math.ceil(Number(amount)/20));}
 function tradeFee(){return 0.10;}
 
 function validMoney(value,max=1000000000){
@@ -532,6 +532,9 @@ async function initDb(){
       method TEXT NOT NULL CHECK(method IN ('visa','mastercard','paypal')),
       destination TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','processing','paid','rejected','cancelled')),
+      reviewed_at TIMESTAMPTZ,
+      reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+      review_note TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
@@ -544,6 +547,9 @@ async function initDb(){
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
   await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code_unique ON users(referral_code) WHERE referral_code IS NOT NULL");
   await pool.query("ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS destination TEXT NOT NULL DEFAULT ''");
+  await pool.query("ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ");
+  await pool.query("ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL");
+  await pool.query("ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS review_note TEXT");
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE");
   await pool.query("UPDATE users SET is_admin=TRUE WHERE LOWER(email)='gurgensirunyan111@gmail.com'");
   const statements=[
@@ -888,7 +894,72 @@ app.post("/api/wallet/deposit",auth,async(req,res)=>{
 });
 
 app.post("/api/wallet/withdraw",auth,async(req,res)=>{
-  return res.status(501).json({error:"Payout provider not connected yet. Your balance has not been changed."});
+  const amount=Number(req.body.amount);
+  const method=String(req.body.method||"").toLowerCase();
+  const destination=String(req.body.destination||"").trim();
+  if(!Number.isFinite(amount)||amount<20||amount>100000)return res.status(400).json({error:"Withdrawal must be between 20 and 100,000 USDT."});
+  if(!["visa","mastercard","paypal"].includes(method))return res.status(400).json({error:"Select a payout method."});
+  if(destination.length<4||destination.length>160)return res.status(400).json({error:"Enter valid payout details."});
+  const fee=withdrawFee(amount),net=amount-fee;
+  if(net<=0)return res.status(400).json({error:"Withdrawal amount is too small after fees."});
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[req.user.id]);
+    const held=await client.query("UPDATE wallets SET usdt=usdt-$1,updated_at=NOW() WHERE user_id=$2 AND usdt>=$1 RETURNING usdt",[amount,req.user.id]);
+    if(!held.rows[0]){await client.query("ROLLBACK");return res.status(400).json({error:"Insufficient USDT balance."});}
+    const row=await client.query("INSERT INTO withdrawal_requests(user_id,amount_usdt,fee_usdt,net_usdt,method,destination,status) VALUES($1,$2,$3,$4,$5,$6,'pending') RETURNING id,status,created_at",[req.user.id,amount,fee,net,method,destination]);
+    await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Withdrawal pending',$2,'withdrawal')",[req.user.id,"Your withdrawal is under review. Review target: within 12 hours."]);
+    await client.query("COMMIT");
+    res.status(201).json({ok:true,withdrawal:{...row.rows[0],amount,fee,net,method},usdt:Number(held.rows[0].usdt)});
+  }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not create withdrawal request"});}finally{client.release();}
+});
+
+app.get("/api/admin/withdrawals",auth,async(req,res)=>{
+  if(!req.user.is_admin)return res.status(403).json({error:"Admin access required"});
+  try{
+    const {rows}=await pool.query("SELECT w.id,w.user_id,u.username,u.email,w.amount_usdt,w.fee_usdt,w.net_usdt,w.method,w.destination,w.status,w.created_at,w.reviewed_at,w.review_note FROM withdrawal_requests w JOIN users u ON u.id=w.user_id ORDER BY CASE WHEN w.status='pending' THEN 0 ELSE 1 END,w.created_at ASC LIMIT 200");
+    res.json({withdrawals:rows});
+  }catch(e){res.status(500).json({error:"Could not load withdrawals"});}
+});
+
+app.post("/api/admin/withdrawals/:id/review",auth,async(req,res)=>{
+  if(!req.user.is_admin)return res.status(403).json({error:"Admin access required"});
+  const action=String(req.body.action||"").toLowerCase(),note=String(req.body.note||"").trim().slice(0,500);
+  if(!["approve","reject"].includes(action))return res.status(400).json({error:"Action must be approve or reject."});
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    const q=await client.query("SELECT * FROM withdrawal_requests WHERE id=$1 FOR UPDATE",[req.params.id]);
+    const w=q.rows[0];
+    if(!w){await client.query("ROLLBACK");return res.status(404).json({error:"Withdrawal not found"});}
+    if(w.status!=="pending"){await client.query("ROLLBACK");return res.status(409).json({error:"Withdrawal was already reviewed."});}
+    if(action==="reject"){
+      await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[w.amount_usdt,w.user_id]);
+      await client.query("UPDATE withdrawal_requests SET status='rejected',reviewed_at=NOW(),reviewed_by=$1,review_note=$2 WHERE id=$3",[req.user.id,note,w.id]);
+      await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Withdrawal rejected',$2,'withdrawal')",[w.user_id,"Your held balance was returned to your wallet."]);
+    }else{
+      await client.query("UPDATE withdrawal_requests SET status='processing',reviewed_at=NOW(),reviewed_by=$1,review_note=$2 WHERE id=$3",[req.user.id,note,w.id]);
+      await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Withdrawal approved',$2,'withdrawal')",[w.user_id,"Your withdrawal was approved and is awaiting payout confirmation."]);
+    }
+    await client.query("COMMIT");
+    res.json({ok:true,status:action==="approve"?"processing":"rejected"});
+  }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not review withdrawal"});}finally{client.release();}
+});
+
+app.post("/api/admin/withdrawals/:id/paid",auth,async(req,res)=>{
+  if(!req.user.is_admin)return res.status(403).json({error:"Admin access required"});
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    const q=await client.query("SELECT * FROM withdrawal_requests WHERE id=$1 FOR UPDATE",[req.params.id]),w=q.rows[0];
+    if(!w){await client.query("ROLLBACK");return res.status(404).json({error:"Withdrawal not found"});}
+    if(w.status!=="processing"){await client.query("ROLLBACK");return res.status(409).json({error:"Withdrawal must be approved before marking paid."});}
+    await client.query("UPDATE withdrawal_requests SET status='paid',reviewed_at=NOW(),reviewed_by=$1 WHERE id=$2",[req.user.id,w.id]);
+    await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount,fee_usdt) VALUES($1,'withdraw',$2,$3)",[w.user_id,-Number(w.net_usdt),w.fee_usdt]);
+    await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,'Withdrawal paid',$2,'withdrawal')",[w.user_id,"Your withdrawal has been marked paid."]);
+    await client.query("COMMIT");res.json({ok:true,status:"paid"});
+  }catch(e){await client.query("ROLLBACK");console.error(e);res.status(500).json({error:"Could not mark withdrawal paid"});}finally{client.release();}
 });
 
 app.get("/api/wallet/withdrawals",auth,async(req,res)=>{
