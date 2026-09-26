@@ -1137,12 +1137,26 @@ app.get("/api/wallet/price",auth,async(req,res)=>{
 });
 
 app.get("/api/payment-methods",auth,async(req,res)=>{try{const {rows}=await pool.query("SELECT id,brand,last4,exp_month,exp_year,is_default,created_at FROM saved_payment_methods WHERE user_id=$1 ORDER BY is_default DESC,created_at DESC",[req.user.id]);res.json({cards:rows})}catch(e){res.status(500).json({error:"Could not load payment methods"})}});
-app.delete("/api/payment-methods/:id",auth,async(req,res)=>{try{const {rows}=await pool.query("DELETE FROM saved_payment_methods WHERE id=$1 AND user_id=$2 RETURNING stripe_payment_method_id",[req.params.id,req.user.id]);if(!rows[0])return res.status(404).json({error:"Card not found"});res.json({ok:true})}catch(e){res.status(500).json({error:"Could not remove card"})}});
+app.delete("/api/payment-methods/:id",auth,async(req,res)=>{
+  try{
+    const card=(await pool.query("SELECT stripe_payment_method_id FROM saved_payment_methods WHERE id=$1 AND user_id=$2",[req.params.id,req.user.id])).rows[0];
+    if(!card)return res.status(404).json({error:"Card not found"});
+    if(STRIPE_SECRET_KEY){
+      const sr=await fetch("https://api.stripe.com/v1/payment_methods/"+encodeURIComponent(card.stripe_payment_method_id)+"/detach",{method:"POST",headers:{Authorization:"Bearer "+STRIPE_SECRET_KEY}});
+      const data=await sr.json().catch(()=>({}));
+      if(!sr.ok && data?.error?.code!=="resource_missing")return res.status(502).json({error:"Could not detach card from Stripe."});
+    }
+    await pool.query("DELETE FROM saved_payment_methods WHERE id=$1 AND user_id=$2",[req.params.id,req.user.id]);
+    res.json({ok:true});
+  }catch(e){console.error("Remove card:",e.message);res.status(500).json({error:"Could not remove card"})}
+});
 app.post("/api/stripe/setup-card",auth,async(req,res)=>{
   if(!STRIPE_SECRET_KEY)return res.status(503).json({error:"Stripe is not configured."});
   try{
     const origin=FRONTEND_URL||(`${req.protocol}://${req.get("host")}`),body=new URLSearchParams();
-    body.set("mode","setup");body.set("customer_creation","always");body.set("success_url",origin+"/account.html?card=added");body.set("cancel_url",origin+"/account.html?card=cancelled");body.set("customer_email",req.user.email);
+    body.set("mode","setup");body.set("success_url",origin+"/account.html?card=added");body.set("cancel_url",origin+"/account.html?card=cancelled");
+    const existingCustomer=(await pool.query("SELECT stripe_customer_id FROM saved_payment_methods WHERE user_id=$1 ORDER BY is_default DESC,created_at DESC LIMIT 1",[req.user.id])).rows[0]?.stripe_customer_id;
+    if(existingCustomer)body.set("customer",existingCustomer);else{body.set("customer_creation","always");body.set("customer_email",req.user.email);}
     body.set("metadata[gugee_kind]","card_setup");body.set("metadata[gugee_user_id]",String(req.user.id));
     const sr=await fetch("https://api.stripe.com/v1/checkout/sessions",{method:"POST",headers:{Authorization:"Bearer "+STRIPE_SECRET_KEY,"Content-Type":"application/x-www-form-urlencoded"},body}),session=await sr.json();
     if(!sr.ok||!session.url)throw new Error(session?.error?.message||"Could not create card setup");
