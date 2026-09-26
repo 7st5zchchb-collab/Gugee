@@ -103,9 +103,9 @@
 <section class="account-card subscription-ui">
 <div class="account-head" style="margin-bottom:10px"><div><p class="section-label">SUBSCRIPTION</p><h2>Your plan</h2></div><span id="subscriptionStatus" class="muted">Loading...</span></div>
 <div class="plan-grid">
-<div class="plan-card" data-plan="free"><h3>Free</h3><div class="plan-price">0 USDT</div><ul><li>Market analytics</li><li>Crypto directory</li><li>Basic account wallet</li></ul><button class="plan-btn" type="button">Select</button></div>
-<div class="plan-card" data-plan="pro"><h3>Pro</h3><div class="plan-price">5 USDT / 30d</div><ul><li>Extended analysis</li><li>Portfolio tracking</li><li>Advanced account features</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
-<div class="plan-card" data-plan="elite"><h3>Elite</h3><div class="plan-price">25 USDT / 30d</div><ul><li>All Pro features</li><li>Priority platform features</li><li>Advanced community access</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
+<div class="plan-card" data-plan="free"><h3>Free</h3><div class="plan-price">$0</div><ul><li>5 favorites</li><li>Basic market analytics</li><li>Up to 500 USDT/day crypto withdrawal</li></ul><button class="plan-btn" type="button">Select</button></div>
+<div class="plan-card" data-plan="plus"><h3>Plus</h3><div class="plan-price">$4.99 / month</div><ul><li>25 favorites</li><li>Advanced analysis & alerts</li><li>Higher withdrawal limits</li><li>Portfolio analytics</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
+<div class="plan-card" data-plan="pro"><h3>Pro</h3><div class="plan-price">$9.99 / month</div><ul><li>100 favorites</li><li>Full advanced analytics</li><li>Highest account limits</li><li>Priority features & exports</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
 </div>
 <p id="subscriptionMessage" class="muted" aria-live="polite"></p>
 </section>
@@ -124,9 +124,14 @@
 <script src="js/auth.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded",async()=>{
+  const subscriptionReturn=new URLSearchParams(location.search).get("subscription");
+
   const user=await window.gugeeAuth.refreshCurrentUser();
   if(!user){window.location.href="login.html";return;}
   const $=id=>document.getElementById(id);
+  if(subscriptionReturn==="success")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Payment confirmed. Activating your plan…";},0);
+  if(subscriptionReturn==="cancelled")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Subscription checkout was cancelled.";},0);
+
   const esc=v=>String(v??"").replace(/[&<>"\x27]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","\x27":"&#39;"}[c]));
   $("welcome").textContent="@"+(user.username||"user");
   $("logoutBtn").onclick=window.gugeeAuth.logout;
@@ -188,9 +193,15 @@ document.addEventListener("DOMContentLoaded",async()=>{
           if(active)return;
           $("subscriptionMessage").textContent="Processing...";
           try{
-            const result=await window.gugeeAuth.api("/api/subscriptions/subscribe",{method:"POST",body:JSON.stringify({plan:card.dataset.plan})});
-            $("subscriptionMessage").textContent=result.plan.toUpperCase()+" activated.";
-            await loadSubscription();await loadWallet();await loadTransactions();await loadNotifications();
+            if(card.dataset.plan==="free"){
+              const result=await window.gugeeAuth.api("/api/subscriptions/free",{method:"POST"});
+              $("subscriptionMessage").textContent=result.plan.toUpperCase()+" activated.";
+              await loadSubscription();
+            }else{
+              const result=await window.gugeeAuth.api("/api/subscriptions/create-checkout-session",{method:"POST",body:JSON.stringify({plan:card.dataset.plan})});
+              if(!result.url)throw new Error("Checkout URL was not returned.");
+              window.location.href=result.url;
+            }
           }catch(e){$("subscriptionMessage").textContent=e.message;}
         };
       });
