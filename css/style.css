@@ -2331,3 +2331,20 @@ html{scroll-behavior:smooth}
  .mobile-drawer-logout{color:#f0f3f8!important}
  .drawer-notification-badge{color:#fff!important;background:#ff3151!important}
 }
+
+
+/* Keep mobile drawer fully scrollable until it is closed */
+@media(max-width:700px){
+ body.nav-drawer-open{overflow:hidden!important;touch-action:none}
+ .site-header .nav{
+   height:100dvh!important;
+   max-height:100dvh!important;
+   overflow-y:auto!important;
+   overflow-x:hidden!important;
+   -webkit-overflow-scrolling:touch!important;
+   overscroll-behavior:contain;
+   touch-action:pan-y!important;
+   padding-bottom:max(34px,env(safe-area-inset-bottom))!important;
+ }
+ .mobile-drawer-logout{flex:0 0 42px!important;margin-bottom:8px}
+}
