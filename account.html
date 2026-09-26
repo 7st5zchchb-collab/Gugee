@@ -75,7 +75,7 @@
 <div class="profile-info">
 <div><small class="muted">Username</small><div id="profileUsername" class="readonly-field">@user</div></div>
 <div><small class="muted">Connected email</small><div id="profileEmail" class="readonly-field">—</div></div>
-<div class="settings-actions"><input id="avatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden><button id="changeAvatarBtn" type="button">Change avatar</button><button id="removeAvatarBtn" type="button">Remove avatar</button></div>
+<div class="settings-actions"><input id="avatarInput" type="file" accept="image/*" hidden><button id="changeAvatarBtn" type="button">Change avatar</button><button id="removeAvatarBtn" type="button">Remove avatar</button></div>
 <p id="profileMessage" class="muted" aria-live="polite"></p>
 </div></div>
 <form id="passwordSettingsForm" class="password-settings">
@@ -182,9 +182,10 @@ document.addEventListener("DOMContentLoaded",async()=>{
     if(head){head.classList.toggle("user-avatar-image",Boolean(value));head.innerHTML=value?'<img src="'+esc(value)+'" alt="">':esc(letter);}
   }
   renderProfileAvatar(user.avatar_data);
-  $("changeAvatarBtn").onclick=()=>$("avatarInput").click();
+  $("changeAvatarBtn").onclick=()=>{const input=$("avatarInput");input.value="";input.click();};
   $("avatarInput").onchange=()=>{
     const file=$("avatarInput").files?.[0];if(!file)return;
+    if(!String(file.type||"").startsWith("image/")){$("profileMessage").textContent="Please choose a photo.";return;}
     if(file.size>500*1024){$("profileMessage").textContent="Avatar must be 500 KB or smaller.";return;}
     const reader=new FileReader();reader.onload=async()=>{
       try{
