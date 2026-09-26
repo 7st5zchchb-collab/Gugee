@@ -990,11 +990,11 @@ const TASK_DEFS=[
   {id:"invite_three",title:"Invite 3 qualified users",description:"3 people must join through your referral link and qualify.",target:3,reward:1.00,minRevenue:10},
   {id:"five_referrals",title:"Invite 5 qualified users",description:"5 qualified referrals unlock the separate 10 USDT referral milestone.",target:5,reward:0,minRevenue:0}
 ];
-async function userPlatformRevenue(userId){
-  const tx=(await pool.query("SELECT COALESCE(SUM(fee_usdt),0) AS fees FROM wallet_transactions WHERE user_id=$1",[userId])).rows[0];
-  const sub=(await pool.query("SELECT COALESCE(SUM(usdt_amount),0) AS subscriptions FROM wallet_transactions WHERE user_id=$1 AND type='subscription' AND usdt_amount>0",[userId])).rows[0];
+async function userPlatformRevenue(userId,client=pool){
+  const tx=(await client.query("SELECT COALESCE(SUM(fee_usdt),0) AS fees FROM wallet_transactions WHERE user_id=$1",[userId])).rows[0];
+  const sub=(await client.query("SELECT COALESCE(SUM(usdt_amount),0) AS subscriptions FROM wallet_transactions WHERE user_id=$1 AND type='subscription' AND usdt_amount>0",[userId])).rows[0];
   const earned=Number(tx.fees||0)+Number(sub.subscriptions||0);
-  const paid=(await pool.query("SELECT COALESCE(SUM(reward_usdt),0) AS rewards FROM task_claims WHERE user_id=$1",[userId])).rows[0];
+  const paid=(await client.query("SELECT COALESCE(SUM(reward_usdt),0) AS rewards FROM task_claims WHERE user_id=$1",[userId])).rows[0];
   return Math.max(0,earned-Number(paid.rewards||0));
 }
 async function taskProgress(userId){
@@ -1019,9 +1019,10 @@ app.post("/api/tasks/:id/claim",auth,async(req,res)=>{
   const client=await pool.connect();
   try{
     await client.query("BEGIN");
+    await client.query("SELECT id FROM users WHERE id=$1 FOR UPDATE",[req.user.id]);
     const progress=await taskProgress(req.user.id);
     if(Number(progress[def.id]||0)<def.target){await client.query("ROLLBACK");return res.status(400).json({error:"Complete the task before claiming the reward."});}
-    const platformRevenue=await userPlatformRevenue(req.user.id);
+    const platformRevenue=await userPlatformRevenue(req.user.id,client);
     if(platformRevenue<Number(def.minRevenue||0)||platformRevenue<Number(def.reward||0)){await client.query("ROLLBACK");return res.status(400).json({error:"Reward unlock requires more eligible Gugee fee/subscription revenue."});}
     const claim=await client.query("INSERT INTO task_claims(user_id,task_id,reward_usdt) VALUES($1,$2,$3) ON CONFLICT(user_id,task_id) DO NOTHING RETURNING id",[req.user.id,def.id,def.reward]);
     if(!claim.rows[0]){await client.query("ROLLBACK");return res.status(409).json({error:"Reward already claimed."});}
