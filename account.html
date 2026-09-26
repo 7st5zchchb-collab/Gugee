@@ -142,6 +142,12 @@
 <p id="subscriptionMessage" class="muted" aria-live="polite"></p>
 </section>
 
+<section class="account-card" style="margin-top:20px" id="tasksPanel">
+<div class="account-head"><div><p class="section-label">TASKS & REWARDS</p><h2>Complete tasks</h2><p class="muted">Progress is verified by Gugee servers. Each claimable reward can be collected only once.</p></div></div>
+<div id="taskList" class="notification-list"><p class="muted">Loading tasks...</p></div>
+<p id="taskMessage" class="muted" aria-live="polite"></p>
+</section>
+
 <section class="account-card notification-ui">
 <div class="account-head" style="margin-bottom:10px"><div><p class="section-label">NOTIFICATIONS</p><h2>Recent notifications</h2></div></div>
 <div id="notifications" class="notification-list"><p class="muted">Loading...</p></div>
@@ -297,6 +303,19 @@ document.addEventListener("DOMContentLoaded",async()=>{
     }catch(e){$("subscriptionMessage").textContent=e.message;}
   }
 
+  async function loadTasks(){
+    const box=$("taskList"),msg=$("taskMessage");
+    try{
+      const data=await window.gugeeAuth.api("/api/tasks");
+      box.innerHTML=data.tasks.map(t=>{
+        const pct=Math.min(100,Math.round((Number(t.progress)/Number(t.target))*100));
+        const action=t.reward>0?(t.claimed?'<button disabled>Claimed</button>':t.completed?'<button class="task-claim" data-task="'+esc(t.id)+'">Claim '+Number(t.reward).toFixed(2)+' USDT</button>':'<button disabled>In progress</button>'):(t.completed?'<button disabled>Reward credited</button>':'<button disabled>In progress</button>');
+        return '<div class="notice"><div class="notice-title">'+esc(t.title)+'</div><div class="notice-message">'+esc(t.description)+' · '+Number(t.progress)+' / '+Number(t.target)+'</div><div style="height:6px;background:#1b1d21;border-radius:99px;overflow:hidden;margin:9px 0"><div style="height:100%;width:'+pct+'%;background:#35e08b"></div></div>'+action+'</div>';
+      }).join("");
+      box.querySelectorAll(".task-claim").forEach(btn=>btn.onclick=async()=>{btn.disabled=true;msg.textContent="Claiming reward...";try{const r=await window.gugeeAuth.api("/api/tasks/"+encodeURIComponent(btn.dataset.task)+"/claim",{method:"POST"});msg.textContent="+"+Number(r.reward).toFixed(2)+" USDT added to your balance.";await Promise.all([loadTasks(),loadWallet(),loadTransactions()]);}catch(e){msg.textContent=e.message;btn.disabled=false;}});
+    }catch(e){box.innerHTML='<p class="error">'+esc(e.message)+'</p>';}
+  }
+
   async function loadTransactions(){
     try{
       const data=await window.gugeeAuth.api("/api/wallet/transactions");
@@ -396,7 +415,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
     }catch(e){$("referralMessage").textContent=e.message;}
   }
   $("copyReferral").onclick=async()=>{try{if(!$("referralLink").value)throw Error("No referral link available.");await navigator.clipboard.writeText($("referralLink").value);$("referralMessage").textContent="Copied!";}catch(e){$("referralMessage").textContent=e.message;}};
-  await Promise.all([loadWallet(),loadSubscription(),loadTransactions(),loadNotifications(),loadReferral()]);
+  await Promise.all([loadWallet(),loadSubscription(),loadTransactions(),loadNotifications(),loadReferral(),loadTasks()]);
 });
 </script>
 </body>
