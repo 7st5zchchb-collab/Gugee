@@ -137,6 +137,7 @@ function initGlobalNavigation(){
     e.preventDefault();closeMenu();history.replaceState(null,"",targetHash);target.scrollIntoView({behavior:"smooth",block:"start"});
     accountHashLinks.forEach(a=>a.classList.toggle("active",a===link));
   }));
+  nav.querySelectorAll('a[href^="account.html#"]').forEach(link=>{const id=new URL(link.href,location.href).hash.slice(1);if(current==="account.html"&&!document.getElementById(id)){link.classList.add("nav-target-missing");link.setAttribute("aria-disabled","true");}});
   nav.querySelectorAll("a").forEach(link=>link.addEventListener("click",e=>{
     const href=link.getAttribute("href");
     closeMenu();
