@@ -457,7 +457,13 @@ document.addEventListener("DOMContentLoaded",async()=>{
     }catch(e){$("referralMessage").textContent=e.message;}
   }
   $("copyReferral").onclick=async()=>{try{if(!$("referralLink").value)throw Error("No referral link available.");await navigator.clipboard.writeText($("referralLink").value);$("referralMessage").textContent="Copied!";}catch(e){$("referralMessage").textContent=e.message;}};
-  await Promise.all([loadWallet(),loadSubscription(),loadTransactions(),loadNotifications(),loadReferral(),loadTasks()]);
+  // Prioritize the controls the user can act on immediately.
+  // Secondary panels load after first paint so a slow task/referral query cannot hold up the account UI.
+  const primaryLoads=[loadWallet(),loadSubscription(),loadTransactions()];
+  Promise.allSettled(primaryLoads);
+  const loadSecondary=()=>Promise.allSettled([loadNotifications(),loadReferral(),loadTasks()]);
+  if("requestIdleCallback" in window)requestIdleCallback(loadSecondary,{timeout:900});
+  else setTimeout(loadSecondary,0);
 });
 </script>
 </body>
