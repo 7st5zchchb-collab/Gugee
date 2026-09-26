@@ -131,26 +131,19 @@ function initGlobalNavigation(){
     nav.querySelectorAll('a[href^="account.html#"]').forEach(a=>a.classList.toggle("active",a.getAttribute("href").endsWith(hash)));
   }
   const accountHashLinks=nav.querySelectorAll('a[href^="account.html#"]');
-  // One delegated handler makes every drawer row actionable, including taps on icons/text.
-  nav.addEventListener("click",e=>{
-    const link=e.target.closest("a[href]");
-    if(!link||!nav.contains(link))return;
-    const href=link.getAttribute("href");
-    if(!href)return;
+  const activateLink=link=>{
+    const href=link.getAttribute("href");if(!href)return;
     const url=new URL(href,window.location.href);
-    e.preventDefault();
     closeMenu();
     if(current==="account.html"&&url.pathname.endsWith("/account.html")&&url.hash){
       const target=document.getElementById(url.hash.slice(1));
-      if(target){
-        history.replaceState(null,"",url.hash);
-        requestAnimationFrame(()=>target.scrollIntoView({behavior:"smooth",block:"start"}));
-        accountHashLinks.forEach(a=>a.classList.toggle("active",a===link));
-        return;
-      }
+      if(target){history.replaceState(null,"",url.hash);target.scrollIntoView({behavior:"smooth",block:"start"});return;}
     }
-    // Use assign after the drawer is closed; this is reliable on iOS Safari and same-origin Render pages.
-    window.location.assign(url.href);
+    window.location.href=url.href;
+  };
+  nav.querySelectorAll("a[href]").forEach(link=>{
+    link.onclick=e=>{e.preventDefault();activateLink(link);};
+    link.addEventListener("touchend",e=>{e.preventDefault();activateLink(link);},{passive:false});
   });
 }
 function renderAuthNav(){
