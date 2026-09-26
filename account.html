@@ -237,9 +237,8 @@ document.addEventListener("DOMContentLoaded",async()=>{
     if(head){head.classList.toggle("user-avatar-image",Boolean(value));head.innerHTML=value?'<img src="'+esc(value)+'" alt="">':esc(letter);}
   }
   renderProfileAvatar(user.avatar_data);
-  const openAvatarPicker=()=>{const input=$("avatarInput");input.value="";input.click();};
-  $("changeAvatarBtn").onclick=openAvatarPicker;
-  $("avatarCameraBtn").onclick=openAvatarPicker;
+  const openAvatarPicker=()=>{const input=$("avatarInput");if(!input)return;input.value="";try{if(typeof input.showPicker==="function"){input.showPicker();return;}}catch{}input.click();};
+  ["changeAvatarBtn","avatarCameraBtn"].forEach(id=>{const btn=$(id);if(!btn)return;btn.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();openAvatarPicker();},{passive:false});});
   $("avatarInput").onchange=async()=>{
     const input=$("avatarInput"),file=input.files?.[0],msg=$("profileMessage");
     if(!file)return;
