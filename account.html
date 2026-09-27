@@ -230,7 +230,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
     $("welcome").textContent="Your Account";
     $("accountHeaderHandle").textContent="Account";
   }
-  if(subscriptionReturn==="success")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Payment confirmed. Activating your plan…";},0);
+  if(subscriptionReturn==="success")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Checkout completed. Waiting for Stripe confirmation…";},0);
   if(subscriptionReturn==="cancelled")setTimeout(()=>{const m=document.getElementById("subscriptionMessage");if(m)m.textContent="Subscription checkout was cancelled.";},0);
 
   const esc=v=>String(v??"").replace(/[&<>"\x27]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","\x27":"&#39;"}[c]));
@@ -492,7 +492,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
     const input=$(kind+"Amount"),amount=Number(input.value),el=$(kind+"Quote");
     if(!input.value||!Number.isFinite(amount)||amount<=0){el.textContent=kind==="deposit"?"Minimum deposit: $20.00 · Fee: $1.00":"Minimum withdrawal: $20.00.";return;}
     const fee=Math.max(1,Math.ceil(amount/20));
-    el.textContent=kind==="deposit"?(amount>fee?"Fee $1.00 · Estimated credit "+(amount-fee).toFixed(2)+" USDT":"Amount must exceed $1.00"):(amount>=20?"Fee "+fee.toFixed(2)+" USDT · Estimated payout $"+(amount-fee).toFixed(2):"Minimum withdrawal: $20.00");
+    el.textContent=kind==="deposit"?(amount>=20?"Fee $"+fee.toFixed(2)+" · Estimated credit "+(amount-fee).toFixed(2)+" USDT":"Minimum deposit: $20.00"):(amount>=20?"Fee "+fee.toFixed(2)+" USDT · Estimated payout $"+(amount-fee).toFixed(2):"Minimum withdrawal: $20.00");
   }
   ["deposit","withdraw"].forEach(kind=>$(kind+"Amount").addEventListener("input",()=>previewFee(kind)));
   $("withdrawForm").addEventListener("submit",async e=>{
@@ -519,7 +519,26 @@ document.addEventListener("DOMContentLoaded",async()=>{
     }catch(e){message.textContent=e.message;button.disabled=false;}
   };
   const depositState=new URLSearchParams(location.search).get("deposit");
-  if(depositState==="success")$("depositMessage").textContent="Payment received by Stripe. Your wallet will update after webhook confirmation.";
+  if(depositState==="success"){
+    const sessionId=new URLSearchParams(location.search).get("session_id");
+    $("depositMessage").textContent="Checkout completed. Waiting for Stripe confirmation…";
+    if(sessionId)(async()=>{
+      for(let attempt=0;attempt<12;attempt++){
+        try{
+          const result=await window.gugeeAuth.api("/api/stripe/deposit-status?session_id="+encodeURIComponent(sessionId));
+          if(result.status==="paid"){
+            $("depositMessage").textContent="Deposit confirmed and credited to your wallet.";
+            await Promise.allSettled([loadWallet(),loadTransactions()]);return;
+          }
+          if(result.status==="failed"||result.status==="expired"){
+            $("depositMessage").textContent="Deposit was not completed. Your wallet was not credited.";return;
+          }
+        }catch(e){$("depositMessage").textContent="Deposit status is unavailable. Check your wallet history shortly.";return;}
+        await new Promise(resolve=>setTimeout(resolve,2500));
+      }
+      $("depositMessage").textContent="Payment confirmation is taking longer. Refresh this page to check again.";
+    })();
+  }
   if(depositState==="cancelled")$("depositMessage").textContent="Deposit cancelled. Your wallet was not credited.";
   async function loadReferral(){
     try{

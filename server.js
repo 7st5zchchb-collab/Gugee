@@ -82,10 +82,15 @@ async function creditStripeDeposit(session,eventId){
     await client.query("BEGIN");
     const inserted=await client.query("INSERT INTO stripe_events(event_id,event_type) VALUES($1,$2) ON CONFLICT(event_id) DO NOTHING RETURNING event_id",["deposit:"+String(session.id||""),"checkout.session.completed"]);
     if(!inserted.rows[0]){await client.query("ROLLBACK");return;}
+    const order=(await client.query("SELECT user_id,gross_cents,fee_cents,status FROM deposit_orders WHERE stripe_session_id=$1 FOR UPDATE",[session.id])).rows[0];
+    // Sessions created before deposit_orders existed are still covered by signed metadata and event idempotency.
+    if(order&&(Number(order.user_id)!==userId||Number(order.gross_cents)!==grossCents||Number(order.fee_cents)!==feeCents||order.status!=="pending"))
+      throw new Error("Stripe session does not match deposit order");
     await client.query("INSERT INTO wallets(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[userId]);
     await client.query("UPDATE wallets SET usdt=usdt+$1,updated_at=NOW() WHERE user_id=$2",[creditCents/100,userId]);
     await client.query("INSERT INTO wallet_transactions(user_id,type,usdt_amount,fee_usdt) VALUES($1,'deposit',$2,$3)",[userId,creditCents/100,feeCents/100]);
     await client.query("INSERT INTO notifications(user_id,title,message,type) VALUES($1,$2,$3,'deposit')",[userId,"Deposit completed",(creditCents/100).toFixed(2)+" USDT was credited to your Gugee wallet."]);
+    if(order)await client.query("UPDATE deposit_orders SET status='paid',completed_at=NOW() WHERE stripe_session_id=$1",[session.id]);
     await client.query("COMMIT");
   }catch(e){await client.query("ROLLBACK");throw e;}finally{client.release();}
 }
@@ -216,6 +221,10 @@ app.post("/api/stripe/webhook",express.raw({type:"application/json",limit:"256kb
       if(session?.metadata?.gugee_kind==="card_crypto"){
         const status=event.type==="checkout.session.expired"?"expired":"failed";
         await pool.query("UPDATE card_crypto_orders SET status=$1 WHERE id=$2 AND user_id=$3 AND status='pending'",[status,Number(session.metadata?.gugee_order_id),Number(session.metadata?.gugee_user_id)]);
+      }
+      if(session?.metadata?.gugee_kind==="deposit"){
+        const status=event.type==="checkout.session.expired"?"expired":"failed";
+        await pool.query("UPDATE deposit_orders SET status=$1 WHERE stripe_session_id=$2 AND user_id=$3 AND status='pending'",[status,String(session.id||""),Number(session.metadata?.gugee_user_id)]);
       }
     }
     res.json({received:true});
@@ -577,6 +586,13 @@ function makeReferralCode(username){
 
 function depositFee(amount){return Math.max(1,Math.ceil(Number(amount)/20));}
 function withdrawFee(amount){return Math.max(1,Math.ceil(Number(amount)/20));}
+function paymentCents(value,min,max){
+  const raw=String(value??"");
+  if(!/^(?:0|[1-9][0-9]{0,5})(?:\.[0-9]{1,2})?$/.test(raw))return null;
+  const [dollars,fraction=""]=raw.split(".");
+  const cents=Number(dollars)*100+Number(fraction.padEnd(2,"0"));
+  return cents>=min*100&&cents<=max*100?cents:null;
+}
 const PLAN_LIMITS={
   free:{favorites:5,dailyWithdrawal:500,tradeFee:0.10,cardCryptoFee:1.50},
   plus:{favorites:25,dailyWithdrawal:5000,tradeFee:0.05,cardCryptoFee:1.00},
@@ -726,6 +742,16 @@ async function initDb(){
       event_type TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS deposit_orders(
+      stripe_session_id TEXT PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      gross_cents INTEGER NOT NULL CHECK(gross_cents>=2000),
+      fee_cents INTEGER NOT NULL CHECK(fee_cents>0 AND fee_cents<gross_cents),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','paid','failed','expired')),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      completed_at TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS idx_deposit_orders_user ON deposit_orders(user_id,created_at DESC);
     CREATE TABLE IF NOT EXISTS saved_payment_methods(
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -1157,10 +1183,9 @@ async function getPurchaseCoin(coinId){
 
 app.post("/api/stripe/create-checkout-session",auth,async(req,res)=>{
   if(!STRIPE_SECRET_KEY)return res.status(503).json({error:"Stripe is not configured."});
-  const amount=Number(req.body.amount);
-  if(!Number.isFinite(amount)||amount<20||amount>100000)return res.status(400).json({error:"Deposit must be between $20 and $100,000."});
-  const grossCents=Math.round(amount*100);
-  const feeCents=Math.round(depositFee(amount)*100);
+  const grossCents=paymentCents(req.body.amount,20,100000);
+  if(grossCents===null)return res.status(400).json({error:"Deposit must be between $20 and $100,000, with at most two decimal places."});
+  const feeCents=Math.max(100,Math.ceil(grossCents/2000)*100);
   if(grossCents<=feeCents)return res.status(400).json({error:"Deposit amount is too small."});
   try{
     const origin=FRONTEND_URL||(`${req.protocol}://${req.get("host")}`);
@@ -1184,11 +1209,22 @@ app.post("/api/stripe/create-checkout-session",auth,async(req,res)=>{
     });
     const session=await stripeResponse.json();
     if(!stripeResponse.ok||!session.url)throw new Error(session?.error?.message||"Could not create Stripe Checkout session");
+    await pool.query("INSERT INTO deposit_orders(stripe_session_id,user_id,gross_cents,fee_cents) VALUES($1,$2,$3,$4)",[session.id,req.user.id,grossCents,feeCents]);
     res.json({url:session.url,sessionId:session.id,fee:feeCents/100,estimatedCredit:(grossCents-feeCents)/100});
   }catch(e){
     console.error("Stripe checkout error:",e.message);
     res.status(502).json({error:"Could not start secure checkout."});
   }
+});
+
+app.get("/api/stripe/deposit-status",auth,async(req,res)=>{
+  const sessionId=String(req.query.session_id||"");
+  if(!/^cs_[a-zA-Z0-9_]{8,200}$/.test(sessionId))return res.status(400).json({error:"Invalid session ID."});
+  try{
+    const {rows}=await pool.query("SELECT status FROM deposit_orders WHERE stripe_session_id=$1 AND user_id=$2",[sessionId,req.user.id]);
+    if(!rows[0])return res.status(404).json({error:"Deposit order not found."});
+    res.json({status:rows[0].status});
+  }catch(e){res.status(500).json({error:"Could not load deposit status."});}
 });
 
 app.get("/api/wallet/price",auth,async(req,res)=>{
@@ -1237,10 +1273,11 @@ app.get("/api/card-crypto/orders",auth,async(req,res)=>{
 
 app.post("/api/stripe/card-crypto-checkout",auth,async(req,res)=>{
   if(!STRIPE_SECRET_KEY)return res.status(503).json({error:"Stripe is not configured."});
-  const coinId=String(req.body.coinId||"").trim().toLowerCase(),cryptoUsd=Number(req.body.usdAmount);
-  if(!Number.isFinite(cryptoUsd)||cryptoUsd<5||cryptoUsd>100000)return res.status(400).json({error:"Card crypto purchase must be between $5 and $100,000."});
+  const coinId=String(req.body.coinId||"").trim().toLowerCase(),cryptoCents=paymentCents(req.body.usdAmount,5,100000);
+  if(cryptoCents===null)return res.status(400).json({error:"Card crypto purchase must be between $5 and $100,000, with at most two decimal places."});
+  const cryptoUsd=cryptoCents/100;
   let coin;try{coin=await getPurchaseCoin(coinId)}catch(e){return res.status(400).json({error:e.message||"Coin unavailable"});}
-  const limits=await getPlanLimits(req.user.id),fee=limits.cardCryptoFee,total=cryptoUsd+fee,totalCents=Math.round(total*100);
+  const limits=await getPlanLimits(req.user.id),fee=limits.cardCryptoFee,totalCents=cryptoCents+Math.round(fee*100),total=totalCents/100;
   try{
     const order=(await pool.query("INSERT INTO card_crypto_orders(user_id,coin_id,symbol,crypto_usd,fee_usd,status) VALUES($1,$2,$3,$4,$5,'pending') RETURNING id",[req.user.id,coin.id,coin.symbol,cryptoUsd,fee])).rows[0];
     const origin=FRONTEND_URL||(`${req.protocol}://${req.get("host")}`),body=new URLSearchParams();
