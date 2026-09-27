@@ -162,7 +162,7 @@ async function loadCoin(){
 }
 
 const pairMap={BTC:["BTCUSDT","BTC-USD","XXBTZUSD"],ETH:["ETHUSDT","ETH-USD","XETHZUSD"],SOL:["SOLUSDT","SOL-USD","SOLUSD"],BNB:["BNBUSDT","BNB-USD","BNBUSD"],XRP:["XRPUSDT","XRP-USD","XXRPZUSD"],DOGE:["DOGEUSDT","DOGE-USD","DOGEUSD"]};
-const major=[["binance","Binance"],["coinbase","Coinbase"],["kraken","Kraken"],["bybit","Bybit"],["okx","OKX"],["kucoin","KuCoin"],["bitget","Bitget"],["gate","Gate.io"],["mexc","MEXC"],["cryptocom","Crypto.com"]];
+const major=[["coinbase","Coinbase"],["kraken","Kraken"],["okx","OKX"],["kucoin","KuCoin"],["bitget","Bitget"],["gate","Gate.io"],["mexc","MEXC"]];
 
 async function exchangeQuote(provider,symbol){
  const r=await fetch((window.GUGEE_API_BASE||"")+"/api/exchanges?provider="+encodeURIComponent(provider)+"&symbol="+encodeURIComponent(symbol));if(!r.ok)throw new Error();return r.json();
