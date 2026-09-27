@@ -131,7 +131,7 @@ async function getCandles(e){
 }
 function metric(label,value,cls=""){return '<div class="analysis-metric"><span>'+label+'</span><b class="'+cls+'">'+value+'</b></div>'}
 function renderSummary(t){
- $("exchangeSummary").innerHTML='<div class="live-stat"><span>LIVE PRICE</span><strong>'+money(t.price)+'</strong></div><div class="live-stat"><span>24H CHANGE</span><strong class="'+(t.change>=0?"positive":"negative")+'">'+pct(t.change)+'</strong></div><div class="live-stat"><span>24H VOLUME</span><strong>'+money(t.volume)+'</strong></div><div class="live-stat"><span>MARKET</span><strong>BTC / "+(String(state.current.symbol).includes("USDT")?"USDT":"USD")+"</strong></div>';
+ $("exchangeSummary").innerHTML='<div class="live-stat"><span>LIVE PRICE</span><strong>'+money(t.price)+'</strong></div><div class="live-stat"><span>24H CHANGE</span><strong class="'+(t.change>=0?"positive":"negative")+'">'+pct(t.change)+'</strong></div><div class="live-stat"><span>24H VOLUME</span><strong>'+money(t.volume)+'</strong></div><div class="live-stat"><span>MARKET</span><strong>BTC / '+(String(state.current.symbol).includes("USDT")?"USDT":"USD")+'</strong></div>';
 }
 function drawChart(rows){
  const svg=$("exchangeChart"); if(!rows.length){svg.innerHTML='<text x="500" y="170" text-anchor="middle" fill="#666">Historical data unavailable</text>';return}
