@@ -63,10 +63,9 @@ function initGlobalNavigation(){
     '<a data-nav="analysis" href="analysis.html"><span class="nav-icon">↗</span>Analysis</a>'+
     '<a data-nav="exchanges" href="exchanges.html"><span class="nav-icon">▦</span>Exchanges</a>'+
     '<div class="mobile-nav-separator"></div>'+
-    '<a href="account.html#walletActions"><span class="nav-icon">▣</span>Wallet</a>'+
+    '<a href="account.html"><span class="nav-icon">♙</span>Account</a>'+
     '<a href="account.html#profileSettings"><span class="nav-icon">♙</span>Profile</a>'+
     '<a href="account.html#notificationsPanel"><span class="nav-icon">♧</span>Notifications <span class="drawer-notification-badge" hidden>0</span></a>'+
-    '<a href="account.html#tasksPanel"><span class="nav-icon">☑</span>Tasks</a>'+
     '<a href="referrals.html"><span class="nav-icon">♧</span>Referral</a>'+
     '<div class="mobile-nav-separator"></div>'+
     '<a href="account.html#passwordSettingsForm"><span class="nav-icon">⚙</span>Settings</a>'+
