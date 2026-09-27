@@ -45,7 +45,7 @@ The server initializes its account, wallet, and community tables on startup.
 
 ## Financial flow status
 
-Gugee records internal USDT and crypto balances in PostgreSQL. Those balances are not on-chain custody and the in-app buy/sell buttons are not exchange order matching. Card deposits and purchases need a configured Stripe account and verified webhook before balances are credited. New deposits have a database order tied to the Checkout session; the account page checks its status after returning from Checkout. A success URL alone never confirms payment. Withdrawal requests use PayPal email for manual review; no card payout provider is connected. Do not present internal balances as externally held crypto or advertise automated withdrawals.
+Gugee records internal USDT and crypto balances in PostgreSQL. Those balances are not on-chain custody or exchange order matching. New deposits, card setup, card purchases, subscriptions, withdrawals, internal buy/sell trades, task claims, and new prize entries are paused by default. Their POST endpoints return HTTP 503 and the account page hides their controls. Existing balances, history, cancellation/review of existing obligations, and verified Stripe webhooks remain accessible. `GET /api/features` reports `transactionsEnabled: false`. Only set `GUGEE_TRANSACTIONS_ENABLED=true` after a merchant provider and business requirements are approved and the existing payment integration is tested. A success URL alone never confirms payment. Do not present internal balances as externally held crypto or advertise automated withdrawals.
 
 ## Account email flows
 

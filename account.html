@@ -6,6 +6,7 @@
 <title>Gugee — Account</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
+[hidden]{display:none!important}
 .account-shell{max-width:1100px;margin:0 auto;padding:80px 20px}
 .account-head{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:30px}
 .account-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:28px}
@@ -106,7 +107,7 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 <body class="auth-page">
 <header class="site-header">
 <a class="brand" href="./"><img class="brand-logo" src="images/gugee-logo-3c.webp" alt="Gugee logo"><span>Gugee</span></a>
-<button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button><nav class="nav" id="siteNav"><a href="markets.html">Markets</a><a href="account.html#buyPanel">Trading</a><a href="tournaments.html">Tournaments</a><a href="giveaways.html">Giveaways</a><a href="referrals.html">Referrals</a><a href="analysis.html">Analysis</a><a href="exchanges.html">Exchanges</a></nav>
+<button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button><nav class="nav" id="siteNav"><a href="markets.html">Markets</a><a href="exchange.html">Market analysis</a><a href="tournaments.html">Tournaments</a><a href="giveaways.html">Giveaways</a><a href="referrals.html">Referrals</a><a href="analysis.html">Analysis</a><a href="exchanges.html">Exchanges</a></nav>
 <a class="login-button user-button" href="#profileSettings" id="accountUserButton"><span id="accountHeaderAvatar" class="user-avatar">U</span><span id="accountHeaderHandle">@user</span></a>
 </header>
 <main class="account-shell">
@@ -136,25 +137,25 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 </section>
 
 <section class="account-card" style="margin-top:20px">
-<p class="section-label">CASH BALANCE</p>
+<p class="section-label">INTERNAL BALANCE · TRANSACTIONS PAUSED</p>
 <div class="balance" id="usdt">0.00 USDT</div>
-<p class="muted">Internal Gugee wallet balance. Purchases and platform rewards are recorded in your transaction history.</p>
+<p class="muted">This is Gugee's internal account record, not an on-chain holding or a withdrawable balance. New payments, withdrawals and trades are paused. Your existing history remains available below.</p>
 </section>
 
 <section class="account-card" style="margin-top:20px" id="walletActions">
-<p class="section-label">WALLET</p><h2>Deposit · Withdraw · Buy · Sell · Referral · Transactions</h2>
-<p class="muted">Buy and sell update your internal Gugee portfolio at a market reference price. They do not place an order on an external exchange or deliver on-chain crypto.</p>
-<nav class="wallet-shortcuts" aria-label="Wallet actions"><a href="#depositPanel">Deposit</a><a href="#withdrawPanel">Withdraw</a><a href="#buyPanel">Buy</a><a href="#sellPanel">Sell</a><a href="#referralPanel">Referral</a><a href="#transactionsPanel">Transactions</a></nav>
+<p class="section-label">ACCOUNT</p><h2>Portfolio · Referral · History</h2>
+<p class="muted">Explore your account and market data. New monetary actions are paused while a payment provider and business requirements are arranged.</p>
+<nav class="wallet-shortcuts" aria-label="Account shortcuts"><a href="#referralPanel">Referral</a><a href="#transactionsPanel">Transactions</a></nav>
 <div class="wallet-action-grid">
-<div id="depositPanel" class="wallet-operation"><h3>Deposit</h3><label for="depositAmount">USD amount</label><input id="depositAmount" type="number" min="20" max="100000" step="0.01" placeholder="100.00"><p id="depositQuote" class="muted">Minimum deposit: $20.00 · Fee: $1.00</p><p class="muted">Secure card payment is completed on Stripe Checkout. Wallet credit happens only after Stripe confirms payment.</p><button id="depositButton" class="auth-submit" type="button">Continue to secure checkout</button><p id="depositMessage" class="muted" aria-live="polite"></p></div>
-<div id="withdrawPanel" class="wallet-operation"><h3>Withdraw</h3><form id="withdrawForm"><label for="withdrawAmount">USDT amount (minimum 20)</label><input id="withdrawAmount" type="number" min="20" max="100000" step="0.01" placeholder="40.00" required><label for="withdrawMethod">Payout method</label><select id="withdrawMethod" required><option value="">Select method</option><option value="paypal">PayPal (manual review)</option></select><label for="withdrawDestination">PayPal email</label><input id="withdrawDestination" type="email" maxlength="160" autocomplete="email" placeholder="you@example.com" required><p id="withdrawQuote" class="muted">Fee: $1 for each started $20. Payout requests are reviewed manually.</p><p class="muted">Card payouts are unavailable. Your requested amount is held while the withdrawal is pending. Rejected requests are returned to your wallet.</p><button class="auth-submit" type="submit">Request withdrawal</button><p id="withdrawMessage" class="muted" aria-live="polite"></p></form></div>
-<div id="sellPanel" class="wallet-operation"><h3>Sell crypto</h3><form id="sellForm"><label for="sellCoin">Owned asset</label><select id="sellCoin" required><option value="">Select an asset</option></select><label for="sellQuantity">Quantity</label><input id="sellQuantity" type="number" min="0" step="any" required><p id="sellQuote" class="muted">Trading fee: 0.10 USDT.</p><button class="auth-submit" type="submit">Sell crypto</button><p id="sellMessage" class="muted" aria-live="polite"></p></form></div>
+<div id="depositPanel" class="wallet-operation" hidden><h3>Deposit</h3><label for="depositAmount">USD amount</label><input id="depositAmount" type="number" min="20" max="100000" step="0.01" placeholder="100.00"><p id="depositQuote" class="muted">Minimum deposit: $20.00 · Fee: $1.00</p><p class="muted">Secure card payment is completed on Stripe Checkout. Wallet credit happens only after Stripe confirms payment.</p><button id="depositButton" class="auth-submit" type="button">Continue to secure checkout</button><p id="depositMessage" class="muted" aria-live="polite"></p></div>
+<div id="withdrawPanel" class="wallet-operation" hidden><h3>Withdraw</h3><form id="withdrawForm"><label for="withdrawAmount">USDT amount (minimum 20)</label><input id="withdrawAmount" type="number" min="20" max="100000" step="0.01" placeholder="40.00" required><label for="withdrawMethod">Payout method</label><select id="withdrawMethod" required><option value="">Select method</option><option value="paypal">PayPal (manual review)</option></select><label for="withdrawDestination">PayPal email</label><input id="withdrawDestination" type="email" maxlength="160" autocomplete="email" placeholder="you@example.com" required><p id="withdrawQuote" class="muted">Fee: $1 for each started $20. Payout requests are reviewed manually.</p><p class="muted">Card payouts are unavailable. Your requested amount is held while the withdrawal is pending. Rejected requests are returned to your wallet.</p><button class="auth-submit" type="submit">Request withdrawal</button><p id="withdrawMessage" class="muted" aria-live="polite"></p></form></div>
+<div id="sellPanel" class="wallet-operation" hidden><h3>Sell crypto</h3><form id="sellForm"><label for="sellCoin">Owned asset</label><select id="sellCoin" required><option value="">Select an asset</option></select><label for="sellQuantity">Quantity</label><input id="sellQuantity" type="number" min="0" step="any" required><p id="sellQuote" class="muted">Trading fee: 0.10 USDT.</p><button class="auth-submit" type="submit">Sell crypto</button><p id="sellMessage" class="muted" aria-live="polite"></p></form></div>
 <div id="referralPanel" class="wallet-operation"><h3>Referral</h3><p id="referralCode" class="muted">Updating...</p><input id="referralLink" aria-label="Your referral link" readonly><button id="copyReferral" class="auth-submit" type="button">Copy link</button><p id="referralMessage" class="muted" aria-live="polite"></p></div>
 </div></section>
 
-<section class="account-card" id="savedCardPanel" style="margin-top:20px"><p class="section-label">PAYMENT METHOD</p><h2>Card</h2><p class="muted">Add your card through Stripe securely. Gugee never stores your full card number or CVV.</p><button id="addCardBtn" class="auth-submit" type="button" style="margin-top:12px">Add card securely</button><p id="cardSetupMessage" class="muted" aria-live="polite"></p><div id="savedCards" style="display:grid;gap:8px;margin-top:12px"></div></section>
+<section class="account-card" id="savedCardPanel" style="margin-top:20px" hidden><p class="section-label">PAYMENT METHOD</p><h2>Card</h2><p class="muted">Add your card through Stripe securely. Gugee never stores your full card number or CVV.</p><button id="addCardBtn" class="auth-submit" type="button" style="margin-top:12px">Add card securely</button><p id="cardSetupMessage" class="muted" aria-live="polite"></p><div id="savedCards" style="display:grid;gap:8px;margin-top:12px"></div></section>
 
-<section class="account-card" id="cardCryptoPanel" style="margin-top:20px">
+<section class="account-card" id="cardCryptoPanel" style="margin-top:20px" hidden>
 <p class="section-label">CARD → CRYPTO</p><h2>Buy crypto directly by card</h2>
 <form id="cardCryptoForm" style="display:grid;gap:12px;max-width:520px;margin-top:16px">
 <input id="cardCryptoCoin" type="text" placeholder="Coin ID, e.g. bitcoin" required>
@@ -163,7 +164,7 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 <button class="auth-submit" type="submit">Continue to card payment</button><p id="cardCryptoMessage" class="muted" aria-live="polite"></p>
 </form></section>
 
-<section class="account-card" id="buyPanel" style="margin-top:20px">
+<section class="account-card" id="buyPanel" style="margin-top:20px" hidden>
 <p class="section-label">BUY CRYPTO</p>
 <h2>Buy with USDT</h2>
 <form id="buyForm" style="display:grid;gap:12px;max-width:520px;margin-top:16px">
@@ -183,14 +184,15 @@ body.auth-page{background:radial-gradient(circle at 85% 8%,rgba(20,84,145,.13),t
 <section class="account-card subscription-ui">
 <div class="account-head" style="margin-bottom:10px"><div><p class="section-label">SUBSCRIPTION</p><h2>Your plan</h2></div><span id="subscriptionStatus" class="muted">Updating...</span></div><div id="planLimits" class="muted" style="margin:8px 0 14px">Loading plan limits...</div>
 <div class="plan-grid">
-<div class="plan-card" data-plan="free"><h3>Free</h3><div class="plan-price">$0</div><ul><li>5 favorites</li><li>Basic market analytics</li><li>500 USDT/day withdrawal request limit</li></ul><button class="plan-btn" type="button">Select</button></div>
-<div class="plan-card" data-plan="plus"><h3>Plus</h3><div class="plan-price">$4.99 / month</div><ul><li>25 favorites</li><li>0.05 USDT internal trade fee</li><li>Higher withdrawal limits</li><li>5,000 USDT/day withdrawal request limit</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
-<div class="plan-card" data-plan="pro"><h3>Pro</h3><div class="plan-price">$9.99 / month</div><ul><li>100 favorites</li><li>No internal trade fee</li><li>Highest account limits</li><li>25,000 USDT/day withdrawal request limit</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
+<div class="plan-card" data-plan="free"><h3>Free</h3><div class="plan-price">$0</div><ul><li>5 favorites</li><li>Market analytics</li><li>Account history</li></ul><button class="plan-btn" type="button">Current plan</button></div>
+<div class="plan-card" data-plan="plus" hidden><h3>Plus</h3><div class="plan-price">$4.99 / month</div><ul><li>25 favorites</li><li>0.05 USDT internal trade fee</li><li>Higher withdrawal limits</li><li>5,000 USDT/day withdrawal request limit</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
+<div class="plan-card" data-plan="pro" hidden><h3>Pro</h3><div class="plan-price">$9.99 / month</div><ul><li>100 favorites</li><li>No internal trade fee</li><li>Highest account limits</li><li>25,000 USDT/day withdrawal request limit</li></ul><button class="plan-btn" type="button">Upgrade</button></div>
 </div>
+<button id="cancelPlanBtn" class="plan-btn" type="button" hidden style="margin-top:12px;max-width:260px">Cancel paid plan renewal</button>
 <p id="subscriptionMessage" class="muted" aria-live="polite"></p>
 </section>
 
-<section class="account-card" style="margin-top:20px" id="tasksPanel">
+<section class="account-card" style="margin-top:20px" id="tasksPanel" hidden>
 <div class="account-head"><div><p class="section-label">TASKS & REWARDS</p><h2>Complete tasks</h2><p class="muted">Progress is verified by Gugee servers. Each claimable reward can be collected only once.</p></div><div><small class="muted">AVAILABLE REWARD BUDGET</small><div id="taskRewardBudget" class="balance" style="font-size:22px;margin:4px 0">0</div></div></div>
 <div id="taskList" class="notification-list"><p class="muted">Updating tasks...</p></div>
 <p id="taskMessage" class="muted" aria-live="polite"></p>
@@ -386,11 +388,12 @@ document.addEventListener("DOMContentLoaded",async()=>{
       const limits=await window.gugeeAuth.api("/api/account/limits");
       currentTradeFee=Number(limits.tradeFee||0);
       $("sellQuote").textContent="Trading fee: "+currentTradeFee.toFixed(2)+" USDT.";
-      $("planLimits").textContent=limits.plan.toUpperCase()+" limits · "+limits.favorites+" favorites · "+Number(limits.dailyWithdrawal).toLocaleString()+" USDT daily withdrawal";
+      $("planLimits").textContent=limits.plan.toUpperCase()+" · "+limits.favorites+" favorites · Transactions paused";
       const data=await window.gugeeAuth.api("/api/subscriptions");
       const sub=data.subscription||{plan:"free",status:"active"};
       const plan=sub.plan||"free";
       $("subscriptionStatus").textContent=plan.toUpperCase()+(sub.expires_at?" · expires "+new Date(sub.expires_at).toLocaleDateString():"");
+      $("cancelPlanBtn").hidden=plan==="free"||!sub.stripe_subscription_id;
       document.querySelectorAll(".plan-card").forEach(card=>{
         const active=card.dataset.plan===plan;
         card.classList.toggle("active",active);
@@ -414,6 +417,14 @@ document.addEventListener("DOMContentLoaded",async()=>{
       });
     }catch(e){$("subscriptionMessage").textContent=e.message;}
   }
+  $("cancelPlanBtn").onclick=async()=>{
+    const btn=$("cancelPlanBtn");btn.disabled=true;
+    try{
+      const result=await window.gugeeAuth.api("/api/subscriptions/cancel",{method:"POST"});
+      $("subscriptionMessage").textContent="Renewal cancelled. Your current plan remains until "+(result.expiresAt?new Date(result.expiresAt).toLocaleDateString():"the end of its billing period")+".";
+      await loadSubscription();
+    }catch(e){$("subscriptionMessage").textContent=e.message;}finally{btn.disabled=false;}
+  };
 
   async function loadTasks(){
     const box=$("taskList"),msg=$("taskMessage");

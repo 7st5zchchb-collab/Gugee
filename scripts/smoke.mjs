@@ -21,6 +21,14 @@ for(const check of checks){
   }catch(error){failures++;console.log("FAIL "+check.description+" "+check.path+" ("+error.message+")")}
 }
 try{
+  const features=await fetch(apiBase+"/api/features",{signal:AbortSignal.timeout(20000)});
+  const available=features.ok&&(await features.json()).transactionsEnabled===false;
+  const blocked=await fetch(apiBase+"/api/stripe/create-checkout-session",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}",signal:AbortSignal.timeout(20000)});
+  const valid=available&&blocked.status===503;
+  console.log((valid?"PASS":"FAIL")+" Monetary actions paused (HTTP "+blocked.status+")");
+  if(!valid)failures++;
+}catch(error){failures++;console.log("FAIL Monetary actions paused ("+error.message+")")}
+try{
   const r=await fetch(apiBase+"/api/auth/logout",{method:"POST",headers:{Origin:"https://untrusted.example"},signal:AbortSignal.timeout(20000)});
   const valid=r.status===403;console.log((valid?"PASS":"FAIL")+" Cross-origin mutation blocked (HTTP "+r.status+")");
   if(!valid)failures++;

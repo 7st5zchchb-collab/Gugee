@@ -17,6 +17,8 @@ const EMAIL_FROM=process.env.EMAIL_FROM||"Gugee <noreply@gugee.com>";
 const FRONTEND_URL=(process.env.FRONTEND_URL||"").replace(/\/$/,"");
 const STRIPE_SECRET_KEY=process.env.STRIPE_SECRET_KEY||"";
 const STRIPE_WEBHOOK_SECRET=process.env.STRIPE_WEBHOOK_SECRET||"";
+// Keep payment and balance-changing flows closed until a merchant provider is approved.
+const TRANSACTIONS_ENABLED=process.env.GUGEE_TRANSACTIONS_ENABLED==="true";
 
 if(!JWT_SECRET||!DATABASE_URL){
   console.error("Missing JWT_SECRET or DATABASE_URL environment variables.");
@@ -235,6 +237,14 @@ app.post("/api/stripe/webhook",express.raw({type:"application/json",limit:"256kb
 });
 
 app.use(express.json({limit:"20kb"}));
+
+app.get("/api/features",(req,res)=>res.json({transactionsEnabled:TRANSACTIONS_ENABLED}));
+app.use((req,res,next)=>{
+  if(TRANSACTIONS_ENABLED||req.method!=="POST")return next();
+  const paused=/^\/api\/(?:stripe\/(?:create-checkout-session|setup-card|card-crypto-checkout)|subscriptions\/create-checkout-session|wallet\/(?:buy|sell|withdraw|usdt)|tasks\/[^/]+\/claim|tournaments\/[^/]+\/join|giveaways\/[^/]+\/enter|referrals\/claim)$/.test(req.path);
+  if(paused)return res.status(503).json({error:"Transactions and new reward entries are paused until a payment provider is approved."});
+  next();
+});
 
 app.disable("x-powered-by");
 app.use((req,res,next)=>{
